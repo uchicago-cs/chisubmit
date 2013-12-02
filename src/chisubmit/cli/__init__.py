@@ -1,8 +1,11 @@
 import sys
 import traceback
 import datetime
+import shutil
+import os.path
 
 from argparse import ArgumentParser
+from pkg_resources import Requirement, resource_filename
 import ConfigParser
 
 from chisubmit import DEFAULT_CONFIG_FILE, DEFAULT_CHISUBMIT_DIR
@@ -18,7 +21,7 @@ NON_COURSE_SUBCOMMANDS = ['course-create']
 def chisubmit_cmd(argv=None):
     if argv is None:
         argv = sys.argv[1:]
-    
+        
     # Setup argument parser
     parser = ArgumentParser(description="chisubmit")
     parser.add_argument('--config', type=str, default=DEFAULT_CONFIG_FILE)
@@ -34,6 +37,17 @@ def chisubmit_cmd(argv=None):
     create_team_subparsers(subparsers)
     
     args = parser.parse_args(args = argv)
+    
+    # Create chisubmit directory if it does not exist
+    if not os.path.exists(args.dir):
+        os.mkdir(args.dir)
+        
+    if not os.path.exists(args.dir + "/courses/"):        
+        os.mkdir(args.dir + "/courses/")
+
+    if not os.path.exists(args.config):
+        example_conf = resource_filename(Requirement.parse("chisubmit"), "config/chisubmit.sample.conf")    
+        shutil.copyfile(example_conf, args.config)   
     
     config = ConfigParser.ConfigParser()
     config.read(args.config)

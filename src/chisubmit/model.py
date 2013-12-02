@@ -7,6 +7,9 @@ class Course(object):
         self.name = name
         self.extensions = extensions
         
+        self.github_organization = None
+        self.github_instructors_team = None
+        
         self.students = {}
         self.projects = {}
         self.teams = {}
@@ -71,6 +74,8 @@ class Team(object):
 
         self.students = []
         self.active = True
+        self.github_repo = None
+        self.github_team = None
         
         self.projects = {}
         

@@ -30,8 +30,8 @@
 #
 # -------------------------------------------------------------------------- #
 
-from distribute_setup import use_setuptools
-use_setuptools(version="0.6.28")
+from ez_setup import use_setuptools
+use_setuptools()
 from setuptools import setup, find_packages
 import sys
 
@@ -46,10 +46,11 @@ setup(name='chisubmit',
       author_email='borja@cs.uchicago.edu',
       url='http://www.cs.uchicago.edu/',
       package_dir = {'': 'src'},      
+      package_data = {'': ['*.conf']},
       packages=find_packages("src"),
       
 #      install_requires = [ ],
-      setup_requires = [ "setuptools_git >= 0.4.2", "pyyaml >= 3.10" ],
+      setup_requires = [ "setuptools_git >= 1.0", "pyyaml >= 3.10" ],
       include_package_data=True,
       
       entry_points = {

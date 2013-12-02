@@ -1,4 +1,4 @@
-from chisubmit.cli.utils import create_subparser
+from chisubmit.cli.utils import create_subparser, set_default_course
 from chisubmit.model import Course
 
 def create_course_subparsers(subparsers):
@@ -18,8 +18,5 @@ def cli_do__course_create(course, config, args):
     course_file.close()
     
     if args.make_default:
-        config.set("general", "default-course", args.id)
-        config_file = open(args.config, "w")
-        config.write(config_file)
-        config_file.close()
+        set_default_course(args.dir, args.id)
     

@@ -13,6 +13,12 @@ def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-project-add", cli_do__team_project_add)
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
+    
+    subparser = create_subparser(subparsers, "team-project-submit", cli_do__team_project_submit)
+    subparser.add_argument('team_id', type=str)    
+    subparser.add_argument('project_id', type=str)
+    subparser.add_argument('commit', type=str)
+    subparser.add_argument('extensions', type=int, default=0)
 
     subparser = create_subparser(subparsers, "team-repo-create", cli_do__team_repo_create)
     subparser.add_argument('team_id', type=str)
@@ -34,6 +40,33 @@ def cli_do__team_student_add(course, config, args):
 def cli_do__team_project_add(course, config, args):
     project = course.projects[args.project_id]
     course.teams[args.team_id].add_project(project)     
+    
+def cli_do__team_project_submit(course, config, args):
+    project = course.projects[args.project_id]
+    team = course.teams[args.team_id]
+    team_project = team.projects[args.project_id]
+    
+    github_access_token = config.get("github", "access-token")
+    gh = GithubConnection(github_access_token, course.github_organization)
+    
+    commit = gh.get_commit(team, args.commit)
+    
+    if commit is None:
+        print "Commit %s does not exist in repository" % commit
+        return
+        
+    tag_name = project.id
+    
+    submission_tag = gh.get_submission_tag(team, tag_name)
+    
+    if submission_tag is not None:
+        submission_commit = gh.get_commit(team, submission_tag.object.sha)
+        print "Submission tag '%s' already exists" % tag_name
+        print "It points to commit %s (%s)" % (submission_commit.commit.sha, submission_commit.commit.message)
+        return
+    
+    gh.create_submission_tag(team, tag_name, "Extensions: %i" % args.extensions, commit.commit.sha)
+           
     
 def cli_do__team_repo_create(course, config, args):
     team = course.teams[args.team_id]

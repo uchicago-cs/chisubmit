@@ -1,5 +1,9 @@
-from github import Github
+from github import Github, InputGitAuthor
 from github.GithubException import GithubException
+
+import pytz
+from datetime import datetime
+
 from chisubmit import ChisubmitException
 
 class GithubConnection(object):
@@ -59,6 +63,34 @@ class GithubConnection(object):
             except GithubException as ge:
                 raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.github_id, ge.status, ge.data["message"]))
 
+    def create_submission_tag(self, team, tag_name, tag_message, commit_sha):
+        github_repo = self.organization.get_repo(team.github_repo)
+        
+        commit = self.get_commit(team, commit_sha)
+        
+        this_user = self.gh.get_user()
+        tz = pytz.timezone("America/Chicago")
+        dt = tz.localize(datetime.now())
+        iu = InputGitAuthor(this_user.name, this_user.email, dt.isoformat())
+        
+        tag = github_repo.create_git_tag(tag_name, tag_message, commit.sha, "commit", iu)
+        ref = github_repo.create_git_ref("refs/tags/" + tag.tag, tag.sha)
+        
+    def get_submission_tag(self, team, tag_name):
+        github_repo = self.organization.get_repo(team.github_repo)
+        
+        try:
+            submission_tag_ref = github_repo.get_git_ref("tags/" + tag_name)
+        except GithubException as ge:
+            if ge.status == 404:
+                return None
+            else:
+                raise ChisubmitException("Unexpected error when fetching tag %s (%i: %s)" % (tag_name, ge.status, ge.data["message"]))            
+        
+        submission_tag = github_repo.get_git_tag(submission_tag_ref.object.sha)
+        
+        return submission_tag  
+
     def delete_team_repository(self, team):
         try:
             github_repo = self.organization.get_repo(team.github_repo)
@@ -80,6 +112,18 @@ class GithubConnection(object):
             raise ChisubmitException("Unexpected exception deleting team %s (%i: %s)" % (team.github_team, ge.status, ge.data["message"]))
 
         team.github_team = None
+
+    def get_commit(self, team, commit_sha):
+        try:
+            github_repo = self.organization.get_repo(team.github_repo)
+            commit = github_repo.get_commit(commit_sha)
+            return commit
+        except GithubException as ge:
+            if ge.status == 404:
+                return None
+            else:
+                raise ChisubmitException("Unexpected error when fetching commit %s (%i: %s)" % (commit_sha, ge.status, ge.data["message"]))            
+
 
     def __get_user(self, username):
         try:

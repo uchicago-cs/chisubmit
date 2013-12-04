@@ -1,5 +1,6 @@
 import yaml
-
+import math
+from chisubmit.utils import set_datetime_timezone_local
 
 class Course(object):
     def __init__(self, course_id, name, extensions):
@@ -46,6 +47,26 @@ class Project(object):
         
     def add_grade_component(self, grade_component):
         self.grade_components.append(grade_component)
+
+    # We need to do this because PyYAML doesn't load
+    # timezone data when reading dates. 
+    # TODO: Just store everything in UTC       
+    def get_deadline(self):
+        return set_datetime_timezone_local(self.deadline)
+        
+    def extensions_needed(self, submission_time):
+        delta = (submission_time - self.get_deadline()).total_seconds()
+        
+        print submission_time.isoformat()
+        print self.get_deadline().isoformat()
+        print delta
+        
+        extensions_needed = math.ceil(delta / (3600.0 * 24))
+        
+        if extensions_needed <= 0:
+            return 0
+        else:
+            return int(extensions_needed)        
         
 
 class Student(object):

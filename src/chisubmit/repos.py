@@ -76,7 +76,13 @@ class GithubConnection(object):
         tag = github_repo.create_git_tag(tag_name, tag_message, commit.sha, "commit", iu)
         ref = github_repo.create_git_ref("refs/tags/" + tag.tag, tag.sha)
         
-    def get_submission_tag(self, team, tag_name):
+    def update_submission_tag(self, team, tag_name, tag_message, commit_sha):
+        submission_tag_ref = self.get_submission_tag_ref(team, tag_name)
+        submission_tag_ref.delete()
+        
+        self.create_submission_tag(team, tag_name, tag_message, commit_sha)
+        
+    def get_submission_tag_ref(self, team, tag_name):
         github_repo = self.organization.get_repo(team.github_repo)
         
         try:
@@ -87,6 +93,17 @@ class GithubConnection(object):
             else:
                 raise ChisubmitException("Unexpected error when fetching tag %s (%i: %s)" % (tag_name, ge.status, ge.data["message"]))            
         
+        return submission_tag_ref
+
+            
+    def get_submission_tag(self, team, tag_name):
+        github_repo = self.organization.get_repo(team.github_repo)
+        
+        submission_tag_ref = self.get_submission_tag_ref(team, tag_name)
+        
+        if submission_tag_ref is None:
+            return None
+                
         submission_tag = github_repo.get_git_tag(submission_tag_ref.object.sha)
         
         return submission_tag  

@@ -15,6 +15,7 @@ from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
 from chisubmit.cli.project import create_project_subparsers
 from chisubmit.utils import get_course
+from chisubmit.cli.submit import create_submit_subparsers
 
 NON_COURSE_SUBCOMMANDS = ['course-create']
 
@@ -35,6 +36,7 @@ def chisubmit_cmd(argv=None):
     create_project_subparsers(subparsers)
     create_student_subparsers(subparsers)
     create_team_subparsers(subparsers)
+    create_submit_subparsers(subparsers)
     
     args = parser.parse_args(args = argv)
     

@@ -14,7 +14,7 @@ from chisubmit.cli.course import *
 from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
 from chisubmit.cli.project import create_project_subparsers
-from chisubmit.cli.utils import get_course
+from chisubmit.utils import get_course
 
 NON_COURSE_SUBCOMMANDS = ['course-create']
 

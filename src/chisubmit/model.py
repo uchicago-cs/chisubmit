@@ -57,10 +57,6 @@ class Project(object):
     def extensions_needed(self, submission_time):
         delta = (submission_time - self.get_deadline()).total_seconds()
         
-        print submission_time.isoformat()
-        print self.get_deadline().isoformat()
-        print delta
-        
         extensions_needed = math.ceil(delta / (3600.0 * 24))
         
         if extensions_needed <= 0:

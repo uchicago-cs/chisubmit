@@ -1,4 +1,4 @@
-from chisubmit.cli.utils import create_subparser, set_default_course
+from chisubmit.utils import create_subparser, set_default_course
 from chisubmit.model import Course
 from chisubmit.repos import GithubConnection
 

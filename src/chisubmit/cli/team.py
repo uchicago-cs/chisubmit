@@ -1,6 +1,9 @@
+import os.path
+
 from chisubmit.utils import create_subparser
 from chisubmit.model import Team
-from chisubmit.repos import GithubConnection
+from chisubmit.repos import GithubConnection, LocalGitRepo
+from chisubmit import ChisubmitException
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
@@ -14,14 +17,22 @@ def create_team_subparsers(subparsers):
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
     
-    subparser = create_subparser(subparsers, "team-repo-create", cli_do__team_repo_create)
+    subparser = create_subparser(subparsers, "team-gh-repo-create", cli_do__team_gh_repo_create)
     subparser.add_argument('team_id', type=str)
     
-    subparser = create_subparser(subparsers, "team-repo-update", cli_do__team_repo_update)
+    subparser = create_subparser(subparsers, "team-gh-repo-update", cli_do__team_gh_repo_update)
     subparser.add_argument('team_id', type=str)    
 
-    subparser = create_subparser(subparsers, "team-repo-remove", cli_do__team_repo_remove)
+    subparser = create_subparser(subparsers, "team-gh-repo-remove", cli_do__team_gh_repo_remove)
     subparser.add_argument('team_id', type=str)
+
+    subparser = create_subparser(subparsers, "team-local-repo-sync", cli_do__team_local_repo_sync)
+    subparser.add_argument('team_id', type=str)
+
+    subparser = create_subparser(subparsers, "team-create-grading-branch", cli_do__team_create_grading_branch)
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('project_id', type=str)
+
 
 def cli_do__team_create(course, config, args):
     team = Team(team_id = args.id)
@@ -35,7 +46,7 @@ def cli_do__team_project_add(course, config, args):
     project = course.projects[args.project_id]
     course.teams[args.team_id].add_project(project)                
     
-def cli_do__team_repo_create(course, config, args):
+def cli_do__team_gh_repo_create(course, config, args):
     team = course.teams[args.team_id]
     github_access_token = config.get("github", "access-token")
     
@@ -48,7 +59,7 @@ def cli_do__team_repo_create(course, config, args):
         
     gh.create_team_repository(course, team)
     
-def cli_do__team_repo_update(course, config, args):
+def cli_do__team_gh_repo_update(course, config, args):
     team = course.teams[args.team_id]
     github_access_token = config.get("github", "access-token")
     
@@ -60,7 +71,7 @@ def cli_do__team_repo_update(course, config, args):
         
     gh.update_team_repository(team)    
     
-def cli_do__team_repo_remove(course, config, args):
+def cli_do__team_gh_repo_remove(course, config, args):
     team = course.teams[args.team_id]
     
     if not config.has_option("github", "access-token-delete"):
@@ -77,4 +88,38 @@ def cli_do__team_repo_remove(course, config, args):
     gh = GithubConnection(github_access_token, course.github_organization)
         
     gh.delete_team_repository(team)
+
+
+def cli_do__team_local_repo_sync(course, config, args):
+    team = course.teams[args.team_id]
+    
+    repo = LocalGitRepo.get_team_local_repo(course, team, args.dir)
+    
+    if repo is None:
+        repo = LocalGitRepo.create_team_local_repo(course, team, args.dir)
+    else:
+        repo.fetch()
+        repo.reset_branch("master")
+        
+def cli_do__team_create_grading_branch(course, config, args):
+    team = course.teams[args.team_id]
+    project = course.projects[args.project_id]
+    
+    repo = LocalGitRepo.get_team_local_repo(course, team, args.dir)
+    
+    if repo is None:
+        print "%s does not have a local repository" % team.id
+        return
+    
+    tag = repo.get_tag(project.id)
+    if tag is None:
+        print "%s repository does not have a %s tag" % (team.id, project.id)
+        return
+    
+    branch_name = project.get_grading_branch_name()
+    if repo.has_branch(branch_name):
+        print "%s repository already has a %s branch" % (team.id, branch_name)
+        return
+    
+    repo.create_branch(branch_name, tag.commit)
         

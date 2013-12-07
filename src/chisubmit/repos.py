@@ -1,10 +1,13 @@
 from github import Github, InputGitAuthor
 from github.GithubException import GithubException
 
+import git
+import os.path
 import pytz
 from datetime import datetime
 
 from chisubmit import ChisubmitException
+from git.exc import GitCommandError
 
 class GithubConnection(object):
     def __init__(self, access_token, organization):
@@ -160,4 +163,111 @@ class GithubConnection(object):
                     return t
             return None
         except GithubException as ge:
-            raise ChisubmitException("Unexpected error with team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]))            
+            raise ChisubmitException("Unexpected error with team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]))
+        
+        
+class LocalGitRepo(object):
+    def __init__(self, directory):
+        self.repo = git.Repo(directory)
+        
+        rems = [rem for rem in self.repo.remotes if rem.url.startswith("git@github.com")]
+        
+        if len(rems) == 0:
+            self.gh_remote = None
+        elif len(rems) == 1:
+            self.gh_remote = rems[0]
+        else:
+            raise ChisubmitException("Repository at %s has more than one GitHub remote" % directory)        
+
+    def fetch(self):
+        self.gh_remote.fetch()
+
+    def reset_branch(self, branch):
+        branch_refpath = "refs/heads/%s" % branch
+        remote_branch_refpath = "refs/remotes/%s/%s" % (self.gh_remote.name, branch)
+        
+        branch_head = self.__get_head(branch_refpath)
+        remote_branch = self.__get_ref(remote_branch_refpath)
+        
+        if branch_head is None:
+            raise ChisubmitException("No such branch: %s" % branch)
+
+        if remote_branch is None:
+            raise ChisubmitException("No such remote branch: %s" % branch)
+
+        if self.repo.head.ref != branch_head:
+            try:
+                branch_head.checkout()
+            except GitCommandError, gce:
+                print gce
+                raise ChisubmitException("Error checking out")
+        
+        self.repo.head.reset(remote_branch.commit, index=True, working_tree=True)
+
+    def has_branch(self, branch):
+        return (self.__get_branch(branch) is not None)
+
+    def get_tag(self, tag):
+        tags = [t for t in self.repo.tags if t.name == tag]
+        
+        if len(tags) == 0:
+            return None
+        else:
+            return tags[0]           
+
+    def has_tag(self, tag):
+        return (self.get_tag(tag) is not None)
+    
+    def create_branch(self, branch, commit):
+        self.repo.create_head(branch, commit)
+
+    @staticmethod
+    def get_team_local_repo_path(course, team, chisubmit_dir):
+        return "%s/repositories/%s/%s" % (chisubmit_dir, course.id, team.id)
+    
+    @classmethod
+    def get_team_local_repo(cls, course, team, chisubmit_dir):
+        repo_path = cls.get_team_local_repo_path(course, team, chisubmit_dir)
+        if not os.path.exists(repo_path):
+            return None 
+        else:
+            return cls(repo_path)
+    
+    @classmethod
+    def create_team_local_repo(cls, course, team, chisubmit_dir):
+        repo_path = cls.get_team_local_repo_path(chisubmit_dir, course, team)
+        gh_url = course.get_team_gh_repo_url(team.id)
+        return cls.create_repo(repo_path, gh_url)        
+    
+    @classmethod
+    def create_repo(cls, directory, remote = None):
+        if remote is None:
+            pass
+        else:
+            repo = git.Repo.clone_from(remote, directory)
+            return cls(directory)
+
+    def __get_head(self, path):
+        heads = [h for h in self.repo.heads if h.path == path]
+        
+        if len(heads) == 0:
+            return None
+        else:
+            return heads[0]
+
+    def __get_branch(self, branch):
+        branches = [b for b in self.repo.branches if b.name == branch]
+        
+        if len(branches) == 0:
+            return None
+        else:
+            return branches[0]   
+            
+    def __get_ref(self, path):
+        refs = [r for r in self.repo.refs if r.path == path]
+        
+        if len(refs) == 0:
+            return None
+        else:
+            return refs[0]    
+                    

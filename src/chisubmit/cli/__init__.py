@@ -47,6 +47,9 @@ def chisubmit_cmd(argv=None):
     if not os.path.exists(args.dir + "/courses/"):        
         os.mkdir(args.dir + "/courses/")
 
+    if not os.path.exists(args.dir + "/repositories/"):        
+        os.mkdir(args.dir + "/repositories/")
+
     if not os.path.exists(args.config):
         example_conf = resource_filename(Requirement.parse("chisubmit"), "config/chisubmit.sample.conf")    
         shutil.copyfile(example_conf, args.config)   

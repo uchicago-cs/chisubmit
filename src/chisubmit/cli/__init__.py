@@ -15,8 +15,10 @@ from chisubmit.cli.project import create_project_subparsers
 from chisubmit.cli.submit import create_submit_subparsers
 from chisubmit.core import ChisubmitException
 from chisubmit.common import CHISUBMIT_FAIL
+from chisubmit.cli.shell import create_shell_subparsers
 
-NON_COURSE_SUBCOMMANDS = ['course-create']
+SUBCOMMANDS_NO_COURSE = ['course-create']
+SUBCOMMANDS_DONT_SAVE = ['course-create', 'shell']
 
 def chisubmit_cmd(argv=None):
     if argv is None:
@@ -38,16 +40,14 @@ def chisubmit_cmd(argv=None):
     create_student_subparsers(subparsers)
     create_team_subparsers(subparsers)
     create_submit_subparsers(subparsers)
+    create_shell_subparsers(subparsers)
     
     args = parser.parse_args(args = argv)
     
     chisubmit.core.init_chisubmit(args.dir, args.config)
     log.init_logging(args.verbose, args.debug)
-    log.debug("TEST")
-    log.debug("TEST")
-    log.debug("TEST")
 
-    if args.subcommand not in NON_COURSE_SUBCOMMANDS:
+    if args.subcommand not in SUBCOMMANDS_NO_COURSE:
         if args.course:
             course_id = args.course
         else:
@@ -76,7 +76,7 @@ def chisubmit_cmd(argv=None):
             print traceback.format_exc()
             exit(CHISUBMIT_FAIL)
 
-    if args.subcommand not in NON_COURSE_SUBCOMMANDS:
+    if args.subcommand not in SUBCOMMANDS_DONT_SAVE:
         course_file = chisubmit.core.open_course_file(course_id, 'w')
         course_obj.to_file(course_file)
         course_file.close()

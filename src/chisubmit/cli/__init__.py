@@ -6,6 +6,7 @@ import os.path
 from argparse import ArgumentParser
 
 import chisubmit.core
+import chisubmit.common.log as log
 from chisubmit.core.model import Course, Project, Student
 from chisubmit.cli.course import *
 from chisubmit.cli.student import *
@@ -41,6 +42,10 @@ def chisubmit_cmd(argv=None):
     args = parser.parse_args(args = argv)
     
     chisubmit.core.init_chisubmit(args.dir, args.config)
+    log.init_logging(args.verbose, args.debug)
+    log.debug("TEST")
+    log.debug("TEST")
+    log.debug("TEST")
 
     if args.subcommand not in NON_COURSE_SUBCOMMANDS:
         if args.course:

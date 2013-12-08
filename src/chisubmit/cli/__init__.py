@@ -9,13 +9,13 @@ from pkg_resources import Requirement, resource_filename
 import ConfigParser
 
 from chisubmit import DEFAULT_CONFIG_FILE, DEFAULT_CHISUBMIT_DIR
-from chisubmit.model import Course, Project, Student
+from chisubmit.core.model import Course, Project, Student
 from chisubmit.cli.course import *
 from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
 from chisubmit.cli.project import create_project_subparsers
-from chisubmit.utils import get_course
 from chisubmit.cli.submit import create_submit_subparsers
+from chisubmit.common.utils import get_course
 
 NON_COURSE_SUBCOMMANDS = ['course-create']
 

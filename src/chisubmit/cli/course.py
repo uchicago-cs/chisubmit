@@ -1,6 +1,6 @@
-from chisubmit.utils import create_subparser, set_default_course
-from chisubmit.model import Course
-from chisubmit.repos import GithubConnection
+from chisubmit.common.utils import create_subparser, set_default_course
+from chisubmit.core.model import Course
+from chisubmit.core.repos import GithubConnection
 
 def create_course_subparsers(subparsers):
     subparser = create_subparser(subparsers, "course-create", cli_do__course_create)

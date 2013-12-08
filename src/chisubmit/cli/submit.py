@@ -1,5 +1,5 @@
-from chisubmit.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
-from chisubmit.repos import GithubConnection
+from chisubmit.common.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
+from chisubmit.core.repos import GithubConnection
 
 def create_submit_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-project-submit", cli_do__team_project_submit)

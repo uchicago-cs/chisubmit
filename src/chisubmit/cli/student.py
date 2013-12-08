@@ -1,5 +1,5 @@
-from chisubmit.cli.utils import create_subparser
-from chisubmit.model import Student
+from chisubmit.common.utils import create_subparser
+from chisubmit.core.model import Student
 
 def create_student_subparsers(subparsers):
     subparser = create_subparser(subparsers, "student-create", cli_do__student_create)

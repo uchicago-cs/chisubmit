@@ -1,6 +1,6 @@
 import yaml
 import math
-from chisubmit.utils import set_datetime_timezone_local
+from chisubmit.common.utils import set_datetime_timezone_local
 
 class Course(object):
     def __init__(self, course_id, name, extensions):

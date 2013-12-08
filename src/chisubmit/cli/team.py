@@ -1,9 +1,6 @@
-import os.path
-
-from chisubmit.utils import create_subparser
-from chisubmit.model import Team
-from chisubmit.repos import GithubConnection, LocalGitRepo
-from chisubmit import ChisubmitException
+from chisubmit.common.utils import create_subparser
+from chisubmit.core.model import Team
+from chisubmit.core.repos import GithubConnection, LocalGitRepo
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)

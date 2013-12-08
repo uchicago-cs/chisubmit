@@ -1,5 +1,5 @@
-from chisubmit.cli.utils import create_subparser, mkdatetime
-from chisubmit.model import Project, GradeComponent
+from chisubmit.common.utils import create_subparser, mkdatetime
+from chisubmit.core.model import Project, GradeComponent
 
 def create_project_subparsers(subparsers):
     subparser = create_subparser(subparsers, "project-create", cli_do__project_create)

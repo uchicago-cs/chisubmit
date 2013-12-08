@@ -1,3 +1,5 @@
+import chisubmit.core
+
 from chisubmit.common.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
 from chisubmit.core.repos import GithubConnection
 
@@ -11,14 +13,14 @@ def create_submit_subparsers(subparsers):
     subparser.add_argument('--ignore-extensions', action="store_true", dest="ignore_extensions")
     
     
-def cli_do__team_project_submit(course, config, args):
+def cli_do__team_project_submit(course, args):
     project = course.projects[args.project_id]
     team = course.teams[args.team_id]
     team_project = team.projects[args.project_id]
     
     extensions_requested = args.extensions
     
-    github_access_token = config.get("github", "access-token")
+    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
     gh = GithubConnection(github_access_token, course.github_organization)
     
     commit = gh.get_commit(team, args.commit)

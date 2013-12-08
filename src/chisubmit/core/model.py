@@ -1,5 +1,6 @@
 import yaml
 import math
+import chisubmit.core
 from chisubmit.common.utils import set_datetime_timezone_local
 
 class Course(object):
@@ -21,6 +22,15 @@ class Course(object):
     @staticmethod
     def from_file(course_file):
         return yaml.load(course_file)
+    
+    @staticmethod
+    def from_course_id(course_id):
+        course_file = chisubmit.core.open_course_file(course_id)
+        if course_file is None:
+            return None
+        course_obj = Course.from_file(course_file)
+        course_file.close()
+        return course_obj
         
     def add_student(self, student):
         self.students[student.id] = student

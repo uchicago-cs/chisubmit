@@ -1,21 +1,17 @@
 import sys
 import traceback
 import datetime
-import shutil
 import os.path
 
 from argparse import ArgumentParser
-from pkg_resources import Requirement, resource_filename
-import ConfigParser
 
-from chisubmit import DEFAULT_CONFIG_FILE, DEFAULT_CHISUBMIT_DIR
+import chisubmit.core
 from chisubmit.core.model import Course, Project, Student
 from chisubmit.cli.course import *
 from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
 from chisubmit.cli.project import create_project_subparsers
 from chisubmit.cli.submit import create_submit_subparsers
-from chisubmit.common.utils import get_course
 
 NON_COURSE_SUBCOMMANDS = ['course-create']
 
@@ -25,10 +21,12 @@ def chisubmit_cmd(argv=None):
         
     # Setup argument parser
     parser = ArgumentParser(description="chisubmit")
-    parser.add_argument('--config', type=str, default=DEFAULT_CONFIG_FILE)
-    parser.add_argument('--dir', type=str, default=DEFAULT_CHISUBMIT_DIR)
+    parser.add_argument('--config', type=str, default=None)
+    parser.add_argument('--dir', type=str, default=None)
     parser.add_argument('--noop', action="store_true")
     parser.add_argument('--course', type=str)
+    parser.add_argument('--verbose', action="store_true")
+    parser.add_argument('--debug', action="store_true")
 
     subparsers = parser.add_subparsers(dest="subcommand")
     
@@ -40,45 +38,35 @@ def chisubmit_cmd(argv=None):
     
     args = parser.parse_args(args = argv)
     
-    # Create chisubmit directory if it does not exist
-    if not os.path.exists(args.dir):
-        os.mkdir(args.dir)
-        
-    if not os.path.exists(args.dir + "/courses/"):        
-        os.mkdir(args.dir + "/courses/")
-
-    if not os.path.exists(args.dir + "/repositories/"):        
-        os.mkdir(args.dir + "/repositories/")
-
-    if not os.path.exists(args.config):
-        example_conf = resource_filename(Requirement.parse("chisubmit"), "config/chisubmit.sample.conf")    
-        shutil.copyfile(example_conf, args.config)   
-    
-    config = ConfigParser.ConfigParser()
-    config.read(args.config)
+    chisubmit.core.init_chisubmit(args.dir, args.config)
 
     if args.subcommand not in NON_COURSE_SUBCOMMANDS:
-        course = get_course(config, args)
-        if course is None:
+        if args.course:
+            course_id = args.course
+        else:
+            course_id = chisubmit.core.get_default_course()
+        
+        if course_id is None:
             print "ERROR: No course specified with --course and no default course in configuration file"
             exit(1)
         else:
-            course_file = open(args.dir + "/courses/" + course + ".yaml")
-            course_obj = Course.from_file(course_file)
-            course_file.close()
+            course_obj = Course.from_course_id(course_id)
+            if course_obj is None:
+                print "ERROR: Course '%s' does not exist" % course_id
+                exit(1)
     else:
-        course, course_obj = None, None
+        course_id, course_obj = None, None
 
     if not args.noop:
         try:
-            args.func(course_obj, config, args)
+            args.func(course_obj, args)
         except Exception, e:
             print "ERROR: Exception raised while executing %s command" % args.subcommand
             print traceback.format_exc()
             exit(3)
 
     if args.subcommand not in NON_COURSE_SUBCOMMANDS:
-        course_file = open(args.dir + "/courses/" + course + ".yaml", 'w')
+        course_file = chisubmit.core.open_course_file(course_id, 'w')
         course_obj.to_file(course_file)
         course_file.close()
 

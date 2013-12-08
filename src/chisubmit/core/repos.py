@@ -6,7 +6,8 @@ import os.path
 import pytz
 from datetime import datetime
 
-from chisubmit import ChisubmitException
+import chisubmit.core
+from chisubmit.core import ChisubmitException
 from git.exc import GitCommandError
 
 class GithubConnection(object):
@@ -222,12 +223,12 @@ class LocalGitRepo(object):
         self.repo.create_head(branch, commit)
 
     @staticmethod
-    def get_team_local_repo_path(course, team, chisubmit_dir):
-        return "%s/repositories/%s/%s" % (chisubmit_dir, course.id, team.id)
+    def get_team_local_repo_path(course, team):
+        return "%s/repositories/%s/%s" % (chisubmit.core.chisubmit_dir, course.id, team.id)
     
     @classmethod
-    def get_team_local_repo(cls, course, team, chisubmit_dir):
-        repo_path = cls.get_team_local_repo_path(course, team, chisubmit_dir)
+    def get_team_local_repo(cls, course, team):
+        repo_path = cls.get_team_local_repo_path(course, team, chisubmit.core.chisubmit_dir)
         if not os.path.exists(repo_path):
             return None 
         else:

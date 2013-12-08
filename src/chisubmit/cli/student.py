@@ -13,7 +13,7 @@ def create_student_subparsers(subparsers):
     subparser.add_argument('id', type=str)
 
 
-def cli_do__student_create(course, config, args):
+def cli_do__student_create(course, args):
     student = Student(student_id = args.id,
                       first_name = args.first_name,
                       last_name = args.last_name,
@@ -21,5 +21,5 @@ def cli_do__student_create(course, config, args):
                       github_id = args.github_id)
     course.add_student(student)
     
-def cli_do__student_set_dropped(course, config, args):
+def cli_do__student_set_dropped(course, args):
     course.students[args.id].dropped = True   

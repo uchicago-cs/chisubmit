@@ -1,4 +1,6 @@
-from chisubmit.common.utils import create_subparser, set_default_course
+import chisubmit.core
+
+from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Course
 from chisubmit.core.repos import GithubConnection
 
@@ -14,23 +16,23 @@ def create_course_subparsers(subparsers):
     subparser.add_argument('instructors_team', type=str)
 
     
-def cli_do__course_create(course, config, args):
+def cli_do__course_create(course, args):
     course = Course(course_id = args.id,
                     name = args.name,
                     extensions = args.extensions)
-    course_file = open(args.dir + "/courses/" + args.id + ".yaml", 'w')
+    course_file = chisubmit.core.open_course_file(course.id, 'w')
     course.to_file(course_file)
     course_file.close()
     
     if args.make_default:
-        set_default_course(args.dir, args.id)
+        chisubmit.core.set_default_course(args.id)
     
-def cli_do__course_github_settings(course, config, args):
+def cli_do__course_github_settings(course, args):
     course.github_organization = args.organization
     course.github_instructors_team = args.instructors_team
     
     # Try connecting to GitHub
-    github_access_token = config.get("github", "access-token")
+    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
     GithubConnection(github_access_token, course.github_organization)
     
     

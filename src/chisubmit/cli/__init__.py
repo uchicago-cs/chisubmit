@@ -12,6 +12,8 @@ from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
 from chisubmit.cli.project import create_project_subparsers
 from chisubmit.cli.submit import create_submit_subparsers
+from chisubmit.core import ChisubmitException
+from chisubmit.common import CHISUBMIT_FAIL
 
 NON_COURSE_SUBCOMMANDS = ['course-create']
 
@@ -48,26 +50,30 @@ def chisubmit_cmd(argv=None):
         
         if course_id is None:
             print "ERROR: No course specified with --course and no default course in configuration file"
-            exit(1)
+            exit(CHISUBMIT_FAIL)
         else:
             course_obj = Course.from_course_id(course_id)
             if course_obj is None:
                 print "ERROR: Course '%s' does not exist" % course_id
-                exit(1)
+                exit(CHISUBMIT_FAIL)
     else:
         course_id, course_obj = None, None
 
     if not args.noop:
         try:
-            args.func(course_obj, args)
+            rc = args.func(course_obj, args)
+        except ChisubmitException, ce:
+            print "ERROR: %s" % ce.message
+            ce.print_exception()
+            exit(CHISUBMIT_FAIL)
         except Exception, e:
-            print "ERROR: Exception raised while executing %s command" % args.subcommand
+            print "ERROR: Unexpected exception"
             print traceback.format_exc()
-            exit(3)
+            exit(CHISUBMIT_FAIL)
 
     if args.subcommand not in NON_COURSE_SUBCOMMANDS:
         course_file = chisubmit.core.open_course_file(course_id, 'w')
         course_obj.to_file(course_file)
         course_file.close()
 
-    return 0
+    return rc

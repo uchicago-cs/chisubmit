@@ -2,6 +2,7 @@ import chisubmit.core
 
 from chisubmit.common.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
 from chisubmit.core.repos import GithubConnection
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 def create_submit_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-project-submit", cli_do__team_project_submit)
@@ -27,7 +28,7 @@ def cli_do__team_project_submit(course, args):
     
     if commit is None:
         print "Commit %s does not exist in repository" % commit
-        return
+        return CHISUBMIT_FAIL
         
     commit_time_utc = set_datetime_timezone_utc(commit.commit.author.date)
     commit_time_local = convert_timezone_to_local(commit_time_utc)
@@ -59,7 +60,7 @@ def cli_do__team_project_submit(course, args):
         print "You can use the --ignore-extensions option to submit regardless, but"
         print "you should get permission from the instructor before you do so."
         print
-        return
+        return CHISUBMIT_FAIL
     elif args.ignore_extensions and extensions_bad:
         print
         print "WARNING: You are forcing a submission with an incorrect number"
@@ -75,7 +76,7 @@ def cli_do__team_project_submit(course, args):
         print "Submission tag '%s' already exists" % tag_name
         print "It points to commit %s (%s)" % (submission_commit.commit.sha, submission_commit.commit.message)
         print "If you want to override this submission, please use the --force option"
-        return
+        return CHISUBMIT_FAIL
     elif submission_tag is not None and args.force:
         submission_commit = gh.get_commit(team, submission_tag.object.sha)
         print
@@ -118,4 +119,7 @@ def cli_do__team_project_submit(course, args):
         print "Your submission has been completed."
         print "You can use 'chisubmit team-project-submission-verify' to double-check"
         print "that your code was correctly tagged as ready to grade."
+        
+    return CHISUBMIT_SUCCESS
+
         

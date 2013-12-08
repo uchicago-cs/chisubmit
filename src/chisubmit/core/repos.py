@@ -18,11 +18,11 @@ class GithubConnection(object):
             self.organization = self.gh.get_organization(organization)
         except GithubException as ge:
             if ge.status == 401:
-                raise ChisubmitException("Invalid Github Credentials")
+                raise ChisubmitException("Invalid Github Credentials", ge)
             elif ge.status == 404:
-                raise ChisubmitException("Organization %s does not exist" % organization)            
+                raise ChisubmitException("Organization %s does not exist" % organization, ge)            
             else:
-                raise ChisubmitException("Unexpected error accessing organization %s (%i: %s)" % (organization, ge.status, ge.data["message"]))            
+                raise ChisubmitException("Unexpected error accessing organization %s (%i: %s)" % (organization, ge.status, ge.data["message"]), ge)            
 
     def create_team_repository(self, course, team, private=True):
         repo_name = "%s-%s" % (course.id, team.id)
@@ -34,19 +34,19 @@ class GithubConnection(object):
         try:
             github_repo = self.organization.create_repo(repo_name, description=repo_description, private=private)
         except GithubException as ge:
-            raise ChisubmitException("Unexpected exception creating repository %s (%i: %s)" % (repo_name, ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected exception creating repository %s (%i: %s)" % (repo_name, ge.status, ge.data["message"]), ge)
         
         try:
             github_instructors.add_to_repos(github_repo)
         except GithubException as ge:
-            raise ChisubmitException("Unexpected exception adding repository to Instructors team (%i: %s)" % (ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected exception adding repository to Instructors team (%i: %s)" % (ge.status, ge.data["message"]), ge)
         
         team.github_repo = repo_name
         
         try:
             github_team = self.organization.create_team(team_name, [github_repo], "push")
         except GithubException as ge:
-            raise ChisubmitException("Unexpected exception creating team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected exception creating team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]), ge)
 
         team.github_team = team_name
 
@@ -55,7 +55,7 @@ class GithubConnection(object):
             try:
                 github_team.add_to_members(github_student)
             except GithubException as ge:
-                raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.github_id, ge.status, ge.data["message"]))
+                raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.github_id, ge.status, ge.data["message"]), ge)
 
     def update_team_repository(self, team):
         github_team = self.__get_team_by_name(team.github_team)
@@ -95,7 +95,7 @@ class GithubConnection(object):
             if ge.status == 404:
                 return None
             else:
-                raise ChisubmitException("Unexpected error when fetching tag %s (%i: %s)" % (tag_name, ge.status, ge.data["message"]))            
+                raise ChisubmitException("Unexpected error when fetching tag %s (%i: %s)" % (tag_name, ge.status, ge.data["message"]), ge)            
         
         return submission_tag_ref
 
@@ -116,12 +116,12 @@ class GithubConnection(object):
         try:
             github_repo = self.organization.get_repo(team.github_repo)
         except GithubException as ge:
-            raise ChisubmitException("Unexpected exception fetching repository %s (%i: %s)" % (team.github_repo, ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected exception fetching repository %s (%i: %s)" % (team.github_repo, ge.status, ge.data["message"]), ge)
         
         try:
             github_repo.delete()
         except GithubException as ge:
-            raise ChisubmitException("Unexpected exception deleting repository %s (%i: %s)" % (team.github_repo, ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected exception deleting repository %s (%i: %s)" % (team.github_repo, ge.status, ge.data["message"]), ge)
         
         team.github_repo = None
         
@@ -130,7 +130,7 @@ class GithubConnection(object):
         try:
             github_team.delete()
         except GithubException as ge:
-            raise ChisubmitException("Unexpected exception deleting team %s (%i: %s)" % (team.github_team, ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected exception deleting team %s (%i: %s)" % (team.github_team, ge.status, ge.data["message"]), ge)
 
         team.github_team = None
 
@@ -143,7 +143,7 @@ class GithubConnection(object):
             if ge.status == 404:
                 return None
             else:
-                raise ChisubmitException("Unexpected error when fetching commit %s (%i: %s)" % (commit_sha, ge.status, ge.data["message"]))            
+                raise ChisubmitException("Unexpected error when fetching commit %s (%i: %s)" % (commit_sha, ge.status, ge.data["message"]), ge)            
 
 
     def __get_user(self, username):
@@ -154,7 +154,7 @@ class GithubConnection(object):
             if ge.status == 404:
                 return None
             else:
-                raise ChisubmitException("Unexpected error with user %s (%i: %s)" % (username, ge.status, ge.data["message"]))            
+                raise ChisubmitException("Unexpected error with user %s (%i: %s)" % (username, ge.status, ge.data["message"]), ge)            
 
     def __get_team_by_name(self, team_name):
         try:
@@ -164,7 +164,7 @@ class GithubConnection(object):
                     return t
             return None
         except GithubException as ge:
-            raise ChisubmitException("Unexpected error with team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]))
+            raise ChisubmitException("Unexpected error with team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]), ge)
         
         
 class LocalGitRepo(object):

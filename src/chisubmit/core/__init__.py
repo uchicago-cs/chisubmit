@@ -2,6 +2,7 @@ import os.path
 from pkg_resources import Requirement, resource_filename
 import ConfigParser
 import shutil
+import traceback
 
 DEFAULT_CHISUBMIT_DIR = os.path.expanduser("~/.chisubmit/")
 DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
@@ -11,8 +12,16 @@ chisubmit_dir = None
 chisubmit_conf = None
 
 class ChisubmitException(Exception):
-    pass
+    def __init__(self, message, original_exception = None):
+        Exception.__init__(self, message)
+        self.original_exception = original_exception
+        if original_exception is not None:
+            self.traceback = traceback.format_exc()
+        else:
+            self.traceback = None
 
+    def print_exception(self):
+        pass
 
 def init_chisubmit(base_dir = None, config_file = None):
     global chisubmit_dir, chisubmit_conf

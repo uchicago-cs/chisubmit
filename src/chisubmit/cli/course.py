@@ -3,6 +3,7 @@ import chisubmit.core
 from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Course
 from chisubmit.core.repos import GithubConnection
+from chisubmit.common import CHISUBMIT_SUCCESS
 
 def create_course_subparsers(subparsers):
     subparser = create_subparser(subparsers, "course-create", cli_do__course_create)
@@ -26,6 +27,8 @@ def cli_do__course_create(course, args):
     
     if args.make_default:
         chisubmit.core.set_default_course(args.id)
+        
+    return CHISUBMIT_SUCCESS
     
 def cli_do__course_github_settings(course, args):
     course.github_organization = args.organization
@@ -35,4 +38,5 @@ def cli_do__course_github_settings(course, args):
     github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
     GithubConnection(github_access_token, course.github_organization)
     
+    return CHISUBMIT_SUCCESS
     

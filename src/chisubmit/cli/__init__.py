@@ -77,8 +77,6 @@ def chisubmit_cmd(argv=None):
             exit(CHISUBMIT_FAIL)
 
     if args.subcommand not in SUBCOMMANDS_DONT_SAVE:
-        course_file = chisubmit.core.open_course_file(course_id, 'w')
-        course_obj.to_file(course_file)
-        course_file.close()
+        course_obj.save()
 
     return rc

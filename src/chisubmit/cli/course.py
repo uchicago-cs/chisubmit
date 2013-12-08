@@ -21,9 +21,8 @@ def cli_do__course_create(course, args):
     course = Course(course_id = args.id,
                     name = args.name,
                     extensions = args.extensions)
-    course_file = chisubmit.core.open_course_file(course.id, 'w')
-    course.to_file(course_file)
-    course_file.close()
+    course.course_file = chisubmit.core.get_course_filename(course.id)
+    course.save()
     
     if args.make_default:
         chisubmit.core.set_default_course(args.id)

@@ -66,12 +66,8 @@ def set_default_course(course_id):
     default_file = open(chisubmit_dir + "/" + DEFAULT_COURSE_FILENAME, 'w')
     default_file.write(course_id + "\n")
     
-def open_course_file(course_id, mode = 'r'):
-    filename = chisubmit_dir + "/courses/" + course_id + ".yaml"
-    if not os.path.exists(filename):
-        return None
-    else:
-        return open(filename, mode)
+def get_course_filename(course_id):
+    return chisubmit_dir + "/courses/" + course_id + ".yaml"
 
     
 

@@ -1,5 +1,6 @@
 import yaml
 import math
+import os.path
 import chisubmit.core
 from chisubmit.common.utils import set_datetime_timezone_local
 
@@ -16,18 +17,31 @@ class Course(object):
         self.projects = {}
         self.teams = {}
         
-    def to_file(self, course_file):
-        yaml.dump(self, course_file)
+        self.course_file = None
+        
+    def save(self, course_file = None):
+        if self.course_file is None and course_file is None:
+            raise Exception("Course object has no file associated with it")
+
+        if course_file is None:
+            course_file = self.course_file
+            
+        f = open(course_file, 'w')
+        yaml.dump(self, f)
+        f.close()
         
     @staticmethod
     def from_file(course_file):
-        return yaml.load(course_file)
+        course = yaml.load(course_file)
+        course.course_file = course_file.name
+        return course
     
     @staticmethod
     def from_course_id(course_id):
-        course_file = chisubmit.core.open_course_file(course_id)
-        if course_file is None:
+        course_file = chisubmit.core.get_course_filename(course_id)
+        if not os.path.exists(course_file):
             return None
+        course_file = open(course_file)
         course_obj = Course.from_file(course_file)
         course_file.close()
         return course_obj

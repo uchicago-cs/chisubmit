@@ -24,17 +24,23 @@ class GithubConnection(object):
             else:
                 raise ChisubmitException("Unexpected error accessing organization %s (%i: %s)" % (organization, ge.status, ge.data["message"]), ge)            
 
-    def create_team_repository(self, course, team, private=True):
+    def create_team_repository(self, course, team, fail_if_exists=True, private=True):
         repo_name = "%s-%s" % (course.id, team.id)
         team_name = repo_name
         student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
-        github_instructors = self.__get_team_by_name(course.github_instructors_team)
+        github_instructors = self.__get_team_by_name(course.github_admins_team)
         
-        try:
-            github_repo = self.organization.create_repo(repo_name, description=repo_description, private=private)
-        except GithubException as ge:
-            raise ChisubmitException("Unexpected exception creating repository %s (%i: %s)" % (repo_name, ge.status, ge.data["message"]), ge)
+        github_repo = self.__get_repository(repo_name)
+        
+        if github_repo is None:
+            try:
+                github_repo = self.organization.create_repo(repo_name, description=repo_description, private=private)
+            except GithubException as ge:
+                raise ChisubmitException("Unexpected exception creating repository %s (%i: %s)" % (repo_name, ge.status, ge.data["message"]), ge)
+        else:
+            if fail_if_exists:
+                raise ChisubmitException("Repository %s already exists" % repo_name)
         
         try:
             github_instructors.add_to_repos(github_repo)
@@ -43,11 +49,8 @@ class GithubConnection(object):
         
         team.github_repo = repo_name
         
-        try:
-            github_team = self.organization.create_team(team_name, [github_repo], "push")
-        except GithubException as ge:
-            raise ChisubmitException("Unexpected exception creating team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]), ge)
-
+        github_team = self.create_team(team_name, [github_repo], "push", fail_if_exists)
+        
         team.github_team = team_name
 
         for s in team.students:
@@ -66,6 +69,23 @@ class GithubConnection(object):
                 github_team.add_to_members(github_student)
             except GithubException as ge:
                 raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.github_id, ge.status, ge.data["message"]))
+
+
+    def create_team(self, team_name, repos, permissions, fail_if_exists = True):
+        github_team = self.__get_team_by_name(team_name)
+        
+        if github_team is not None:
+            if fail_if_exists:
+                raise ChisubmitException("Team %s already exists." % team_name)
+            else:
+                return github_team
+        else:
+            try:
+                github_team = self.organization.create_team(team_name, repos, permissions)
+                return github_team
+            except GithubException as ge:
+                raise ChisubmitException("Unexpected exception creating team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]), ge)
+
 
     def create_submission_tag(self, team, tag_name, tag_message, commit_sha):
         github_repo = self.organization.get_repo(team.github_repo)
@@ -155,6 +175,18 @@ class GithubConnection(object):
                 return None
             else:
                 raise ChisubmitException("Unexpected error with user %s (%i: %s)" % (username, ge.status, ge.data["message"]), ge)            
+
+
+    def __get_repository(self, repository_name):
+        try:
+            repository = self.organization.get_repo(repository_name)
+            return repository
+        except GithubException as ge:
+            if ge.status == 404:
+                return None
+            else:
+                raise ChisubmitException("Unexpected error with repository %s (%i: %s)" % (repository_name, ge.status, ge.data["message"]), ge)            
+
 
     def __get_team_by_name(self, team_name):
         try:

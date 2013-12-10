@@ -14,8 +14,6 @@ def create_course_subparsers(subparsers):
     
     subparser = create_subparser(subparsers, "course-github-settings", cli_do__course_github_settings)
     subparser.add_argument('organization', type=str)
-    subparser.add_argument('instructors_team', type=str)
-
     
 def cli_do__course_create(course, args):
     course = Course(course_id = args.id,
@@ -31,11 +29,14 @@ def cli_do__course_create(course, args):
     
 def cli_do__course_github_settings(course, args):
     course.github_organization = args.organization
-    course.github_instructors_team = args.instructors_team
     
     # Try connecting to GitHub
     github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
-    GithubConnection(github_access_token, course.github_organization)
+    gh = GithubConnection(github_access_token, course.github_organization)
+    
+    # Create GitHub team to contain admins for this course
+    course.github_admins_team = "%s-admins" % course.id
+    gh.create_team(course.github_admins_team, [], "admin", fail_if_exists = False)    
     
     return CHISUBMIT_SUCCESS
     

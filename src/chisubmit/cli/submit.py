@@ -11,6 +11,7 @@ def create_submit_subparsers(subparsers):
     subparser.add_argument('commit', type=str)
     subparser.add_argument('extensions', type=int, default=0)
     subparser.add_argument('--force', action="store_true")
+    subparser.add_argument('--yes', action="store_true")
     subparser.add_argument('--ignore-extensions', action="store_true", dest="ignore_extensions")
     
     
@@ -101,7 +102,12 @@ def cli_do__team_project_submit(course, args):
     
     print
     print "Are you sure you want to continue? (y/n): ", 
-    yesno = raw_input()
+    
+    if not args.yes:
+        yesno = raw_input()
+    else:
+        yesno = 'y'
+        print 'y'
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
         message = "Extensions requested: %i\n" % args.extensions

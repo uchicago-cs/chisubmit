@@ -11,7 +11,7 @@ class Course(object):
         self.extensions = extensions
         
         self.github_organization = None
-        self.github_instructors_team = None
+        self.github_admins_team = None
         
         self.students = {}
         self.projects = {}

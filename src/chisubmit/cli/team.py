@@ -19,6 +19,7 @@ def create_team_subparsers(subparsers):
     
     subparser = create_subparser(subparsers, "team-gh-repo-create", cli_do__team_gh_repo_create)
     subparser.add_argument('team_id', type=str)
+    subparser.add_argument('--ignore-existing', action="store_true", dest="ignore_existing")
     
     subparser = create_subparser(subparsers, "team-gh-repo-update", cli_do__team_gh_repo_update)
     subparser.add_argument('team_id', type=str)    
@@ -59,14 +60,14 @@ def cli_do__team_gh_repo_create(course, args):
     team = course.teams[args.team_id]
     github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
     
-    if team.github_repo is not None:
+    if team.github_repo is not None and not args.ignore_existing:
         print "Repository for team %s has already been created." % team.id
         print "Maybe you meant to run team-repo-update?"
         return CHISUBMIT_FAIL
     
     gh = GithubConnection(github_access_token, course.github_organization)
         
-    gh.create_team_repository(course, team)
+    gh.create_team_repository(course, team, fail_if_exists = not args.ignore_existing)
 
     return CHISUBMIT_SUCCESS
 

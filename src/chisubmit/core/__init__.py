@@ -32,9 +32,9 @@ def init_chisubmit(base_dir = None, config_file = None):
         chisubmit_dir = base_dir
         
     if config_file is None:
-        chisubmit_conf = chisubmit_dir + DEFAULT_CONFIG_FILENAME
+        chisubmit_config_file = chisubmit_dir + DEFAULT_CONFIG_FILENAME
     else:
-        chisubmit_conf = config_file
+        chisubmit_config_file = config_file
     
     # Create chisubmit directory if it does not exist
     if not os.path.exists(chisubmit_dir):
@@ -46,13 +46,14 @@ def init_chisubmit(base_dir = None, config_file = None):
     if not os.path.exists(chisubmit_dir + "/repositories/"):        
         os.mkdir(chisubmit_dir + "/repositories/")
 
-    if not os.path.exists(chisubmit_conf):
+    if not os.path.exists(chisubmit_config_file):
         example_conf = resource_filename(Requirement.parse("chisubmit"), "config/chisubmit.sample.conf")    
-        shutil.copyfile(example_conf, chisubmit_conf)   
+        shutil.copyfile(example_conf, chisubmit_config_file)   
     
-    config = ConfigParser.ConfigParser()
-    chisubmit_conf = config.read(chisubmit_conf)
-    
+    chisubmit_conf = ConfigParser.ConfigParser()
+    chisubmit_conf.read(chisubmit_config_file)
+
+        
 def get_default_course():
     default_file = chisubmit_dir + "/" + DEFAULT_COURSE_FILENAME
     if not os.path.exists(default_file):

@@ -194,5 +194,49 @@ git $TEAM2_GIT_OPTS push
 TEAM1_SHA=`git $TEAM1_GIT_OPTS rev-parse HEAD`
 TEAM2_SHA=`git $TEAM2_GIT_OPTS rev-parse HEAD`
 
+# Finally, we submit the projects
 chisubmit team-project-submit team1 p1 $TEAM1_SHA 0 --yes
 chisubmit team-project-submit team2 p1 $TEAM2_SHA 0 --yes
+
+# Now that the project has been submitted, the graders
+# need to access them and grade them.
+#
+# The following commands would be run by a grader. They
+# create a clone of the GitHub repositories in
+# ~/.chisubmit/repositories/example/
+# To make this script rerunnable, we first delete that
+# directory
+rm -rf ~/.chisubmit/repositories/example/
+chisubmit team-local-repo-sync team1
+chisubmit team-local-repo-sync team2
+
+# Next, we create the grading branches:
+chisubmit team-create-grading-branch team1 p1
+chisubmit team-create-grading-branch team2 p1
+
+# The above two commands will create a branch called "p1-grading"
+# and will make that the current branch. Graders should only
+# modify those branches, and should never mess with the master
+# branch (or any other branch for that matter)
+
+# Now, let's do some "grading"
+TEAM1_GRADING_REPO="$HOME/.chisubmit/repositories/example/team1"
+TEAM2_GRADING_REPO="$HOME/.chisubmit/repositories/example/team2"
+
+TEAM1_GRADING_GIT_OPTS="--git-dir=$TEAM1_GRADING_REPO/.git --work-tree=$TEAM1_GRADING_REPO"
+TEAM2_GRADING_GIT_OPTS="--git-dir=$TEAM2_GRADING_REPO/.git --work-tree=$TEAM2_GRADING_REPO"
+
+echo 'Needs improvement' >> $TEAM1_GRADING_REPO/bar
+echo 'Great job!' >> $TEAM2_GRADING_REPO/bar
+
+git $TEAM1_GRADING_GIT_OPTS add $TEAM1_GRADING_REPO/
+git $TEAM1_GRADING_GIT_OPTS commit -m "Graded p1"
+
+git $TEAM2_GRADING_GIT_OPTS add $TEAM2_GRADING_REPO/
+git $TEAM2_GRADING_GIT_OPTS commit -m "Graded p1"
+
+
+
+
+
+

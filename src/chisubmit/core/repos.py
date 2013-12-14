@@ -239,6 +239,18 @@ class LocalGitRepo(object):
 
     def has_branch(self, branch):
         return (self.__get_branch(branch) is not None)
+    
+    def checkout_branch(self, branch):
+        branch_refpath = "refs/heads/%s" % branch
+        branch_head = self.__get_head(branch_refpath)
+            
+        if branch_head is None:
+            raise ChisubmitException("No such branch: %s" % branch)    
+        
+        try:
+            branch_head.checkout()
+        except GitCommandError, gce:
+            raise ChisubmitException("Error checking out")                
 
     def get_tag(self, tag):
         tags = [t for t in self.repo.tags if t.name == tag]
@@ -260,15 +272,15 @@ class LocalGitRepo(object):
     
     @classmethod
     def get_team_local_repo(cls, course, team):
-        repo_path = cls.get_team_local_repo_path(course, team, chisubmit.core.chisubmit_dir)
+        repo_path = cls.get_team_local_repo_path(course, team)
         if not os.path.exists(repo_path):
             return None 
         else:
             return cls(repo_path)
     
     @classmethod
-    def create_team_local_repo(cls, course, team, chisubmit_dir):
-        repo_path = cls.get_team_local_repo_path(chisubmit_dir, course, team)
+    def create_team_local_repo(cls, course, team):
+        repo_path = cls.get_team_local_repo_path(course, team)
         gh_url = course.get_team_gh_repo_url(team.id)
         return cls.create_repo(repo_path, gh_url)        
     

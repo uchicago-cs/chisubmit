@@ -143,6 +143,7 @@ def cli_do__team_create_grading_branch(course, args):
         return CHISUBMIT_FAIL
     
     repo.create_branch(branch_name, tag.commit)
+    repo.checkout_branch(branch_name)
 
     return CHISUBMIT_SUCCESS
         

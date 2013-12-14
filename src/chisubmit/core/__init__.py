@@ -7,6 +7,8 @@ import traceback
 DEFAULT_CHISUBMIT_DIR = os.path.expanduser("~/.chisubmit/")
 DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
 DEFAULT_COURSE_FILENAME = "default_course"
+GHTOKEN_FILENAME = "github_token"
+GHDELETETOKEN_FILENAME = "github_delete_token"
 
 chisubmit_dir = None
 chisubmit_conf = None
@@ -53,19 +55,31 @@ def init_chisubmit(base_dir = None, config_file = None):
     chisubmit_conf = ConfigParser.ConfigParser()
     chisubmit_conf.read(chisubmit_config_file)
 
-        
-def get_default_course():
-    default_file = chisubmit_dir + "/" + DEFAULT_COURSE_FILENAME
-    if not os.path.exists(default_file):
+def __get_file(filename):
+    f = chisubmit_dir + "/" + filename
+    if not os.path.exists(f):
         return None
     else:
-        default_file = open(chisubmit_dir + "/" + DEFAULT_COURSE_FILENAME)
-        course = default_file.read().strip()
-        return course
+        f = open(chisubmit_dir + "/" + filename)
+        contents = f.read().strip()
+        return contents
+
+def __set_file(filename, contents):
+    f = open(chisubmit_dir + "/" + filename, 'w')
+    f.write(contents + "\n")
+
+        
+def get_default_course():
+    return __get_file(DEFAULT_COURSE_FILENAME)
 
 def set_default_course(course_id):
-    default_file = open(chisubmit_dir + "/" + DEFAULT_COURSE_FILENAME, 'w')
-    default_file.write(course_id + "\n")
+    __set_file(DEFAULT_COURSE_FILENAME, course_id)
+
+def get_github_token():
+    return __get_file(GHTOKEN_FILENAME)
+
+def get_github_delete_token():
+    return __get_file(GHDELETETOKEN_FILENAME)
     
 def get_course_filename(course_id):
     return chisubmit_dir + "/courses/" + course_id + ".yaml"

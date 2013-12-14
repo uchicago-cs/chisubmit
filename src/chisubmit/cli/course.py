@@ -31,7 +31,7 @@ def cli_do__course_github_settings(course, args):
     course.github_organization = args.organization
     
     # Try connecting to GitHub
-    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
+    github_access_token = chisubmit.core.get_github_token()
     gh = GithubConnection(github_access_token, course.github_organization)
     
     # Create GitHub team to contain admins for this course

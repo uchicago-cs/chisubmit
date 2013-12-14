@@ -58,7 +58,7 @@ def cli_do__team_project_add(course, args):
     
 def cli_do__team_gh_repo_create(course, args):
     team = course.teams[args.team_id]
-    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
+    github_access_token = chisubmit.core.get_github_token()
     
     if team.github_repo is not None and not args.ignore_existing:
         print "Repository for team %s has already been created." % team.id
@@ -74,7 +74,7 @@ def cli_do__team_gh_repo_create(course, args):
     
 def cli_do__team_gh_repo_update(course, args):
     team = course.teams[args.team_id]
-    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
+    github_access_token = chisubmit.core.get_github_token()
     
     if team.github_repo is None:
         print "Team %s does not have a repository." % team.id
@@ -90,17 +90,17 @@ def cli_do__team_gh_repo_update(course, args):
 def cli_do__team_gh_repo_remove(course, args):
     team = course.teams[args.team_id]
     
-    if not chisubmit.core.chisubmit_conf.has_option("github", "access-token-delete"):
-        print "Configuration file does not have a [github].access-token-delete option."
-        print "You need to set this option to an access token with 'repo' and 'delete_repo' scopes"
-        return CHISUBMIT_FAIL
-        
-    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token-delete")
-    
     if team.github_repo is None:
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
+
+    github_access_token = chisubmit.core.get_github_delete_token()
     
+    if github_access_token is None:
+        print "No GitHub access token with delete permissions found."
+        print "You need to create an access token with 'repo' and 'delete_repo' scopes"
+        return CHISUBMIT_FAIL
+        
     gh = GithubConnection(github_access_token, course.github_organization)
         
     gh.delete_team_repository(team)

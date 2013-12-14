@@ -22,7 +22,7 @@ def cli_do__team_project_submit(course, args):
     
     extensions_requested = args.extensions
     
-    github_access_token = chisubmit.core.chisubmit_conf.get("github", "access-token")
+    github_access_token = chisubmit.core.get_github_token()
     gh = GithubConnection(github_access_token, course.github_organization)
     
     commit = gh.get_commit(team, args.commit)

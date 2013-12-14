@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# This files defines a number of variables that are necessary
+# to run the example scripts.
+#
+# Along with full_example.sh, this will evolve into a more
+# complete documentation... eventually.
+
+# chisubmit assumes that you (the instructor) have the following:
+#
+# - A GitHub account
+# - A Github organization with private repositories
+# - [Optional] A git server (e.g., gitolite)
+#
+# The GitHub organization hosts the student repositories,
+# and students do all their work on these repositories.
+#
+# With an additional git server (which we refer to as the
+# "private git server") the instructor and graders can use
+# this server as a staging server before pushing to GitHub.
+# More specifically, since each grader is assigned a subset
+# of students to grade (each with a separate GitHub repo), 
+# the staging server provides a way to share his/her grading 
+# with the instructor and the rest of the graders before
+# this is pushed to the student repo.
+# 
+# In the absence of a private git server, the graders would
+# have to push their grading directly to GitHub.
+
+#
+# GITHUB VARIABLES
+#
+
+# Your GitHub username. Must have admin permissions over
+# GITHUB_ORGANIZATION defined below.
+GITHUB_USERNAME="myusername"
+
+# The GitHub organization
+GITHUB_ORGANIZATION="myorganization"
+
+# You also need to generate a GitHub "personal access token"
+# (you can do this at https://github.com/settings/applications)
+#
+# Then, create a file at ~/.chisubmit/github_token with the
+# access token. Make sure to chmod this file so only you can
+# read it.
+
+#
+# PRIVATE GIT SERVER VARIABLES
+#
+
+# chisubmit will connect to the Git server via ssh. It is assumed
+# that you have configured the Git server to accept your SSH key.
+
+# The username to connect to the Git server
+PRIVATE_GIT_USERNAME="git"
+
+# The hostname of the Git server
+PRIVATE_GIT_HOSTNAME="git.example.org"
+
+

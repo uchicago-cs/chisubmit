@@ -22,27 +22,20 @@ set -x # Print out each command
 #          can submit a project for grading.
 #
 
-# 
-# Before running this script, change the value of the following
-# variable to your GitHub username. 
-
-GITHUB_USERNAME="borjasotomayor"
-
-# And the following variable to the GitHub organization where
-# you will be hosting the students' repositories:
-
-GITHUB_ORGANIZATION="uchicago-cs"
-
-# You also need to generate a GitHub "personal access token"
-# (you can do this at https://github.com/settings/applications)
-#
-# Then, create a file at ~/.chisubmit/chisubmit.conf with the
-# following contents:
-#
-#     [github]
-#     access-token: MY_ACCESS_TOKEN
-#
-# And replace MY_ACCESS_TOKEN with your personal access token.
+ 
+# If you want to actually run this script, you need to edit
+# file "examplerc.sample", modify the variables defined there,
+# and save the file as "examplerc".
+# Even if you are not going to run this script, you should
+# take a look at the file to see what each variable means.
+if [ -e "./examplerc" ];
+then
+    source examplerc
+else
+    echo "Cannot run the sample script."
+    echo "Please create an examplerc file"
+    exit 1
+fi
 
 # We start by creating a new course:
 

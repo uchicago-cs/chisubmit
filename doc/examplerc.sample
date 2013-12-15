@@ -15,16 +15,15 @@
 # The GitHub organization hosts the student repositories,
 # and students do all their work on these repositories.
 #
-# With an additional git server (which we refer to as the
-# "private git server") the instructor and graders can use
-# this server as a staging server before pushing to GitHub.
+# With an additional git server, the instructor and graders 
+# can use this server as a staging server before pushing to GitHub.
 # More specifically, since each grader is assigned a subset
 # of students to grade (each with a separate GitHub repo), 
 # the staging server provides a way to share his/her grading 
 # with the instructor and the rest of the graders before
 # this is pushed to the student repo.
 # 
-# In the absence of a private git server, the graders would
+# In the absence of a staging server, the graders would
 # have to push their grading directly to GitHub.
 
 #
@@ -46,16 +45,16 @@ GITHUB_ORGANIZATION="myorganization"
 # read it.
 
 #
-# PRIVATE GIT SERVER VARIABLES
+# STAGING SERVER VARIABLES
 #
 
 # chisubmit will connect to the Git server via ssh. It is assumed
 # that you have configured the Git server to accept your SSH key.
 
 # The username to connect to the Git server
-PRIVATE_GIT_USERNAME="git"
+GIT_STAGING_USERNAME="git"
 
 # The hostname of the Git server
-PRIVATE_GIT_HOSTNAME="git.example.org"
+GIT_STAGING_HOSTNAME="git.example.org"
 
 

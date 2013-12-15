@@ -35,13 +35,13 @@ def create_team_subparsers(subparsers):
     subparser.add_argument('project_id', type=str)
 
     subparser = create_subparser(subparsers, "team-push-grading-branch", cli_do__team_push_grading_branch)
-    subparser.add_argument('--private', action="store_true")
+    subparser.add_argument('--staging', action="store_true")
     subparser.add_argument('--github', action="store_true")
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
 
     subparser = create_subparser(subparsers, "team-pull-grading-branch", cli_do__team_pull_grading_branch)
-    subparser.add_argument('--private', action="store_true")
+    subparser.add_argument('--staging', action="store_true")
     subparser.add_argument('--github', action="store_true")
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
@@ -178,9 +178,9 @@ def cli_do__team_push_grading_branch(course, args):
     if args.github:
         repo.push_branch_to_github(branch_name)
     
-    if args.private:
-        repo.push_branch_to_private("master")
-        repo.push_branch_to_private(branch_name)
+    if args.staging:
+        repo.push_branch_to_staging("master")
+        repo.push_branch_to_staging(branch_name)
         
     return CHISUBMIT_SUCCESS
         
@@ -200,8 +200,8 @@ def cli_do__team_pull_grading_branch(course, args):
     if args.github:
         repo.pull_branch_from_github(branch_name)
     
-    if args.private:
-        repo.pull_branch_from_private(branch_name)
+    if args.staging:
+        repo.pull_branch_from_staging(branch_name)
         
     return CHISUBMIT_SUCCESS
                 

@@ -253,13 +253,13 @@ class LocalGitRepo(object):
     def push_branch_to_github(self, branch):
         self.__push(self.gh_remote, branch)
 
-    def push_branch_to_private(self, branch):
+    def push_branch_to_staging(self, branch):
         self.__push(self.priv_remote, branch)
 
     def pull_branch_from_github(self, branch):
         self.__pull(self.gh_remote, branch)
 
-    def pull_branch_from_private(self, branch):
+    def pull_branch_from_staging(self, branch):
         self.__pull(self.priv_remote, branch)
 
     
@@ -305,7 +305,7 @@ class LocalGitRepo(object):
     def create_team_local_repo(cls, course, team):
         repo_path = cls.get_team_local_repo_path(course, team)
         gh_url = course.get_team_gh_repo_url(team.id)
-        priv_url = course.get_team_private_repo_url(team.id)
+        priv_url = course.get_team_staging_repo_url(team.id)
         return cls.create_repo(repo_path, gh_url, priv_url)        
     
     @classmethod
@@ -316,7 +316,7 @@ class LocalGitRepo(object):
             repo = git.Repo.clone_from(gh_remote, directory)
             
             if priv_remote is not None:
-                repo.create_remote('private', priv_remote)
+                repo.create_remote('staging', priv_remote)
             
             return cls(directory)
 

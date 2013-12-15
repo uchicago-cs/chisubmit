@@ -54,8 +54,8 @@ chisubmit course-create --make-default example "Example Course" 3
 
 chisubmit course-github-settings $GITHUB_ORGANIZATION
 
-# And for the private Git server
-chisubmit course-private-git-settings $PRIVATE_GIT_USERNAME $PRIVATE_GIT_HOSTNAME
+# And for the staging server
+chisubmit course-git-staging-settings $GIT_STAGING_USERNAME $GIT_STAGING_HOSTNAME
 
 
 # We only need to specify the GitHub organization that will host the 
@@ -236,10 +236,10 @@ chisubmit $GRADER_OPTS team-create-grading-branch team2 p1
 # Now, before doing anything else, we push with --force and
 # delete any existing tags. You do not need to do this in practice
 # (this is just so this script will be rerunable)
-git $TEAM1_GRADING_GIT_OPTS push --force -u private master
-git $TEAM1_GRADING_GIT_OPTS push private :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
-git $TEAM2_GRADING_GIT_OPTS push --force -u private master
-git $TEAM2_GRADING_GIT_OPTS push private :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
+git $TEAM1_GRADING_GIT_OPTS push --force -u staging master
+git $TEAM1_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
+git $TEAM2_GRADING_GIT_OPTS push --force -u staging master
+git $TEAM2_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
 
 
 # Now, let's do some "grading"
@@ -252,18 +252,18 @@ git $TEAM1_GRADING_GIT_OPTS commit -m "Graded p1"
 git $TEAM2_GRADING_GIT_OPTS add $TEAM2_GRADING_REPO/
 git $TEAM2_GRADING_GIT_OPTS commit -m "Graded p1"
 
-# We push the grading branches to the private repository
-chisubmit $GRADER_OPTS team-push-grading-branch --private team1 p1
-chisubmit $GRADER_OPTS team-push-grading-branch --private team2 p1
+# We push the grading branches to the staging repository
+chisubmit $GRADER_OPTS team-push-grading-branch --staging team1 p1
+chisubmit $GRADER_OPTS team-push-grading-branch --staging team2 p1
 
 # Now, the instructor creates her own grading repositories:
 rm -rf ~/.chisubmit/repositories/example/
 chisubmit team-local-repo-sync team1
 chisubmit team-local-repo-sync team2
 
-# Pulls the grading branches from the private server
-chisubmit team-pull-grading-branch --private team1 p1
-chisubmit team-pull-grading-branch --private team2 p1
+# Pulls the grading branches from the staging server
+chisubmit team-pull-grading-branch --staging team1 p1
+chisubmit team-pull-grading-branch --staging team2 p1
 
 # And pushes them to GitHub
 chisubmit team-push-grading-branch --github team1 p1

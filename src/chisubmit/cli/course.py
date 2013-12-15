@@ -15,7 +15,7 @@ def create_course_subparsers(subparsers):
     subparser = create_subparser(subparsers, "course-github-settings", cli_do__course_github_settings)
     subparser.add_argument('organization', type=str)
 
-    subparser = create_subparser(subparsers, "course-private-git-settings", cli_do__course_private_git_settings)
+    subparser = create_subparser(subparsers, "course-git-staging-settings", cli_do__course_git_staging_settings)
     subparser.add_argument('git_username', type=str)
     subparser.add_argument('git_hostname', type=str)
     
@@ -46,8 +46,8 @@ def cli_do__course_github_settings(course, args):
     
     return CHISUBMIT_SUCCESS
 
-def cli_do__course_private_git_settings(course, args):
-    course.private_git_username = args.git_username
-    course.private_git_hostname = args.git_hostname
+def cli_do__course_git_staging_settings(course, args):
+    course.git_staging_username = args.git_username
+    course.git_staging_hostname = args.git_hostname
     
     

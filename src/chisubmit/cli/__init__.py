@@ -16,6 +16,7 @@ from chisubmit.cli.submit import create_submit_subparsers
 from chisubmit.core import ChisubmitException
 from chisubmit.common import CHISUBMIT_FAIL
 from chisubmit.cli.shell import create_shell_subparsers
+from chisubmit.cli.grader import create_grader_subparsers
 
 SUBCOMMANDS_NO_COURSE = ['course-create']
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'shell']
@@ -40,6 +41,7 @@ def chisubmit_cmd(argv=None):
     create_student_subparsers(subparsers)
     create_team_subparsers(subparsers)
     create_submit_subparsers(subparsers)
+    create_grader_subparsers(subparsers)
     create_shell_subparsers(subparsers)
     
     args = parser.parse_args(args = argv)

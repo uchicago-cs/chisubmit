@@ -221,12 +221,12 @@ TEAM2_GRADING_GIT_OPTS="--git-dir=$TEAM2_GRADING_REPO/.git --work-tree=$TEAM2_GR
 # To make this script rerunnable, we first delete that
 # directory
 rm -rf ~/.chisubmit-grader/repositories/example/
-chisubmit $GRADER_OPTS team-local-repo-sync team1
-chisubmit $GRADER_OPTS team-local-repo-sync team2
+chisubmit $GRADER_OPTS grader-sync-grading-repo team1
+chisubmit $GRADER_OPTS grader-sync-grading-repo team2
 
 # Next, we create the grading branches:
-chisubmit $GRADER_OPTS team-create-grading-branch team1 p1
-chisubmit $GRADER_OPTS team-create-grading-branch team2 p1
+chisubmit $GRADER_OPTS grader-create-grading-branch team1 p1
+chisubmit $GRADER_OPTS grader-create-grading-branch team2 p1
 
 # The above two commands will create a branch called "p1-grading"
 # and will make that the current branch. Graders should only
@@ -253,20 +253,20 @@ git $TEAM2_GRADING_GIT_OPTS add $TEAM2_GRADING_REPO/
 git $TEAM2_GRADING_GIT_OPTS commit -m "Graded p1"
 
 # We push the grading branches to the staging repository
-chisubmit $GRADER_OPTS team-push-grading-branch --staging team1 p1
-chisubmit $GRADER_OPTS team-push-grading-branch --staging team2 p1
+chisubmit $GRADER_OPTS grader-push-grading-branch --staging team1 p1
+chisubmit $GRADER_OPTS grader-push-grading-branch --staging team2 p1
 
 # Now, the instructor creates her own grading repositories:
 rm -rf ~/.chisubmit/repositories/example/
-chisubmit team-local-repo-sync team1
-chisubmit team-local-repo-sync team2
+chisubmit grader-sync-grading-repo team1
+chisubmit grader-sync-grading-repo team2
 
 # Pulls the grading branches from the staging server
-chisubmit team-pull-grading-branch --staging team1 p1
-chisubmit team-pull-grading-branch --staging team2 p1
+chisubmit grader-pull-grading-branch --staging team1 p1
+chisubmit grader-pull-grading-branch --staging team2 p1
 
 # And pushes them to GitHub
-chisubmit team-push-grading-branch --github team1 p1
-chisubmit team-push-grading-branch --github team2 p1
+chisubmit grader-push-grading-branch --github team1 p1
+chisubmit grader-push-grading-branch --github team2 p1
 
 

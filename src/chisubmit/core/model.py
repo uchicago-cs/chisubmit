@@ -13,6 +13,9 @@ class Course(object):
         self.github_organization = None
         self.github_admins_team = None
         
+        self.private_git_username = None
+        self.private_git_hostname = None
+        
         self.students = {}
         self.projects = {}
         self.teams = {}
@@ -60,6 +63,13 @@ class Course(object):
         
         return "git@github.com:%s/%s.git" % (self.github_organization, team.github_repo)       
 
+    def get_team_private_repo_url(self, team_id):
+        team = self.teams[team_id]
+        
+        if self.private_git_hostname is None or self.private_git_username is None:
+            return None
+        else:
+            return "%s@%s:%s.git" % (self.private_git_username, self.private_git_hostname, team.github_repo)
         
 class GradeComponent(object):
     def __init__(self, name, points):

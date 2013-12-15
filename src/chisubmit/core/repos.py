@@ -212,6 +212,16 @@ class LocalGitRepo(object):
         else:
             raise ChisubmitException("Repository at %s has more than one GitHub remote" % directory)        
 
+        rems = [rem for rem in self.repo.remotes if not rem.url.startswith("git@github.com")]
+        
+        if len(rems) == 0:
+            self.priv_remote = None
+        elif len(rems) == 1:
+            self.priv_remote = rems[0]
+        else:
+            raise ChisubmitException("Repository at %s has more than one non-GitHub remote" % directory)        
+
+
     def fetch(self):
         self.gh_remote.fetch()
 
@@ -239,6 +249,19 @@ class LocalGitRepo(object):
 
     def has_branch(self, branch):
         return (self.__get_branch(branch) is not None)
+    
+    def push_branch_to_github(self, branch):
+        self.__push(self.gh_remote, branch)
+
+    def push_branch_to_private(self, branch):
+        self.__push(self.priv_remote, branch)
+
+    def pull_branch_from_github(self, branch):
+        self.__pull(self.gh_remote, branch)
+
+    def pull_branch_from_private(self, branch):
+        self.__pull(self.priv_remote, branch)
+
     
     def checkout_branch(self, branch):
         branch_refpath = "refs/heads/%s" % branch
@@ -282,14 +305,19 @@ class LocalGitRepo(object):
     def create_team_local_repo(cls, course, team):
         repo_path = cls.get_team_local_repo_path(course, team)
         gh_url = course.get_team_gh_repo_url(team.id)
-        return cls.create_repo(repo_path, gh_url)        
+        priv_url = course.get_team_private_repo_url(team.id)
+        return cls.create_repo(repo_path, gh_url, priv_url)        
     
     @classmethod
-    def create_repo(cls, directory, remote = None):
-        if remote is None:
+    def create_repo(cls, directory, gh_remote = None, priv_remote = None):
+        if gh_remote is None:
             pass
         else:
-            repo = git.Repo.clone_from(remote, directory)
+            repo = git.Repo.clone_from(gh_remote, directory)
+            
+            if priv_remote is not None:
+                repo.create_remote('private', priv_remote)
+            
             return cls(directory)
 
     def __get_head(self, path):
@@ -316,3 +344,8 @@ class LocalGitRepo(object):
         else:
             return refs[0]    
                     
+    def __push(self, remote, branch):
+        remote.push("%s:%s" % (branch, branch))
+
+    def __pull(self, remote, branch):
+        remote.pull("%s:%s" % (branch, branch))        

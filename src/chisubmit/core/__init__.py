@@ -31,12 +31,12 @@ def init_chisubmit(base_dir = None, config_file = None):
     if base_dir is None:
         chisubmit_dir = DEFAULT_CHISUBMIT_DIR
     else:
-        chisubmit_dir = base_dir
+        chisubmit_dir = os.path.expanduser(base_dir)
         
     if config_file is None:
         chisubmit_config_file = chisubmit_dir + DEFAULT_CONFIG_FILENAME
     else:
-        chisubmit_config_file = config_file
+        chisubmit_config_file = os.path.expanduser(config_file)
     
     # Create chisubmit directory if it does not exist
     if not os.path.exists(chisubmit_dir):

@@ -34,6 +34,18 @@ def create_team_subparsers(subparsers):
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
 
+    subparser = create_subparser(subparsers, "team-push-grading-branch", cli_do__team_push_grading_branch)
+    subparser.add_argument('--private', action="store_true")
+    subparser.add_argument('--github', action="store_true")
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('project_id', type=str)
+
+    subparser = create_subparser(subparsers, "team-pull-grading-branch", cli_do__team_pull_grading_branch)
+    subparser.add_argument('--private', action="store_true")
+    subparser.add_argument('--github', action="store_true")
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('project_id', type=str)
+
 
 def cli_do__team_create(course, args):
     team = Team(team_id = args.id)
@@ -146,4 +158,50 @@ def cli_do__team_create_grading_branch(course, args):
     repo.checkout_branch(branch_name)
 
     return CHISUBMIT_SUCCESS
+
+
+def cli_do__team_push_grading_branch(course, args):
+    team = course.teams[args.team_id]
+    project = course.projects[args.project_id]
+    
+    repo = LocalGitRepo.get_team_local_repo(course, team)
+    
+    if repo is None:
+        print "%s does not have a local repository" % team.id
+        return CHISUBMIT_FAIL
         
+    branch_name = project.get_grading_branch_name()
+    if not repo.has_branch(branch_name):
+        print "%s repository does not have a %s branch" % (team.id, branch_name)
+        return CHISUBMIT_FAIL
+    
+    if args.github:
+        repo.push_branch_to_github(branch_name)
+    
+    if args.private:
+        repo.push_branch_to_private("master")
+        repo.push_branch_to_private(branch_name)
+        
+    return CHISUBMIT_SUCCESS
+        
+
+def cli_do__team_pull_grading_branch(course, args):
+    team = course.teams[args.team_id]
+    project = course.projects[args.project_id]
+    
+    repo = LocalGitRepo.get_team_local_repo(course, team)
+    
+    if repo is None:
+        print "%s does not have a local repository" % team.id
+        return CHISUBMIT_FAIL
+  
+    branch_name = project.get_grading_branch_name()
+  
+    if args.github:
+        repo.pull_branch_from_github(branch_name)
+    
+    if args.private:
+        repo.pull_branch_from_private(branch_name)
+        
+    return CHISUBMIT_SUCCESS
+                

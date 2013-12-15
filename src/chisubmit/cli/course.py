@@ -14,6 +14,12 @@ def create_course_subparsers(subparsers):
     
     subparser = create_subparser(subparsers, "course-github-settings", cli_do__course_github_settings)
     subparser.add_argument('organization', type=str)
+
+    subparser = create_subparser(subparsers, "course-private-git-settings", cli_do__course_private_git_settings)
+    subparser.add_argument('git_username', type=str)
+    subparser.add_argument('git_hostname', type=str)
+    
+    
     
 def cli_do__course_create(course, args):
     course = Course(course_id = args.id,
@@ -39,4 +45,9 @@ def cli_do__course_github_settings(course, args):
     gh.create_team(course.github_admins_team, [], "admin", fail_if_exists = False)    
     
     return CHISUBMIT_SUCCESS
+
+def cli_do__course_private_git_settings(course, args):
+    course.private_git_username = args.git_username
+    course.private_git_hostname = args.git_hostname
+    
     

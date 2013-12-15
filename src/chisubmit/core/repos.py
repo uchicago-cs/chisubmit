@@ -203,31 +203,27 @@ class LocalGitRepo(object):
     def __init__(self, directory):
         self.repo = git.Repo(directory)
         
-        rems = [rem for rem in self.repo.remotes if rem.url.startswith("git@github.com")]
-        
-        if len(rems) == 0:
-            self.gh_remote = None
-        elif len(rems) == 1:
-            self.gh_remote = rems[0]
+        self.remotes = dict([(r.name, r) for r in self.repo.remotes])
+
+    @classmethod
+    def create_repo(cls, directory, clone_from_url = None, remotes = []):
+        if clone_from_url is None:
+            # TODO: Create empty repo
+            pass
         else:
-            raise ChisubmitException("Repository at %s has more than one GitHub remote" % directory)        
+            repo = git.Repo.clone_from(clone_from_url, directory)
+            
+            for remote_name, remote_url in remotes:
+                repo.create_remote(remote_name, remote_url)
+            
+            return cls(directory)
 
-        rems = [rem for rem in self.repo.remotes if not rem.url.startswith("git@github.com")]
-        
-        if len(rems) == 0:
-            self.priv_remote = None
-        elif len(rems) == 1:
-            self.priv_remote = rems[0]
-        else:
-            raise ChisubmitException("Repository at %s has more than one non-GitHub remote" % directory)        
+    def fetch(self, remote_name):
+        self.remotes[remote_name].fetch()
 
-
-    def fetch(self):
-        self.gh_remote.fetch()
-
-    def reset_branch(self, branch):
+    def reset_branch(self, remote_name, branch):
         branch_refpath = "refs/heads/%s" % branch
-        remote_branch_refpath = "refs/remotes/%s/%s" % (self.gh_remote.name, branch)
+        remote_branch_refpath = "refs/remotes/%s/%s" % (remote_name, branch)
         
         branch_head = self.__get_head(branch_refpath)
         remote_branch = self.__get_ref(remote_branch_refpath)
@@ -249,19 +245,6 @@ class LocalGitRepo(object):
 
     def has_branch(self, branch):
         return (self.__get_branch(branch) is not None)
-    
-    def push_branch_to_github(self, branch):
-        self.__push(self.gh_remote, branch)
-
-    def push_branch_to_staging(self, branch):
-        self.__push(self.priv_remote, branch)
-
-    def pull_branch_from_github(self, branch):
-        self.__pull(self.gh_remote, branch)
-
-    def pull_branch_from_staging(self, branch):
-        self.__pull(self.priv_remote, branch)
-
     
     def checkout_branch(self, branch):
         branch_refpath = "refs/heads/%s" % branch
@@ -289,36 +272,12 @@ class LocalGitRepo(object):
     def create_branch(self, branch, commit):
         self.repo.create_head(branch, commit)
 
-    @staticmethod
-    def get_team_local_repo_path(course, team):
-        return "%s/repositories/%s/%s" % (chisubmit.core.chisubmit_dir, course.id, team.id)
-    
-    @classmethod
-    def get_team_local_repo(cls, course, team):
-        repo_path = cls.get_team_local_repo_path(course, team)
-        if not os.path.exists(repo_path):
-            return None 
-        else:
-            return cls(repo_path)
-    
-    @classmethod
-    def create_team_local_repo(cls, course, team):
-        repo_path = cls.get_team_local_repo_path(course, team)
-        gh_url = course.get_team_gh_repo_url(team.id)
-        priv_url = course.get_team_staging_repo_url(team.id)
-        return cls.create_repo(repo_path, gh_url, priv_url)        
-    
-    @classmethod
-    def create_repo(cls, directory, gh_remote = None, priv_remote = None):
-        if gh_remote is None:
-            pass
-        else:
-            repo = git.Repo.clone_from(gh_remote, directory)
-            
-            if priv_remote is not None:
-                repo.create_remote('staging', priv_remote)
-            
-            return cls(directory)
+    def push(self, remote_name, branch):
+        self.remotes[remote_name].push("%s:%s" % (branch, branch))
+
+    def pull(self, remote_name, branch):
+        self.remotes[remote_name].pull("%s:%s" % (branch, branch))        
+
 
     def __get_head(self, path):
         heads = [h for h in self.repo.heads if h.path == path]
@@ -342,10 +301,86 @@ class LocalGitRepo(object):
         if len(refs) == 0:
             return None
         else:
-            return refs[0]    
-                    
-    def __push(self, remote, branch):
-        remote.push("%s:%s" % (branch, branch))
+            return refs[0]            
+        
+class GradingGitRepo(object):
+    def __init__(self, team, repo):
+        self.team = team        
+        self.repo = repo
+    
+    @classmethod
+    def get_grading_repo(cls, course, team):
+        repo_path = cls.get_grading_repo_path(course, team)
+        if not os.path.exists(repo_path):
+            return None 
+        else:
+            repo = LocalGitRepo(repo_path)
+            return cls(team, repo)
+    
+    @classmethod
+    def create_grading_repo(cls, course, team):
+        repo_path = cls.get_grading_repo_path(course, team)
+        gh_url = cls.get_team_gh_repo_url(course, team)
+        staging_url = cls.get_team_staging_repo_url(course, team)
+        repo = LocalGitRepo.create_repo(repo_path, clone_from_url = gh_url, remotes = [("staging", staging_url)])
+        return cls(team, repo)        
+    
+    def sync(self):
+        self.repo.fetch("origin")
+        self.repo.reset_branch("origin", "master")
+        
+    def create_grading_branch(self, project):
+        tag = self.repo.get_tag(project.id)
+        if tag is None:
+            raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, project.id))
+        
+        branch_name = project.get_grading_branch_name()
+        if self.repo.has_branch(branch_name):
+            raise ChisubmitException("%s repository already has a %s branch" % (self.team.id, branch_name))
+        
+        self.repo.create_branch(branch_name, tag.commit)
+        self.repo.checkout_branch(branch_name)
+        
+        
+    def push_grading_branch_to_github(self, project):
+        self.__push_grading_branch(project, "origin")
 
-    def __pull(self, remote, branch):
-        remote.pull("%s:%s" % (branch, branch))        
+    def push_grading_branch_to_staging(self, project):
+        self.__push_grading_branch(project, "staging", push_master = True)
+
+    def pull_grading_branch_from_github(self, project):
+        self.__pull_grading_branch(project, "origin")
+
+    def pull_grading_branch_from_staging(self, project):
+        self.__pull_grading_branch(project, "staging")
+
+    def __push_grading_branch(self, project, remote_name, push_master = False):
+        branch_name = project.get_grading_branch_name()
+        
+        if not self.repo.has_branch(branch_name):
+            raise ChisubmitException("%s repository does not have a %s branch" % (self.team.id, branch_name))
+        
+        if push_master:
+            self.repo.push(remote_name, "master")
+            
+        self.repo.push(remote_name, branch_name)
+        
+    def __pull_grading_branch(self, project, remote_name):
+        branch_name = project.get_grading_branch_name()
+        self.repo.pull(remote_name, branch_name)
+
+    @staticmethod
+    def get_grading_repo_path(course, team):
+        return "%s/repositories/%s/%s" % (chisubmit.core.chisubmit_dir, course.id, team.id)
+    
+    @staticmethod
+    def get_team_gh_repo_url(course, team):        
+        return "git@github.com:%s/%s.git" % (course.github_organization, team.github_repo)       
+
+    @staticmethod
+    def get_team_staging_repo_url(course, team):
+        if course.git_staging_hostname is None or course.git_staging_username is None:
+            return None
+        else:
+            return "%s@%s:%s.git" % (course.git_staging_username, course.git_staging_hostname, team.github_repo)
+                

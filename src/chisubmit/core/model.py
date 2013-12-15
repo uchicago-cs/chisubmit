@@ -58,18 +58,6 @@ class Course(object):
     def add_team(self, team):
         self.teams[team.id] = team
         
-    def get_team_gh_repo_url(self, team_id):
-        team = self.teams[team_id]
-        
-        return "git@github.com:%s/%s.git" % (self.github_organization, team.github_repo)       
-
-    def get_team_staging_repo_url(self, team_id):
-        team = self.teams[team_id]
-        
-        if self.git_staging_hostname is None or self.git_staging_username is None:
-            return None
-        else:
-            return "%s@%s:%s.git" % (self.git_staging_username, self.git_staging_hostname, team.github_repo)
         
 class GradeComponent(object):
     def __init__(self, name, points):

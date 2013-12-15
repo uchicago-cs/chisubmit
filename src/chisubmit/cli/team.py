@@ -2,7 +2,7 @@ import chisubmit.core
 
 from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Team
-from chisubmit.core.repos import GithubConnection, LocalGitRepo
+from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 def create_team_subparsers(subparsers):

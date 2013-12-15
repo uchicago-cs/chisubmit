@@ -1,5 +1,5 @@
 from chisubmit.common.utils import create_subparser
-from chisubmit.core.repos import LocalGitRepo
+from chisubmit.core.repos import GradingGitRepo
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 def create_grader_subparsers(subparsers):
@@ -26,13 +26,12 @@ def create_grader_subparsers(subparsers):
 def cli_do__grader_sync_grading_repo(course, args):
     team = course.teams[args.team_id]
     
-    repo = LocalGitRepo.get_team_local_repo(course, team)
+    repo = GradingGitRepo.get_grading_repo(course, team)
     
     if repo is None:
-        repo = LocalGitRepo.create_team_local_repo(course, team)
+        repo = GradingGitRepo.create_grading_repo(course, team)
     else:
-        repo.fetch()
-        repo.reset_branch("master")
+        repo.sync()
 
     return CHISUBMIT_SUCCESS
 
@@ -41,24 +40,13 @@ def cli_do__grader_create_grading_branch(course, args):
     team = course.teams[args.team_id]
     project = course.projects[args.project_id]
     
-    repo = LocalGitRepo.get_team_local_repo(course, team)
+    repo = GradingGitRepo.get_grading_repo(course, team)
     
     if repo is None:
-        print "%s does not have a local repository" % team.id
+        print "%s does not have a grading repository" % team.id
         return CHISUBMIT_FAIL
     
-    tag = repo.get_tag(project.id)
-    if tag is None:
-        print "%s repository does not have a %s tag" % (team.id, project.id)
-        return CHISUBMIT_FAIL
-    
-    branch_name = project.get_grading_branch_name()
-    if repo.has_branch(branch_name):
-        print "%s repository already has a %s branch" % (team.id, branch_name)
-        return CHISUBMIT_FAIL
-    
-    repo.create_branch(branch_name, tag.commit)
-    repo.checkout_branch(branch_name)
+    repo.create_grading_branch(project)
 
     return CHISUBMIT_SUCCESS
 
@@ -67,44 +55,33 @@ def cli_do__grader_push_grading_branch(course, args):
     team = course.teams[args.team_id]
     project = course.projects[args.project_id]
     
-    repo = LocalGitRepo.get_team_local_repo(course, team)
+    repo = GradingGitRepo.get_grading_repo(course, team)
     
     if repo is None:
-        print "%s does not have a local repository" % team.id
+        print "%s does not have a grading repository" % team.id
         return CHISUBMIT_FAIL
         
-    branch_name = project.get_grading_branch_name()
-    if not repo.has_branch(branch_name):
-        print "%s repository does not have a %s branch" % (team.id, branch_name)
-        return CHISUBMIT_FAIL
-    
     if args.github:
-        repo.push_branch_to_github(branch_name)
-    
+        repo.push_grading_branch_to_github(project)
+        
     if args.staging:
-        repo.push_branch_to_staging("master")
-        repo.push_branch_to_staging(branch_name)
-        
-    return CHISUBMIT_SUCCESS
-        
+        repo.push_grading_branch_to_staging(project)
 
 def cli_do__grader_pull_grading_branch(course, args):
     team = course.teams[args.team_id]
     project = course.projects[args.project_id]
     
-    repo = LocalGitRepo.get_team_local_repo(course, team)
+    repo = GradingGitRepo.get_grading_repo(course, team)
     
     if repo is None:
-        print "%s does not have a local repository" % team.id
+        print "%s does not have a grading repository" % team.id
         return CHISUBMIT_FAIL
-  
-    branch_name = project.get_grading_branch_name()
-  
+    
     if args.github:
-        repo.pull_branch_from_github(branch_name)
+        repo.pull_grading_branch_from_github(project)
     
     if args.staging:
-        repo.pull_branch_from_staging(branch_name)
+        repo.pull_grading_branch_from_staging(project)
         
     return CHISUBMIT_SUCCESS
                 

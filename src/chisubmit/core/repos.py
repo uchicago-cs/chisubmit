@@ -77,18 +77,21 @@ class GithubConnection(object):
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception adding repository to Instructors team (%i: %s)" % (ge.status, ge.data["message"]), ge)
         
-        team.github_repo = repo_name
         
         github_team = self.create_team(team_name, [github_repo], "push", fail_if_exists)
         
-        team.github_team = team_name
-
         for s in team.students:
             github_student = self.__get_user(s.github_id)
             try:
                 github_team.add_to_members(github_student)
             except GithubException as ge:
                 raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.github_id, ge.status, ge.data["message"]), ge)
+            
+        # Update team information only once everything has completed
+        # successfully
+        team.github_repo = repo_name
+        team.github_team = team_name
+            
 
     def update_team_repository(self, team):
         github_team = self.__get_team_by_name(team.github_team)

@@ -47,9 +47,10 @@ from chisubmit.core import ChisubmitException
 from chisubmit.common import CHISUBMIT_FAIL
 from chisubmit.cli.shell import create_shell_subparsers
 from chisubmit.cli.grader import create_grader_subparsers
+from chisubmit.cli.gh import create_gh_subparsers
 
-SUBCOMMANDS_NO_COURSE = ['course-create']
-SUBCOMMANDS_DONT_SAVE = ['course-create', 'shell']
+SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
+SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
 def chisubmit_cmd(argv=None):
     if argv is None:
@@ -73,6 +74,7 @@ def chisubmit_cmd(argv=None):
     create_submit_subparsers(subparsers)
     create_grader_subparsers(subparsers)
     create_shell_subparsers(subparsers)
+    create_gh_subparsers(subparsers)
     
     args = parser.parse_args(args = argv)
     

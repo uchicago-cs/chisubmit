@@ -34,6 +34,7 @@ from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Team
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
+from chisubmit.core import ChisubmitException
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
@@ -57,11 +58,18 @@ def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-gh-repo-remove", cli_do__team_gh_repo_remove)
     subparser.add_argument('team_id', type=str)
 
+    subparser = create_subparser(subparsers, "team-gh-repo-check", cli_do__team_gh_repo_check)
+    subparser.add_argument('team_id', type=str)
+
+    subparser = create_subparser(subparsers, "team-gh-repo-set", cli_do__team_gh_repo_set)
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('github_repo', type=str)
+
 
 def cli_do__team_create(course, args):
     team = Team(team_id = args.id)
     course.add_team(team)
-    
+        
     return CHISUBMIT_SUCCESS
 
     
@@ -129,3 +137,37 @@ def cli_do__team_gh_repo_remove(course, args):
     gh.delete_team_repository(team)
 
     return CHISUBMIT_SUCCESS
+
+def cli_do__team_gh_repo_check(course, args):
+    team = course.teams[args.team_id]
+    
+    if team.github_repo is None:
+        print "Team %s does not have a repository." % team.id
+        return CHISUBMIT_FAIL
+
+    github_access_token = chisubmit.core.get_github_token()
+    
+    if github_access_token is None:
+        print "No GitHub access token found."
+        print "You need to create one using ""chisubmit gh-token-create"""
+        return CHISUBMIT_FAIL
+        
+    try:
+        gh = GithubConnection(github_access_token, course.github_organization)
+    except ChisubmitException, ce:
+        print "Unable to connect to GitHub: %s" % ce.message
+        return CHISUBMIT_FAIL
+        
+    if not gh.repository_exists(team.github_repo):
+        print "The repository '%s' does not exist or you do not have permission to access it."
+        return CHISUBMIT_FAIL
+
+    # TODO: Check that the user actually has push access
+    print "Repository '%s' exists and you have access to it." % team.github_repo
+    print "GitHub URL: https://github.com/%s/%s" % (course.github_organization, team.github_repo)
+
+    return CHISUBMIT_SUCCESS
+
+def cli_do__team_gh_repo_set(course, args):
+    team = course.teams[args.team_id]
+    team.github_repo = args.github_repo

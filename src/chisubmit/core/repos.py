@@ -199,6 +199,12 @@ class GithubConnection(object):
                 raise ChisubmitException("Unexpected error when fetching commit %s (%i: %s)" % (commit_sha, ge.status, ge.data["message"]), ge)            
 
 
+    def repository_exists(self, github_repo):
+        r = self.__get_repository(github_repo)
+        
+        return (r is not None)
+        
+
     def __get_user(self, username):
         try:
             user = self.gh.get_user(username)
@@ -231,7 +237,31 @@ class GithubConnection(object):
         except GithubException as ge:
             raise ChisubmitException("Unexpected error with team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]), ge)
         
+    @staticmethod
+    def get_token(username, password, delete = False):
+        gh = Github(username, password)
+        token = None
         
+        try:
+            u = gh.get_user()
+            
+            scopes = ['user', 'public_repo', 'repo', 'gist']
+            note = "Created by chisubmit."
+            
+            if delete:
+                scopes.append("delete_repo")
+                note += " Has delete permissions."
+                
+            auth = u.create_authorization(scopes = scopes, note = note)
+            token = auth.token
+        except GithubException as ge:
+            if ge.status == 401:
+                return None
+            else:
+                raise ChisubmitException("Unexpected error creating authorization token (%i: %s)" % (ge.status, ge.data["message"]), ge)            
+        
+        return token
+    
 class LocalGitRepo(object):
     def __init__(self, directory):
         self.repo = git.Repo(directory)

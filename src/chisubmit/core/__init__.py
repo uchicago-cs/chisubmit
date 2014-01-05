@@ -108,8 +108,14 @@ def set_default_course(course_id):
 def get_github_token():
     return __get_file(GHTOKEN_FILENAME)
 
+def set_github_token(token):
+    __set_file(GHTOKEN_FILENAME, token)
+
 def get_github_delete_token():
     return __get_file(GHDELETETOKEN_FILENAME)
+
+def set_github_delete_token(token):
+    __set_file(GHDELETETOKEN_FILENAME, token)
     
 def get_course_filename(course_id):
     return chisubmit_dir + "/courses/" + course_id + ".yaml"

@@ -12,7 +12,7 @@ set -x # Print out each command
 # This script is also used to test the various commands in chisubmit.
 # In practice, you probably would not run all these commands individually,
 # as they are designed to be easily scriptable.
-#
+#http://www.classes.cs.uchicago.edu/archive/2014/winter/23300-1/
 # For simplicity, the whole script runs with a single user and a
 # single github account. In reality, there would be three distinct roles:
 #
@@ -137,11 +137,40 @@ chisubmit team-gh-repo-create team2 --ignore-existing
 chisubmit team-project-add team1 p1
 chisubmit team-project-add team2 p1
 
+chisubmit course-generate-distributable example-dist.yaml
+
 
 # Now, we're going to simulate a few actions that a team would perform:
 # Create a new local repository, add the GitHub repo as a remote,
 # create a few files, add them to the repo, push to GitHub,
 # do another commit, and push it to GitHub too.
+
+if [ -e "~/.chisubmit-team1/" ];
+then
+    rm -rf ~/.chisubmit-team1/
+fi
+
+if [ -e "~/.chisubmit-team2/" ];
+then
+    rm -rf ~/.chisubmit-team2/
+fi
+
+TEAM1_OPTS="--dir ~/.chisubmit-team1/"
+TEAM2_OPTS="--dir ~/.chisubmit-team2/"
+
+chisubmit $TEAM1_OPTS course-install --make-default example-dist.yaml
+chisubmit $TEAM1_OPTS team-create team1
+chisubmit $TEAM1_OPTS team-gh-repo-set team1 example-team1
+
+chisubmit $TEAM2_OPTS course-install --make-default example-dist.yaml
+chisubmit $TEAM2_OPTS team-create team2
+chisubmit $TEAM2_OPTS team-gh-repo-set team2 example-team2
+
+cp ~/.chisubmit/github_token ~/.chisubmit-team1/
+chisubmit $TEAM1_OPTS team-gh-repo-check team1
+
+cp ~/.chisubmit/github_token ~/.chisubmit-team2/
+chisubmit $TEAM2_OPTS team-gh-repo-check team2
 
 TEAM1_REPO=`mktemp -d`
 TEAM2_REPO=`mktemp -d`
@@ -192,8 +221,8 @@ TEAM1_SHA=`git $TEAM1_GIT_OPTS rev-parse HEAD`
 TEAM2_SHA=`git $TEAM2_GIT_OPTS rev-parse HEAD`
 
 # Finally, we submit the projects
-chisubmit team-project-submit team1 p1 $TEAM1_SHA 0 --yes
-chisubmit team-project-submit team2 p1 $TEAM2_SHA 0 --yes
+chisubmit $TEAM1_OPTS team-project-submit team1 p1 $TEAM1_SHA 0 --yes
+chisubmit $TEAM2_OPTS team-project-submit team2 p1 $TEAM2_SHA 0 --yes
 
 # Now that the project has been submitted, the graders
 # need to access them and grade them.

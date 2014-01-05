@@ -41,6 +41,10 @@ def create_course_subparsers(subparsers):
     subparser.add_argument('id', type=str)
     subparser.add_argument('name', type=str)
     subparser.add_argument('extensions', type=int)
+
+    subparser = create_subparser(subparsers, "course-install", cli_do__course_install)
+    subparser.add_argument('--make-default', action="store_true", dest="make_default")
+    subparser.add_argument('filename', type=str)
     
     subparser = create_subparser(subparsers, "course-github-settings", cli_do__course_github_settings)
     subparser.add_argument('organization', type=str)
@@ -48,6 +52,10 @@ def create_course_subparsers(subparsers):
     subparser = create_subparser(subparsers, "course-git-staging-settings", cli_do__course_git_staging_settings)
     subparser.add_argument('git_username', type=str)
     subparser.add_argument('git_hostname', type=str)
+
+    subparser = create_subparser(subparsers, "course-generate-distributable", cli_do__course_generate_distributable)
+    subparser.add_argument('filename', type=str)
+    
     
     
     
@@ -60,6 +68,18 @@ def cli_do__course_create(course, args):
     
     if args.make_default:
         chisubmit.core.set_default_course(args.id)
+        
+    return CHISUBMIT_SUCCESS
+    
+def cli_do__course_install(course, args):
+    f = open(args.filename)
+    new_course = Course.from_file(f)
+    f.close()
+    new_course.course_file = chisubmit.core.get_course_filename(new_course.id)
+    new_course.save()
+    
+    if args.make_default:
+        chisubmit.core.set_default_course(new_course.id)
         
     return CHISUBMIT_SUCCESS
     
@@ -80,4 +100,16 @@ def cli_do__course_git_staging_settings(course, args):
     course.git_staging_username = args.git_username
     course.git_staging_hostname = args.git_hostname
     
+    return CHISUBMIT_SUCCESS
+    
+def cli_do__course_generate_distributable(course, args):
+    course.github_admins_team = None
+    course.git_staging_username = None
+    course.git_staging_hostname = None
+    course.students = {}
+    course.teams = {}
+    
+    course.save(args.filename)
+    
+    return CHISUBMIT_SUCCESS
     

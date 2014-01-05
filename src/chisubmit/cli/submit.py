@@ -33,6 +33,7 @@ import chisubmit.core
 from chisubmit.common.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
+from chisubmit.core import ChisubmitException
 
 def create_submit_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-project-submit", cli_do__team_project_submit)
@@ -48,12 +49,17 @@ def create_submit_subparsers(subparsers):
 def cli_do__team_project_submit(course, args):
     project = course.projects[args.project_id]
     team = course.teams[args.team_id]
-    team_project = team.projects[args.project_id]
     
     extensions_requested = args.extensions
     
     github_access_token = chisubmit.core.get_github_token()
     gh = GithubConnection(github_access_token, course.github_organization)
+    
+    try:
+        gh = GithubConnection(github_access_token, course.github_organization)
+    except ChisubmitException, ce:
+        print "Unable to connect to GitHub: %s" % ce.message
+        return CHISUBMIT_FAIL
     
     commit = gh.get_commit(team, args.commit)
     
@@ -153,8 +159,8 @@ def cli_do__team_project_submit(course, args):
             
         print
         print "Your submission has been completed."
-        print "You can use 'chisubmit team-project-submission-verify' to double-check"
-        print "that your code was correctly tagged as ready to grade."
+        #print "You can use 'chisubmit team-project-submission-verify' to double-check"
+        #print "that your code was correctly tagged as ready to grade."
         
     return CHISUBMIT_SUCCESS
 

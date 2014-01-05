@@ -69,16 +69,22 @@ def cli_do__team_project_submit(course, args):
         
     commit_time_utc = set_datetime_timezone_utc(commit.commit.author.date)
     commit_time_local = convert_timezone_to_local(commit_time_utc)
+    
+    deadline_utc = project.get_deadline()
+    deadline_local = convert_timezone_to_local(deadline_utc)
         
-    extensions_needed = project.extensions_needed(commit_time_local)
+    extensions_needed = project.extensions_needed(commit_time_utc)
     
     extensions_bad = False
     if extensions_requested < extensions_needed:
         print
         print "The number of extensions you have requested is insufficient."
         print
-        print "   Deadline: %s" % project.deadline.isoformat()
-        print "     Commit: %s" % commit_time_local.isoformat()
+        print "     Deadline (UTC): %s" % deadline_utc.isoformat()
+        print "       Commit (UTC): %s" % commit_time_utc.isoformat()
+        print 
+        print "   Deadline (Local): %s" % deadline_local.isoformat()
+        print "     Commit (Local): %s" % commit_time_local.isoformat()
         print 
         print "You need to request %s extensions." % extensions_needed
         extensions_bad = True
@@ -86,8 +92,11 @@ def cli_do__team_project_submit(course, args):
         print        
         print "The number of extensions you have requested is excessive."
         print
-        print "   Deadline: %s" % project.deadline.isoformat()
-        print "     Commit: %s" % commit_time_local.isoformat()
+        print "     Deadline (UTC): %s" % deadline_utc.isoformat()
+        print "       Commit (UTC): %s" % commit_time_utc.isoformat()
+        print 
+        print "   Deadline (Local): %s" % deadline_local.isoformat()
+        print "     Commit (Local): %s" % commit_time_local.isoformat()
         print 
         print "You only need to request %s extensions." % extensions_needed
         extensions_bad = True

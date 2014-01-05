@@ -38,8 +38,8 @@ def create_subparser(subparsers, name, func):
     
     return subparser
 
-def set_datetime_timezone_local(dt):
-    return get_localzone().localize(dt)
+def get_datetime_now_utc():
+    return datetime.datetime.now(pytz.utc).replace(microsecond=0)
 
 def set_datetime_timezone_utc(dt):
     return pytz.utc.localize(dt)
@@ -52,7 +52,7 @@ def convert_timezone_to_local(dt):
 
 def mkdatetime(datetimestr):
     dt = datetime.datetime.strptime(datetimestr, '%Y-%m-%dT%H:%M')
-    return set_datetime_timezone_local(dt)
+    return set_datetime_timezone_utc(dt)
 
 
 

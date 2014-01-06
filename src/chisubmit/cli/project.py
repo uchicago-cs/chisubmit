@@ -29,16 +29,19 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.common.utils import create_subparser, mkdatetime,\
-    set_datetime_timezone_utc, get_datetime_now_utc, convert_timezone_to_local
+    get_datetime_now_utc, convert_timezone_to_local
 from chisubmit.core.model import Project, GradeComponent
 
-import datetime
 
 def create_project_subparsers(subparsers):
     subparser = create_subparser(subparsers, "project-create", cli_do__project_create)
     subparser.add_argument('id', type=str)
     subparser.add_argument('name', type=str)
     subparser.add_argument('deadline', type=mkdatetime)
+
+    subparser = create_subparser(subparsers, "project-list", cli_do__project_list)
+    subparser.add_argument('--ids', action="store_true")
+    subparser.add_argument('--utc', action="store_true")
     
     subparser = create_subparser(subparsers, "project-grade-component-add", cli_do__project_grade_component_add)
     subparser.add_argument('project_id', type=str)
@@ -47,17 +50,38 @@ def create_project_subparsers(subparsers):
 
     subparser = create_subparser(subparsers, "project-deadline-show", cli_do__project_deadline_show)
     subparser.add_argument('project_id', type=str)
+    subparser.add_argument('--utc', action="store_true")
     
 def cli_do__project_create(course, args):
     project = Project(project_id = args.id,
                       name = args.name,
                       deadline = args.deadline)
     course.add_project(project)
+
+def cli_do__project_list(course, args):
+    project_ids = course.projects.keys()
+    project_ids.sort()
     
+    for project_id in project_ids:
+        if args.ids:
+            print project_id
+        else:
+            project = course.projects[project_id]
+            
+            if args.utc:
+                deadline = project.get_deadline().isoformat(" ")
+            else:
+                deadline = convert_timezone_to_local(project.get_deadline()).isoformat(" ")
+                
+            fields = [project.id, deadline, project.name]
+            
+            print "\t".join(fields)
+
    
 def cli_do__project_grade_component_add(course, args):
     grade_component = GradeComponent(args.name, args.points)
     course.projects[args.project_id].add_grade_component(grade_component)    
+    
     
 def cli_do__project_deadline_show(course, args):
     project = course.projects[args.project_id]
@@ -70,11 +94,16 @@ def cli_do__project_deadline_show(course, args):
         
     print project.name
     print
-    print "      Now (Local): %s" % now_local.isoformat(" ")
-    print " Deadline (Local): %s" % deadline_local.isoformat(" ")
-    print
-    print "        Now (UTC): %s" % now_utc.isoformat(" ")
-    print "   Deadline (UTC): %s" % deadline_utc.isoformat(" ")
+    if args.utc:
+        print "      Now (Local): %s" % now_local.isoformat(" ")
+        print " Deadline (Local): %s" % deadline_local.isoformat(" ")
+        print
+        print "        Now (UTC): %s" % now_utc.isoformat(" ")
+        print "   Deadline (UTC): %s" % deadline_utc.isoformat(" ")
+    else:
+        print "      Now: %s" % now_local.isoformat(" ")
+        print " Deadline: %s" % deadline_local.isoformat(" ")
+        
     print 
     
     extensions = project.extensions_needed(now_utc)

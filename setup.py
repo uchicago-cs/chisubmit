@@ -67,7 +67,7 @@ setup(name='chisubmit',
           'Intended Audience :: Developers',
           'Intended Audience :: System Administrators',
           'Intended Audience :: Education',
-          'License :: OSI Approved :: Apache Software License',
+          'License :: OSI Approved :: BSD License',
           'Operating System :: POSIX',
           'Programming Language :: Python',
           'Topic :: Education'

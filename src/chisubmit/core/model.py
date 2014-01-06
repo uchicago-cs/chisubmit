@@ -33,6 +33,7 @@ import math
 import os.path
 import chisubmit.core
 from chisubmit.common.utils import set_datetime_timezone_utc
+import urllib2
 
 class Course(object):
     def __init__(self, course_id, name, extensions):
@@ -66,7 +67,13 @@ class Course(object):
     @staticmethod
     def from_file(course_file):
         course = yaml.load(course_file)
-        course.course_file = course_file.name
+        return course
+
+    @staticmethod
+    def from_url(course_url):
+        req = urllib2.Request(course_url)
+        response = urllib2.urlopen(req)
+        course = yaml.load(response)
         return course
     
     @staticmethod

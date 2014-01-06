@@ -72,9 +72,13 @@ def cli_do__course_create(course, args):
     return CHISUBMIT_SUCCESS
     
 def cli_do__course_install(course, args):
-    f = open(args.filename)
-    new_course = Course.from_file(f)
-    f.close()
+    if args.filename.startswith("http"):
+        new_course = Course.from_url(args.filename)
+    else:
+        f = open(args.filename)
+        new_course = Course.from_file(f)
+        f.close()
+        
     new_course.course_file = chisubmit.core.get_course_filename(new_course.id)
     new_course.save()
     

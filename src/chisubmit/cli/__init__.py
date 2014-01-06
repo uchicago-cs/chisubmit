@@ -37,7 +37,8 @@ from argparse import ArgumentParser
 
 import chisubmit.core
 import chisubmit.common.log as log
-from chisubmit.core.model import Course, Project, Student
+from chisubmit.core.model import Course, Project, Student,\
+    ChisubmitModelException
 from chisubmit.cli.course import *
 from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
@@ -52,6 +53,7 @@ from chisubmit.cli.gh import create_gh_subparsers
 SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
+            
 def chisubmit_cmd(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -103,12 +105,14 @@ def chisubmit_cmd(argv=None):
             rc = args.func(course_obj, args)
         except ChisubmitException, ce:
             print "ERROR: %s" % ce.message
-            ce.print_exception()
+            if args.debug:
+                ce.print_exception()
+            exit(CHISUBMIT_FAIL)
+        except ChisubmitModelException, cme:
+            print "ERROR: %s" % cme.message
             exit(CHISUBMIT_FAIL)
         except Exception, e:
-            print "ERROR: Unexpected exception"
-            print traceback.format_exc()
-            exit(CHISUBMIT_FAIL)
+            handle_unexpected_exception()
 
     if args.subcommand not in SUBCOMMANDS_DONT_SAVE:
         course_obj.save()

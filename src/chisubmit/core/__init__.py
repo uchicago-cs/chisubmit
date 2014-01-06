@@ -33,6 +33,7 @@ from pkg_resources import Requirement, resource_filename
 import ConfigParser
 import shutil
 import traceback
+from chisubmit.common import CHISUBMIT_FAIL
 
 DEFAULT_CHISUBMIT_DIR = os.path.expanduser("~/.chisubmit/")
 DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
@@ -53,7 +54,12 @@ class ChisubmitException(Exception):
             self.traceback = None
 
     def print_exception(self):
-        pass
+        print self.traceback
+
+def handle_unexpected_exception():
+    print "ERROR: Unexpected exception"
+    print traceback.format_exc()
+    exit(CHISUBMIT_FAIL)
 
 def init_chisubmit(base_dir = None, config_file = None):
     global chisubmit_dir, chisubmit_conf
@@ -86,18 +92,24 @@ def init_chisubmit(base_dir = None, config_file = None):
     chisubmit_conf.read(chisubmit_config_file)
 
 def __get_file(filename):
-    f = chisubmit_dir + "/" + filename
-    if not os.path.exists(f):
+    fname = chisubmit_dir + "/" + filename
+    if not os.path.exists(fname):
         return None
     else:
-        f = open(chisubmit_dir + "/" + filename)
-        contents = f.read().strip()
-        return contents
+        try:
+            f = open(fname)
+            contents = f.read().strip()
+            return contents
+        except IOError, ioe:
+            raise ChisubmitException("Error when reading from file %s: %s" % (fname, ioe.meesage), ioe)        
 
 def __set_file(filename, contents):
-    f = open(chisubmit_dir + "/" + filename, 'w')
-    f.write(contents + "\n")
-
+    fname = chisubmit_dir + "/" + filename
+    try:
+        f = open(fname, 'w')
+        f.write(contents + "\n")
+    except IOError, ioe:
+        raise ChisubmitException("Error when writing to file %s: %s" % (fname, ioe.meesage), ioe)        
         
 def get_default_course():
     return __get_file(DEFAULT_COURSE_FILENAME)

@@ -34,11 +34,11 @@ from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Team
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
-    subparser.add_argument('id', type=str)
+    subparser.add_argument('team_id', type=str)
     
     subparser = create_subparser(subparsers, "team-student-add", cli_do__team_student_add)
     subparser.add_argument('team_id', type=str)
@@ -67,59 +67,107 @@ def create_team_subparsers(subparsers):
 
 
 def cli_do__team_create(course, args):
-    team = Team(team_id = args.id)
+    team = Team(team_id = args.team_id)
     course.add_team(team)
         
     return CHISUBMIT_SUCCESS
 
     
 def cli_do__team_student_add(course, args):
-    student = course.students[args.student_id]
-    course.teams[args.team_id].add_student(student)   
+    student = course.get_student(args.student_id)
+    if student is None:
+        print "Student %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL       
+    
+    team.add_student(student)   
 
     return CHISUBMIT_SUCCESS
 
     
 def cli_do__team_project_add(course, args):
-    project = course.projects[args.project_id]
-    course.teams[args.team_id].add_project(project)                
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL    
+    
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    team.add_project(project)                
 
     return CHISUBMIT_SUCCESS
 
     
 def cli_do__team_gh_repo_create(course, args):
-    team = course.teams[args.team_id]
-    github_access_token = chisubmit.core.get_github_token()
-    
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
+
     if team.github_repo is not None and not args.ignore_existing:
         print "Repository for team %s has already been created." % team.id
         print "Maybe you meant to run team-repo-update?"
         return CHISUBMIT_FAIL
-    
-    gh = GithubConnection(github_access_token, course.github_organization)
-        
-    gh.create_team_repository(course, team, fail_if_exists = not args.ignore_existing)
 
+    github_access_token = chisubmit.core.get_github_token()
+
+    if github_access_token is None:
+        print "You have not created a GitHub access token."
+        print "You can create one using 'chisubmit gh-token-create'"
+        return CHISUBMIT_FAIL    
+    
+    try:
+        gh = GithubConnection(github_access_token, course.github_organization)
+            
+        gh.create_team_repository(course, team, fail_if_exists = not args.ignore_existing)
+    except ChisubmitException, ce:
+        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+    except Exception, e:
+        handle_unexpected_exception()
+        
     return CHISUBMIT_SUCCESS
 
     
 def cli_do__team_gh_repo_update(course, args):
-    team = course.teams[args.team_id]
-    github_access_token = chisubmit.core.get_github_token()
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
     
     if team.github_repo is None:
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
+
+    github_access_token = chisubmit.core.get_github_token()
+
+    if github_access_token is None:
+        print "You have not created a GitHub access token."
+        print "You can create one using 'chisubmit gh-token-create'"
+        return CHISUBMIT_FAIL    
     
-    gh = GithubConnection(github_access_token, course.github_organization)
-        
-    gh.update_team_repository(team)    
+    try:    
+        gh = GithubConnection(github_access_token, course.github_organization)
+        gh.update_team_repository(team)    
+    except ChisubmitException, ce:
+        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+    except Exception, e:
+        handle_unexpected_exception()
 
     return CHISUBMIT_SUCCESS
 
     
 def cli_do__team_gh_repo_remove(course, args):
-    team = course.teams[args.team_id]
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
     
     if team.github_repo is None:
         print "Team %s does not have a repository." % team.id
@@ -129,28 +177,35 @@ def cli_do__team_gh_repo_remove(course, args):
     
     if github_access_token is None:
         print "No GitHub access token with delete permissions found."
-        print "You need to create an access token with 'repo' and 'delete_repo' scopes"
+        print "You can create one with 'chisubmit gh-token-create --delete"
         return CHISUBMIT_FAIL
         
-    gh = GithubConnection(github_access_token, course.github_organization)
-        
-    gh.delete_team_repository(team)
+    try:
+        gh = GithubConnection(github_access_token, course.github_organization)
+        gh.delete_team_repository(team)
+    except ChisubmitException, ce:
+        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+    except Exception, e:
+        handle_unexpected_exception()
 
     return CHISUBMIT_SUCCESS
 
 def cli_do__team_gh_repo_check(course, args):
-    team = course.teams[args.team_id]
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
     
     if team.github_repo is None:
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
     github_access_token = chisubmit.core.get_github_token()
-    
+
     if github_access_token is None:
-        print "No GitHub access token found."
-        print "You need to create one using ""chisubmit gh-token-create"""
-        return CHISUBMIT_FAIL
+        print "You have not created a GitHub access token."
+        print "You can create one using 'chisubmit gh-token-create'"
+        return CHISUBMIT_FAIL    
         
     try:
         gh = GithubConnection(github_access_token, course.github_organization)
@@ -169,5 +224,11 @@ def cli_do__team_gh_repo_check(course, args):
     return CHISUBMIT_SUCCESS
 
 def cli_do__team_gh_repo_set(course, args):
-    team = course.teams[args.team_id]
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
+    
     team.github_repo = args.github_repo
+    
+    return CHISUBMIT_SUCCESS

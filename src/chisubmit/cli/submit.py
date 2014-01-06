@@ -47,20 +47,31 @@ def create_submit_subparsers(subparsers):
     
     
 def cli_do__team_project_submit(course, args):
-    project = course.projects[args.project_id]
-    team = course.teams[args.team_id]
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
     
     extensions_requested = args.extensions
     
     github_access_token = chisubmit.core.get_github_token()
-    gh = GithubConnection(github_access_token, course.github_organization)
+    
+    if github_access_token is None:
+        print "You have not created a GitHub access token."
+        print "You can create one using 'chisubmit gh-token-create'"
+        return CHISUBMIT_FAIL
     
     try:
         gh = GithubConnection(github_access_token, course.github_organization)
     except ChisubmitException, ce:
         print "Unable to connect to GitHub: %s" % ce.message
         return CHISUBMIT_FAIL
-    
+
     commit = gh.get_commit(team, args.commit)
     
     if commit is None:
@@ -163,7 +174,6 @@ def cli_do__team_project_submit(course, args):
         if submission_tag is None:
             gh.create_submission_tag(team, tag_name, message, commit.commit.sha)
         else:
-            pass
             gh.update_submission_tag(team, tag_name, message, commit.commit.sha)
             
         print

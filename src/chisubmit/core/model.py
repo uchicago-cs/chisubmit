@@ -34,6 +34,13 @@ import os.path
 import chisubmit.core
 from chisubmit.common.utils import set_datetime_timezone_utc
 import urllib2
+from chisubmit.core import ChisubmitException
+
+
+class ChisubmitModelException(Exception):
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
 
 class Course(object):
     def __init__(self, course_id, name, extensions):
@@ -55,25 +62,39 @@ class Course(object):
         
     def save(self, course_file = None):
         if self.course_file is None and course_file is None:
-            raise Exception("Course object has no file associated with it")
+            raise ChisubmitModelException("Course object has no file associated with it.")
 
         if course_file is None:
             course_file = self.course_file
             
-        f = open(course_file, 'w')
-        yaml.dump(self, f)
-        f.close()
+        try:
+            f = open(course_file, 'w')
+            yaml.dump(self, f)
+            f.close()
+        except IOError, ioe:
+            raise ChisubmitException("Error when saving course to file %s: %s" % (course_file, ioe.meesage), ioe)
         
     @staticmethod
     def from_file(course_file):
         course = yaml.load(course_file)
+        if type(course) != Course:
+            raise ChisubmitModelException("Course file does not contain a Course object.")
         return course
 
     @staticmethod
     def from_url(course_url):
-        req = urllib2.Request(course_url)
-        response = urllib2.urlopen(req)
+        try:
+            req = urllib2.Request(course_url)
+            response = urllib2.urlopen(req)
+        except urllib2.HTTPError, he:
+            raise ChisubmitException("Error when accessing %s: %s %s" % (course_url, he.code, he.msg), he)
+        except urllib2.URLError, ue:
+            raise ChisubmitException("Error when accessing %s: %s" % (course_url, ue.reason), ue)
+        
         course = yaml.load(response)
+        if type(course) != Course:
+            raise ChisubmitModelException("Course file does not contain a Course object.")        
+        
         return course
     
     @staticmethod
@@ -85,12 +106,21 @@ class Course(object):
         course_obj = Course.from_file(course_file)
         course_file.close()
         return course_obj
+    
+    def get_student(self, student_id):
+        return self.students.get(student_id)
         
     def add_student(self, student):
         self.students[student.id] = student
 
+    def get_project(self, project_id):
+        return self.projects.get(project_id)
+
     def add_project(self, project):
         self.projects[project.id] = project
+
+    def get_team(self, team_id):
+        return self.teams.get(team_id)
 
     def add_team(self, team):
         self.teams[team.id] = team

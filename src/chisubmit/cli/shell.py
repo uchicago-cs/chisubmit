@@ -30,6 +30,7 @@
 
 from chisubmit.common.utils import create_subparser
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
 def create_shell_subparsers(subparsers):
     create_subparser(subparsers, "shell", cli_do__shell)
@@ -45,24 +46,29 @@ def cli_do__shell(course, args):
     except ImportError, ie:
         print "You need IPython (>= 1.1.0) to run the chisubmit shell"
         
-    cfg = Config()
-    cfg.TerminalInteractiveShell.banner1 = """
-                  WELCOME TO THE CHISUBMIT SHELL
-
-Course: %s
-
-This is an IPython shell with the chisubmit data structures preloaded. 
-You can access the chisubmit objects through variable 'course'.
-
-Note: Any changes you make will NOT be saved. Use course.save() to save
-any changes you make to the chisubmit objects.
-
-""" % (course.name)
-
-    prompt_config = cfg.PromptManager
-    prompt_config.in_template = 'chisubmit> '
-    prompt_config.in2_template = '   .\\D.> '
-    prompt_config.out_template = '         > '
-    embed(config = cfg)
+    try:
+        cfg = Config()
+        cfg.TerminalInteractiveShell.banner1 = """
+                      WELCOME TO THE CHISUBMIT SHELL
+    
+    Course: %s
+    
+    This is an IPython shell with the chisubmit data structures preloaded. 
+    You can access the chisubmit objects through variable 'course'.
+    
+    Note: Any changes you make will NOT be saved. Use course.save() to save
+    any changes you make to the chisubmit objects.
+    
+    """ % (course.name)
+    
+        prompt_config = cfg.PromptManager
+        prompt_config.in_template = 'chisubmit> '
+        prompt_config.in2_template = '   .\\D.> '
+        prompt_config.out_template = '         > '
+        embed(config = cfg)
+    except ChisubmitException, ce:
+        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+    except Exception, e:
+        handle_unexpected_exception()
         
     return CHISUBMIT_SUCCESS

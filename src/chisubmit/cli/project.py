@@ -31,11 +31,13 @@
 from chisubmit.common.utils import create_subparser, mkdatetime,\
     get_datetime_now_utc, convert_timezone_to_local
 from chisubmit.core.model import Project, GradeComponent
+from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
 
 def create_project_subparsers(subparsers):
     subparser = create_subparser(subparsers, "project-create", cli_do__project_create)
-    subparser.add_argument('id', type=str)
+    subparser.add_argument('project_id', type=str)
     subparser.add_argument('name', type=str)
     subparser.add_argument('deadline', type=mkdatetime)
 
@@ -52,11 +54,15 @@ def create_project_subparsers(subparsers):
     subparser.add_argument('project_id', type=str)
     subparser.add_argument('--utc', action="store_true")
     
+
 def cli_do__project_create(course, args):
-    project = Project(project_id = args.id,
+    project = Project(project_id = args.project_id,
                       name = args.name,
                       deadline = args.deadline)
     course.add_project(project)
+    
+    return CHISUBMIT_SUCCESS
+    
 
 def cli_do__project_list(course, args):
     project_ids = course.projects.keys()
@@ -77,14 +83,26 @@ def cli_do__project_list(course, args):
             
             print "\t".join(fields)
 
+    return CHISUBMIT_SUCCESS
+
    
 def cli_do__project_grade_component_add(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+
     grade_component = GradeComponent(args.name, args.points)
-    course.projects[args.project_id].add_grade_component(grade_component)    
+    project.add_grade_component(grade_component)    
+
+    return CHISUBMIT_SUCCESS
     
     
 def cli_do__project_deadline_show(course, args):
-    project = course.projects[args.project_id]
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
     
     now_utc = get_datetime_now_utc()
     now_local = convert_timezone_to_local(now_utc)
@@ -124,5 +142,7 @@ def cli_do__project_deadline_show(course, args):
     else:
         print "The deadline passed %i days, %i hours, %i minutes, %i seconds ago" % (days, hours, minutes, seconds)
         print "If you submit your project now, you will need to use %i extensions" % extensions
-        
+ 
+    return CHISUBMIT_SUCCESS
+       
             

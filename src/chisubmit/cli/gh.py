@@ -32,10 +32,10 @@ import getpass
 
 import chisubmit.core
 
-from chisubmit.common.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
+from chisubmit.common.utils import create_subparser
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
 def create_gh_subparsers(subparsers):
     subparser = create_subparser(subparsers, "gh-token-create", cli_do__gh_token_create)
@@ -43,21 +43,32 @@ def create_gh_subparsers(subparsers):
     
     
 def cli_do__gh_token_create(course, args):
-
-    username = raw_input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password: ")
-    token = GithubConnection.get_token(username, password, delete = args.delete)
     
-    if token is None:
-        print "Unable to create token. Incorrect username/password."
-    else:
-        if args.delete:
-            chisubmit.core.set_github_delete_token(token)
+    try:
+        username = raw_input("Enter your GitHub username: ")
+        password = getpass.getpass("Enter your GitHub password: ")
+    except KeyboardInterrupt, ki:
+        exit(CHISUBMIT_FAIL)
+    except Exception, e:
+        handle_unexpected_exception()
+    
+    try:
+        token = GithubConnection.get_token(username, password, delete = args.delete)
+        
+        if token is None:
+            print "Unable to create token. Incorrect username/password."
         else:
-            chisubmit.core.set_github_token(token)
-
-        print "The following token has been created: %s" % token
-        print "chisubmit has been configured to use this token from now on."
+            if args.delete:
+                chisubmit.core.set_github_delete_token(token)
+            else:
+                chisubmit.core.set_github_token(token)
+    
+            print "The following token has been created: %s" % token
+            print "chisubmit has been configured to use this token from now on."
+    except ChisubmitException, ce:
+        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+    except Exception, e:
+        handle_unexpected_exception()
             
     return CHISUBMIT_SUCCESS
 

@@ -30,6 +30,7 @@
 
 from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Student
+from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 
 def create_student_subparsers(subparsers):
     subparser = create_subparser(subparsers, "student-create", cli_do__student_create)
@@ -51,5 +52,15 @@ def cli_do__student_create(course, args):
                       github_id = args.github_id)
     course.add_student(student)
     
+    return CHISUBMIT_SUCCESS
+    
+    
 def cli_do__student_set_dropped(course, args):
-    course.students[args.id].dropped = True   
+    student = course.get_student(args.id)
+    if student is None:
+        print "Student %s does not exist"
+        return CHISUBMIT_FAIL    
+    
+    student.dropped = True
+    
+    return CHISUBMIT_SUCCESS

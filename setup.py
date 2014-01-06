@@ -46,7 +46,7 @@ setup(name='chisubmit',
       author_email='borja@cs.uchicago.edu',
       url='http://www.cs.uchicago.edu/',
       package_dir = {'': 'src'},      
-      package_data = {'': ['*.conf']},
+      package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
       
       install_requires = [ "PyGithub >= 1.21.0", "GitPython >= 0.3.2.RC1",

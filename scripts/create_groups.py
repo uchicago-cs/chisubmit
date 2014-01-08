@@ -131,9 +131,6 @@ for row in feed.entry:
 
     course.save()
 
-    print "Sending e-mail to team..."
-    print "TODO"
-
 print "============================================"
 
 

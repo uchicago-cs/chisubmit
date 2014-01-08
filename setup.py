@@ -35,12 +35,14 @@ use_setuptools()
 from setuptools import setup, find_packages
 import sys
 
+from chisubmit import RELEASE
+
 sys.path.insert(0, './src')
 
 eps = ['chisubmit = chisubmit.cli:chisubmit_cmd']
 
 setup(name='chisubmit',
-      version="0.0.1",
+      version=RELEASE,
       description='A system for managing projects and teams in university courses',
       author='University of Chicago, Department of Computer Science',
       author_email='borja@cs.uchicago.edu',

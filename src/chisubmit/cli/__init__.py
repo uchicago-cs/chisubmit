@@ -37,6 +37,7 @@ from argparse import ArgumentParser
 
 import chisubmit.core
 import chisubmit.common.log as log
+from chisubmit import RELEASE
 from chisubmit.core.model import Course, Project, Student,\
     ChisubmitModelException
 from chisubmit.cli.course import *
@@ -63,8 +64,9 @@ def chisubmit_cmd(argv=None):
     parser.add_argument('--config', type=str, default=None)
     parser.add_argument('--dir', type=str, default=None)
     parser.add_argument('--noop', action="store_true")
-    parser.add_argument('--course', type=str)
+    parser.add_argument('--course', type=str, default=None)
     parser.add_argument('--verbose', action="store_true")
+    parser.add_argument('--version', action='version', version="chisubmit %s" % RELEASE)
     parser.add_argument('--debug', action="store_true")
 
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -84,7 +86,7 @@ def chisubmit_cmd(argv=None):
     log.init_logging(args.verbose, args.debug)
 
     if args.subcommand not in SUBCOMMANDS_NO_COURSE:
-        if args.course:
+        if args.course is not None:
             course_id = args.course
         else:
             course_id = chisubmit.core.get_default_course()

@@ -76,12 +76,12 @@ def cli_do__team_create(course, args):
 def cli_do__team_student_add(course, args):
     student = course.get_student(args.student_id)
     if student is None:
-        print "Student %s does not exist"
+        print "Student %s does not exist" % args.student_id
         return CHISUBMIT_FAIL
     
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL       
     
     team.add_student(student)   
@@ -92,7 +92,7 @@ def cli_do__team_student_add(course, args):
 def cli_do__team_project_add(course, args):
     project = course.get_project(args.project_id)
     if project is None:
-        print "Project %s does not exist"
+        print "Project %s does not exist" % args.project_id
         return CHISUBMIT_FAIL    
     
     team = course.get_team(args.team_id)
@@ -108,7 +108,7 @@ def cli_do__team_project_add(course, args):
 def cli_do__team_gh_repo_create(course, args):
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
 
     if team.github_repo is not None and not args.ignore_existing:
@@ -138,7 +138,7 @@ def cli_do__team_gh_repo_create(course, args):
 def cli_do__team_gh_repo_update(course, args):
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:
@@ -166,7 +166,7 @@ def cli_do__team_gh_repo_update(course, args):
 def cli_do__team_gh_repo_remove(course, args):
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:
@@ -193,7 +193,7 @@ def cli_do__team_gh_repo_remove(course, args):
 def cli_do__team_gh_repo_check(course, args):
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:

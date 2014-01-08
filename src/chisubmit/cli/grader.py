@@ -57,7 +57,7 @@ def create_grader_subparsers(subparsers):
 def cli_do__grader_sync_grading_repo(course, args):
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
     try:

@@ -89,7 +89,7 @@ def cli_do__project_list(course, args):
 def cli_do__project_grade_component_add(course, args):
     project = course.get_project(args.project_id)
     if project is None:
-        print "Project %s does not exist"
+        print "Project %s does not exist" % args.project_id
         return CHISUBMIT_FAIL
 
     grade_component = GradeComponent(args.name, args.points)

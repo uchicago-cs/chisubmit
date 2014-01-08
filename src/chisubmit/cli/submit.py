@@ -49,12 +49,12 @@ def create_submit_subparsers(subparsers):
 def cli_do__team_project_submit(course, args):
     project = course.get_project(args.project_id)
     if project is None:
-        print "Project %s does not exist"
+        print "Project %s does not exist" % args.project_id
         return CHISUBMIT_FAIL
     
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
     extensions_requested = args.extensions

@@ -58,7 +58,7 @@ def cli_do__student_create(course, args):
 def cli_do__student_set_dropped(course, args):
     student = course.get_student(args.id)
     if student is None:
-        print "Student %s does not exist"
+        print "Student %s does not exist" % args.id
         return CHISUBMIT_FAIL    
     
     student.dropped = True

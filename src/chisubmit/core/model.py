@@ -189,6 +189,7 @@ class Team(object):
         self.active = True
         self.github_repo = None
         self.github_team = None
+        self.github_email_sent = False
         
         self.projects = {}
         

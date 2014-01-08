@@ -71,6 +71,13 @@ def create_team_subparsers(subparsers):
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('github_repo', type=str)
 
+    subparser = create_subparser(subparsers, "team-gh-repo-email", cli_do__team_gh_repo_email)
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('email_from', type=str)
+    subparser.add_argument('template', type=str)
+    subparser.add_argument('--force', action="store_true")
+    subparser.add_argument('--dry-run', action="store_true")
+
 
 def cli_do__team_create(course, args):
     team = Team(team_id = args.team_id)
@@ -248,9 +255,49 @@ def cli_do__team_gh_repo_check(course, args):
 def cli_do__team_gh_repo_set(course, args):
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
     team.github_repo = args.github_repo
     
     return CHISUBMIT_SUCCESS
+
+
+def cli_do__team_gh_repo_email(course, args):
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist" % args.team_id
+        return CHISUBMIT_FAIL
+    
+    if team.github_email_sent and not args.force:
+        print "E-mail to team %s has already been sent" % team.id
+        print "Use --force to send anyways."
+        return CHISUBMIT_FAIL
+    
+    if team.github_repo is None:
+        print "Team %s does not have a repository." % team.id
+        return CHISUBMIT_FAIL
+
+    if not os.path.exists(args.template):
+        print "File %s does not exists"
+        return CHISUBMIT_FAIL
+       
+    smtp_server = smtplib.SMTP(chisubmit.core.chisubmit_conf.get("smtp", "server"))
+    email_template = Template(open(args.template).read()) 
+    email_to = ["%s %s <%s>" % (s.first_name, s.last_name, s.email) for s in team.students]
+    email_rcpt = [s.email for s in team.students] + [args.email_from]
+    github_repo = "https://github.com/%s/%s" % (course.github_organization, team.github_repo)
+    email_message = email_template.substitute(sender = args.email_from, 
+                                              recipients = ", ".join(email_to), 
+                                              subject = "New GitHub repository: %s" % team.github_repo, 
+                                              github_repo = github_repo)
+    
+    if not args.dry_run:
+        smtp_server.sendmail(args.email_from, email_rcpt, email_message)
+        team.github_email_sent = True
+        print "E-mail sent to team %s" % team.id
+    else:
+        print "Dry run requested. This is the message that would have been sent:"
+        print
+        print email_message
+        

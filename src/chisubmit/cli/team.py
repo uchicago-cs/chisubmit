@@ -35,10 +35,16 @@ from chisubmit.core.model import Team
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
+import os.path
+import smtplib
+from string import Template
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
     subparser.add_argument('team_id', type=str)
+
+    subparser = create_subparser(subparsers, "team-list", cli_do__team_list)
+    subparser.add_argument('--ids', action="store_true")
     
     subparser = create_subparser(subparsers, "team-student-add", cli_do__team_student_add)
     subparser.add_argument('team_id', type=str)
@@ -70,6 +76,22 @@ def cli_do__team_create(course, args):
     team = Team(team_id = args.team_id)
     course.add_team(team)
         
+    return CHISUBMIT_SUCCESS
+
+def cli_do__team_list(course, args):
+    team_ids = course.teams.keys()
+    team_ids.sort()
+    
+    for team_id in team_ids:
+        if args.ids:
+            print team_id
+        else:
+            team = course.teams[team_id]
+            
+            fields = [team.id, `team.active`, team.github_repo, team.github_team, `team.github_email_sent`]
+                        
+            print "\t".join(fields)
+
     return CHISUBMIT_SUCCESS
 
     

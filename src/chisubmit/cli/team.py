@@ -243,7 +243,7 @@ def cli_do__team_gh_repo_check(course, args):
         return CHISUBMIT_FAIL
         
     if not gh.repository_exists(team.github_repo):
-        print "The repository '%s' does not exist or you do not have permission to access it."
+        print "The repository '%s' does not exist or you do not have permission to access it." % team.github_repo
         return CHISUBMIT_FAIL
 
     # TODO: Check that the user actually has push access

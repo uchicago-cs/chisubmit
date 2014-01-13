@@ -60,6 +60,16 @@ class GithubConnection(object):
         student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
         github_instructors = self.__get_team_by_name(course.github_admins_team)
+        github_students = []
+        
+        # Make sure users exist
+        for s in team.students:
+            github_student = self.__get_user(s.github_id)
+            
+            if github_student is None:
+                raise ChisubmitException("GitHub user '%s' does not exist " % (s.github_id))
+            
+            github_students.append(github_student)
         
         github_repo = self.__get_repository(repo_name)
         
@@ -77,11 +87,9 @@ class GithubConnection(object):
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception adding repository to Instructors team (%i: %s)" % (ge.status, ge.data["message"]), ge)
         
-        
         github_team = self.create_team(team_name, [github_repo], "push", fail_if_exists)
         
-        for s in team.students:
-            github_student = self.__get_user(s.github_id)
+        for github_student in github_students:
             try:
                 github_team.add_to_members(github_student)
             except GithubException as ge:

@@ -270,8 +270,7 @@ def cli_do__team_gh_repo_email(course, args):
         return CHISUBMIT_FAIL
     
     if team.github_email_sent and not args.force:
-        print "E-mail to team %s has already been sent" % team.id
-        print "Use --force to send anyways."
+        print "E-mail to team %s has already been sent. Use --force to send anyways." % team.id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:

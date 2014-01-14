@@ -35,9 +35,9 @@ use_setuptools()
 from setuptools import setup, find_packages
 import sys
 
+sys.path.insert(0, './src')
 from chisubmit import RELEASE
 
-sys.path.insert(0, './src')
 
 eps = ['chisubmit = chisubmit.cli:chisubmit_cmd']
 

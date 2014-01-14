@@ -134,9 +134,20 @@ class GithubConnection(object):
         commit = self.get_commit(team, commit_sha)
         
         this_user = self.gh.get_user()
+
+        if this_user.name is None:
+            user_name = "Team %s" % team.id
+        else:
+            user_name = this_user.name
+
+        if this_user.email is None:
+            user_email = "Unspecified E-mail"
+        else:
+            user_email = this_user.email
+
         tz = pytz.timezone("America/Chicago")
         dt = tz.localize(datetime.now())
-        iu = InputGitAuthor(this_user.name, this_user.email, dt.isoformat())
+        iu = InputGitAuthor(user_name, user_email, dt.isoformat())
         
         tag = github_repo.create_git_tag(tag_name, tag_message, commit.sha, "commit", iu)
         ref = github_repo.create_git_ref("refs/tags/" + tag.tag, tag.sha)

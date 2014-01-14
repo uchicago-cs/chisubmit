@@ -141,7 +141,7 @@ class GithubConnection(object):
             user_name = this_user.name
 
         if this_user.email is None:
-            user_email = "Unspecified E-mail"
+            user_email = "unspecified@example.org"
         else:
             user_email = this_user.email
 

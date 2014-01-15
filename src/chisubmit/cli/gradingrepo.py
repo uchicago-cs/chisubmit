@@ -32,9 +32,8 @@ from chisubmit.common.utils import create_subparser
 from chisubmit.core.repos import GradingGitRepo
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
-from chisubmit.core.model import Grader
-import operator
-from chisubmit.core.rubric import RubricFile
+from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
+import os.path
 
 def create_gradingrepo_subparsers(subparsers):
     subparser = create_subparser(subparsers, "gradingrepo-sync", cli_do__gradingrepo_sync_grading_repo)
@@ -45,6 +44,10 @@ def create_gradingrepo_subparsers(subparsers):
     subparser.add_argument('project_id', type=str)
 
     subparser = create_subparser(subparsers, "gradingrepo-add-rubrics", cli_do__gradingrepo_add_rubrics)
+    subparser.add_argument('project_id', type=str)
+
+    subparser = create_subparser(subparsers, "gradingrepo-validate-rubric", cli_do__gradingrepo_validate_rubric)
+    subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
 
     subparser = create_subparser(subparsers, "gradingrepo-push-grading-branch", cli_do__gradingrepo_push_grading_branch)
@@ -127,6 +130,39 @@ def cli_do__gradingrepo_add_rubrics(course, args):
             raise ce # Propagate upwards, it will be handled by chisubmit_cmd
         except Exception, e:
             handle_unexpected_exception()        
+
+
+def cli_do__gradingrepo_validate_rubric(course, args):
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist"
+        return CHISUBMIT_FAIL
+        
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+
+    repo = GradingGitRepo.get_grading_repo(course, team)
+    if repo is None:    
+        print "Repository for %s does not exist" % (team.id)
+        return CHISUBMIT_FAIL
+        
+    rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+    
+    if not os.path.exists(rubricfile):
+        print "Repository for %s does not exist have a rubric for project %s" % (team.id, project.id)
+        return CHISUBMIT_FAIL
+    
+    try:
+        RubricFile.from_file(open(rubricfile), project)
+    except ChisubmitRubricException, cre:
+        print "Error in rubric: %s" % cre.message
+        return CHISUBMIT_FAIL
+        
+    print "Rubric OK."
+    
+    return CHISUBMIT_SUCCESS
 
 
 def cli_do__gradingrepo_push_grading_branch(course, args):

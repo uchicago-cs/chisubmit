@@ -141,8 +141,9 @@ class RubricFile(object):
                     raise ChisubmitRubricException("Grade component '%s' in rubric has more than allowed points (%i > %i)" %
                                                     (grade_component.name, points_obtained, points_possible))
 
+                total_points_obtained += points_obtained
+
             points[grade_component.name] = points_obtained
-            total_points_obtained += points_obtained
             total_points_possible += grade_component.points
             
         if type(rubric[RubricFile.FIELD_TOTAL_POINTS]) != str:

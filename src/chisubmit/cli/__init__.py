@@ -50,6 +50,8 @@ from chisubmit.common import CHISUBMIT_FAIL
 from chisubmit.cli.shell import create_shell_subparsers
 from chisubmit.cli.grader import create_grader_subparsers
 from chisubmit.cli.gh import create_gh_subparsers
+from chisubmit.cli.admin import create_admin_subparsers
+from chisubmit.cli.gradingrepo import create_gradingrepo_subparsers
 
 SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
@@ -77,6 +79,8 @@ def chisubmit_cmd(argv=None):
     create_team_subparsers(subparsers)
     create_submit_subparsers(subparsers)
     create_grader_subparsers(subparsers)
+    create_gradingrepo_subparsers(subparsers)
+    create_admin_subparsers(subparsers)
     create_shell_subparsers(subparsers)
     create_gh_subparsers(subparsers)
     

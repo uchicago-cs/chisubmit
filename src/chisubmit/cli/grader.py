@@ -29,136 +29,48 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.common.utils import create_subparser
-from chisubmit.core.repos import GradingGitRepo
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
+from chisubmit.core.model import Grader
 
 def create_grader_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "grader-sync-grading-repo", cli_do__grader_sync_grading_repo)
-    subparser.add_argument('team_id', type=str)
+    subparser = create_subparser(subparsers, "grader-create", cli_do__grader_create)
+    subparser.add_argument('id', type=str)
+    subparser.add_argument('first_name', type=str)
+    subparser.add_argument('last_name', type=str)
+    subparser.add_argument('email', type=str)
+    subparser.add_argument('github_id', type=str)
 
-    subparser = create_subparser(subparsers, "grader-create-grading-branch", cli_do__grader_create_grading_branch)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
-
-    subparser = create_subparser(subparsers, "grader-push-grading-branch", cli_do__grader_push_grading_branch)
-    subparser.add_argument('--staging', action="store_true")
-    subparser.add_argument('--github', action="store_true")
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
-
-    subparser = create_subparser(subparsers, "grader-pull-grading-branch", cli_do__grader_pull_grading_branch)
-    subparser.add_argument('--staging', action="store_true")
-    subparser.add_argument('--github', action="store_true")
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
+    subparser = create_subparser(subparsers, "grader-add-conflict", cli_do__grader_add_conflict)
+    subparser.add_argument('grader_id', type=str)
+    subparser.add_argument('student_id', type=str)
 
 
-def cli_do__grader_sync_grading_repo(course, args):
-    team = course.get_team(args.team_id)
-    if team is None:
-        print "Team %s does not exist" % args.team_id
-        return CHISUBMIT_FAIL
+def cli_do__grader_create(course, args):
+    grader = Grader(grader_id = args.id,
+                    first_name = args.first_name,
+                    last_name = args.last_name,
+                    email = args.email,
+                    github_id = args.github_id)
+    course.add_grader(grader)
     
-    try:
-        repo = GradingGitRepo.get_grading_repo(course, team)
-        
-        if repo is None:
-            repo = GradingGitRepo.create_grading_repo(course, team)
-        else:
-            repo.sync()
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-
     return CHISUBMIT_SUCCESS
 
-        
-def cli_do__grader_create_grading_branch(course, args):
-    team = course.get_team(args.team_id)
-    if team is None:
-        print "Team %s does not exist"
+def cli_do__grader_add_conflict(course, args):
+    grader = course.get_grader(args.grader_id)
+    if grader is None:
+        print "Grader %s does not exist" % args.grader_id
         return CHISUBMIT_FAIL
     
-    project = course.get_project(args.project_id)
-    if project is None:
-        print "Project %s does not exist"
+    student = course.get_student(args.student_id)
+    if student is None:
+        print "Student %s does not exist" % args.student_id
         return CHISUBMIT_FAIL
     
-    try:
-        repo = GradingGitRepo.get_grading_repo(course, team)
-        
-        if repo is None:
-            print "%s does not have a grading repository" % team.id
-            return CHISUBMIT_FAIL
-        
-        repo.create_grading_branch(project)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    if student in grader.conflicts:
+        print "Student %s is already listed as a conflict for grader %s" % (student.id, grader.id)
 
+    grader.conflicts.append(student)
+    
     return CHISUBMIT_SUCCESS
 
-
-def cli_do__grader_push_grading_branch(course, args):
-    team = course.get_team(args.team_id)
-    if team is None:
-        print "Team %s does not exist"
-        return CHISUBMIT_FAIL
-    
-    project = course.get_project(args.project_id)
-    if project is None:
-        print "Project %s does not exist"
-        return CHISUBMIT_FAIL
-    
-    try:    
-        repo = GradingGitRepo.get_grading_repo(course, team)
-        
-        if repo is None:
-            print "%s does not have a grading repository" % team.id
-            return CHISUBMIT_FAIL
-            
-        if args.github:
-            repo.push_grading_branch_to_github(project)
-            
-        if args.staging:
-            repo.push_grading_branch_to_staging(project)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-
-    return CHISUBMIT_SUCCESS
-
-def cli_do__grader_pull_grading_branch(course, args):
-    team = course.get_team(args.team_id)
-    if team is None:
-        print "Team %s does not exist"
-        return CHISUBMIT_FAIL
-    
-    project = course.get_project(args.project_id)
-    if project is None:
-        print "Project %s does not exist"
-        return CHISUBMIT_FAIL
-    
-    try:
-        repo = GradingGitRepo.get_grading_repo(course, team)
-        
-        if repo is None:
-            print "%s does not have a grading repository" % team.id
-            return CHISUBMIT_FAIL
-        
-        if args.github:
-            repo.pull_grading_branch_from_github(project)
-        
-        if args.staging:
-            repo.pull_grading_branch_from_staging(project)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-        
-    return CHISUBMIT_SUCCESS
                 

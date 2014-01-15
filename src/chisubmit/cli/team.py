@@ -38,6 +38,7 @@ from chisubmit.core import ChisubmitException, handle_unexpected_exception
 import os.path
 import smtplib
 from string import Template
+import random
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
@@ -126,7 +127,11 @@ def cli_do__team_project_add(course, args):
     
     team = course.get_team(args.team_id)
     if team is None:
-        print "Team %s does not exist"
+        print "Team %s does not exist" % args.team_id
+        return CHISUBMIT_FAIL
+    
+    if team.projects.has_key(project):
+        print "Team %s has already been assigned project %s"  % (team.id, project.id)
         return CHISUBMIT_FAIL
     
     team.add_project(project)                

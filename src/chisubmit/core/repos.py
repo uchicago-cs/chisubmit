@@ -386,9 +386,10 @@ class LocalGitRepo(object):
             return refs[0]            
         
 class GradingGitRepo(object):
-    def __init__(self, team, repo):
+    def __init__(self, team, repo, repo_path):
         self.team = team        
         self.repo = repo
+        self.repo_path = repo_path
     
     @classmethod
     def get_grading_repo(cls, course, team):
@@ -397,7 +398,7 @@ class GradingGitRepo(object):
             return None 
         else:
             repo = LocalGitRepo(repo_path)
-            return cls(team, repo)
+            return cls(team, repo, repo_path)
     
     @classmethod
     def create_grading_repo(cls, course, team):
@@ -405,7 +406,7 @@ class GradingGitRepo(object):
         gh_url = cls.get_team_gh_repo_url(course, team)
         staging_url = cls.get_team_staging_repo_url(course, team)
         repo = LocalGitRepo.create_repo(repo_path, clone_from_url = gh_url, remotes = [("staging", staging_url)])
-        return cls(team, repo)        
+        return cls(team, repo, repo_path)        
     
     def sync(self):
         self.repo.fetch("origin")
@@ -423,6 +424,12 @@ class GradingGitRepo(object):
         self.repo.create_branch(branch_name, tag.commit)
         self.repo.checkout_branch(branch_name)
         
+    def checkout_grading_branch(self, project):
+        branch_name = project.get_grading_branch_name()
+        if not self.repo.has_branch(branch_name):
+            raise ChisubmitException("%s repository does not have a %s branch" % (self.team.id, branch_name))
+
+        self.repo.checkout_branch(branch_name)     
         
     def push_grading_branch_to_github(self, project):
         self.__push_grading_branch(project, "origin")

@@ -55,6 +55,7 @@ class Course(object):
         self.git_staging_hostname = None
         
         self.students = {}
+        self.graders = {}
         self.projects = {}
         self.teams = {}
         
@@ -113,6 +114,12 @@ class Course(object):
     def add_student(self, student):
         self.students[student.id] = student
 
+    def get_grader(self, grader_id):
+        return self.graders.get(grader_id)
+    
+    def add_grader(self, grader):
+        self.graders[grader.id] = grader
+
     def get_project(self, project_id):
         return self.projects.get(project_id)
 
@@ -130,6 +137,9 @@ class GradeComponent(object):
     def __init__(self, name, points):
         self.name = name
         self.points = points        
+        
+    def __repr__(self):
+        return "<GradeComponent %s (%s points)>" % (self.name, self.points)        
 
 
 class Project(object):
@@ -139,6 +149,19 @@ class Project(object):
         self.deadline = deadline
         self.grade_components = []
         
+    def __repr__(self):
+        return "<Project %s: %s>" % (self.id, self.name)        
+      
+    def get_grade_component(self, grade_component_name):
+        gcs = [gc for gc in self.grade_components if gc.name == grade_component_name]
+        
+        if len(gcs) == 0:
+            return None
+        elif len(gcs) == 1:
+            return gcs[0]
+        else:
+            raise ChisubmitModelException("Project %s has two grade components with the same name (%s)" % (self.id, grade_component_name))
+                
     def add_grade_component(self, grade_component):
         self.grade_components.append(grade_component)
 
@@ -171,15 +194,33 @@ class Student(object):
         
         self.dropped = False
         
+    def __repr__(self):
+        return "<Student %s: %s>" % (self.id, self.get_full_name())
+        
+    def get_full_name(self, comma = False):
+        if comma:
+            return "%s, %s" % (self.last_name, self.first_name)
+        else:
+            return "%s %s" % (self.first_name, self.last_name)
+            
+        
    
 class Grader(object):
-    def __init__(self, student_id, first_name, last_name, email, github_id):
-        self.id = student_id
+    def __init__(self, grader_id, first_name, last_name, email, github_id):
+        self.id = grader_id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
         self.github_id = github_id
-                   
+        
+        self.conflicts = []
+        
+    def get_full_name(self, comma = False):
+        if comma:
+            return "%s, %s" % (self.last_name, self.first_name)
+        else:
+            return "%s %s" % (self.first_name, self.last_name)        
+
         
 class Team(object):
     def __init__(self, team_id):
@@ -192,13 +233,32 @@ class Team(object):
         self.github_email_sent = False
         
         self.projects = {}
+
+    def __repr__(self):
+        return "<Team %s>" % self.id
         
     def add_student(self, student):
         self.students.append(student)
         
+    def get_project(self, project_id):
+        return self.projects.get(project_id)
+        
     def add_project(self, project):
         self.projects[project.id] = TeamProject(project)
         
+    def has_project(self, project_id):
+        return self.projects.has_key(project_id)
+        
+    def set_project_grade(self, project_id, grade_component, points):
+        team_project = self.get_project(project_id)
+        project = team_project.project
+        if project is None:
+            raise ChisubmitModelException("Tried to assign grade, but team %s has not been assigned project %s" % (self.id, project_id)) 
+
+        if grade_component not in project.grade_components:
+            raise ChisubmitModelException("Tried to assign grade, but project %s does not have grade component %s" % (project.id, grade_component.name))
+
+        team_project.set_grade(grade_component, points)
         
 class TeamProject(object):
     def __init__(self, project):
@@ -208,6 +268,15 @@ class TeamProject(object):
         self.extensions_used = 0
         self.grades = {}
         
+    def __repr__(self):
+        return "<TeamProject %s>" % (self.project.id)        
+        
     def set_grade(self, grade_component, points):
+        assert(isinstance(grade_component, GradeComponent))
+        
+        if points < 0 or points > grade_component.points:
+            raise ChisubmitModelException("Tried to assign invalid number of points in '%s' (got %.2f, expected 0 <= x <= %.2f)" %
+                                          (grade_component.name, points, grade_component.points))        
+        
         self.grades[grade_component] = points
     

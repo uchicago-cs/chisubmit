@@ -358,7 +358,7 @@ class LocalGitRepo(object):
         self.remotes[remote_name].push("%s:%s" % (branch, branch))
 
     def pull(self, remote_name, branch):
-        self.remotes[remote_name].pull("%s:%s" % (branch, branch))        
+        self.remotes[remote_name].pull("%s:%s/%s" % (branch, remote_name, branch))        
 
 
     def __get_head(self, path):

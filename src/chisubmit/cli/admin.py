@@ -32,6 +32,9 @@ from chisubmit.common.utils import create_subparser
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 import operator
 import random
+from chisubmit.core.repos import GradingGitRepo
+import os.path
+from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
 
 def create_admin_subparsers(subparsers):
     subparser = create_subparser(subparsers, "admin-assign-graders", cli_do__admin_assign_graders)
@@ -40,6 +43,9 @@ def create_admin_subparsers(subparsers):
     subparser = create_subparser(subparsers, "admin-list-grader-assignments", cli_do__admin_list_grader_assignments)
     subparser.add_argument('project_id', type=str)
     subparser.add_argument('--grader', type=str)
+
+    subparser = create_subparser(subparsers, "admin-collect-rubrics", cli_do__admin_collect_rubrics)
+    subparser.add_argument('project_id', type=str)
 
     
 def cli_do__admin_assign_graders(course, args):
@@ -120,4 +126,46 @@ def cli_do__admin_list_grader_assignments(course, args):
                 
     return CHISUBMIT_SUCCESS
                 
-                
+
+def cli_do__admin_collect_rubrics(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist" % args.project_id
+        return CHISUBMIT_FAIL
+
+    gcs = [gc.name for gc in project.grade_components]
+
+    print "team," + ",".join(gcs)
+    
+    teams = [t for t in course.teams.values() if t.has_project(project.id)]
+
+    for team in teams:
+        team_project = team.get_project(project.id)
+
+        repo = GradingGitRepo.get_grading_repo(course, team)
+        if repo is None:    
+            print "Repository for %s does not exist" % (team.id)
+            return CHISUBMIT_FAIL
+            
+        rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+        
+        if not os.path.exists(rubricfile):
+            print "Repository for %s does not have a rubric for project %s" % (team.id, project.id)
+            return CHISUBMIT_FAIL
+        
+        try:
+            rubric = RubricFile.from_file(open(rubricfile), project)
+        except ChisubmitRubricException, cre:
+            print "Error in rubric: %s" % cre.message
+            return CHISUBMIT_FAIL
+
+        points = []
+        for gc in gcs:
+            if rubric.points[gc] is None:
+                points.append("")
+            else:
+                points.append(`rubric.points[gc]`)
+
+        print "%s,%s" % (team.id, ",".join(points))
+        
+        

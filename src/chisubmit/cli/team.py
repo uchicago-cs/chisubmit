@@ -54,6 +54,10 @@ def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-project-add", cli_do__team_project_add)
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
+
+    subparser = create_subparser(subparsers, "team-set-private-name", cli_do__team_set_private_name)
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('private_name', type=str)
     
     subparser = create_subparser(subparsers, "team-gh-repo-create", cli_do__team_gh_repo_create)
     subparser.add_argument('team_id', type=str)
@@ -138,6 +142,14 @@ def cli_do__team_project_add(course, args):
 
     return CHISUBMIT_SUCCESS
 
+
+def cli_do__team_set_private_name(course, args):
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist" % args.team_id
+        return CHISUBMIT_FAIL
+
+    team.private_name = args.private_name
     
 def cli_do__team_gh_repo_create(course, args):
     team = course.get_team(args.team_id)

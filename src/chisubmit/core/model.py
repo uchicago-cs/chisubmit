@@ -225,6 +225,8 @@ class Grader(object):
 class Team(object):
     def __init__(self, team_id):
         self.id = team_id
+        
+        self.private_name = None
 
         self.students = []
         self.active = True

@@ -55,6 +55,12 @@ def create_team_subparsers(subparsers):
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('project_id', type=str)
 
+    subparser = create_subparser(subparsers, "team-project-set-grade", cli_do__team_project_set_grade)
+    subparser.add_argument('team_id', type=str)
+    subparser.add_argument('project_id', type=str)
+    subparser.add_argument('grade_component', type=str)
+    subparser.add_argument('grade', type=float)
+
     subparser = create_subparser(subparsers, "team-set-private-name", cli_do__team_set_private_name)
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('private_name', type=str)
@@ -62,6 +68,7 @@ def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-gh-repo-create", cli_do__team_gh_repo_create)
     subparser.add_argument('team_id', type=str)
     subparser.add_argument('--ignore-existing', action="store_true", dest="ignore_existing")
+    subparser.add_argument('--public', action="store_true")
     
     subparser = create_subparser(subparsers, "team-gh-repo-update", cli_do__team_gh_repo_update)
     subparser.add_argument('team_id', type=str)    
@@ -134,7 +141,7 @@ def cli_do__team_project_add(course, args):
         print "Team %s does not exist" % args.team_id
         return CHISUBMIT_FAIL
     
-    if team.projects.has_key(project):
+    if team.projects.has_key(project.id):
         print "Team %s has already been assigned project %s"  % (team.id, project.id)
         return CHISUBMIT_FAIL
     
@@ -142,6 +149,23 @@ def cli_do__team_project_add(course, args):
 
     return CHISUBMIT_SUCCESS
 
+def cli_do__team_project_set_grade(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist" % args.project_id
+        return CHISUBMIT_FAIL    
+    
+    team = course.get_team(args.team_id)
+    if team is None:
+        print "Team %s does not exist" % args.team_id
+        return CHISUBMIT_FAIL
+    
+    grade_component = project.get_grade_component(args.grade_component)
+    if grade_component is None:
+        print "Project %s does not have a grade component '%s'" % (project.id, args.grade_component)
+        return CHISUBMIT_FAIL
+    
+    team.set_project_grade(project.id, grade_component, args.grade)
 
 def cli_do__team_set_private_name(course, args):
     team = course.get_team(args.team_id)
@@ -172,7 +196,7 @@ def cli_do__team_gh_repo_create(course, args):
     try:
         gh = GithubConnection(github_access_token, course.github_organization)
             
-        gh.create_team_repository(course, team, fail_if_exists = not args.ignore_existing)
+        gh.create_team_repository(course, team, fail_if_exists = not args.ignore_existing, private = not args.public)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:

@@ -112,17 +112,22 @@ chisubmit team-create team2
 chisubmit team-student-add team2 student3
 chisubmit team-student-add team2 student4
 
+# Next, we create a grader
+chisubmit grader-create graderA FirstA LastA graderA@uchicago.edu $GITHUB_USERNAME
+
 
 # Once we have our teams, we create their repositories:
 
-chisubmit team-gh-repo-create team1 --ignore-existing
-chisubmit team-gh-repo-create team2 --ignore-existing
+chisubmit team-gh-repo-create team1 --ignore-existing --public
+chisubmit team-gh-repo-create team2 --ignore-existing --public
 
 
 # Note: We use the --ignore-existing option here just so this script can be
 # rerun without having to delete existing repositories first (which
 # actually requires a personal access token with special permission)
-# Ordinarily, you wouldn't have to include this option.
+# Also, we create public repositories just because we usually run this
+# test script on a GitHub organization without private repos.
+# Ordinarily, you wouldn't have to include either of these options.
 
 # Next, we assign Project 1 to each team.
 #
@@ -131,11 +136,10 @@ chisubmit team-gh-repo-create team2 --ignore-existing
 # quarter. So, just because the students in team1 work together on Project 1
 # is no guarantee that they will be working on Project 2 too.
 #
-# In practice, the team-project-add command should be run once a project
+# In practice, the admin-assign-project command should be run once a project
 # has started, and all team changes have been made.
 
-chisubmit team-project-add team1 p1
-chisubmit team-project-add team2 p1
+chisubmit admin-assign-project p1
 
 chisubmit course-generate-distributable example-dist.yaml
 
@@ -205,8 +209,8 @@ git $TEAM1_GIT_OPTS push origin :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-gradi
 git $TEAM2_GIT_OPTS push --force -u origin master
 git $TEAM2_GIT_OPTS push origin :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
 
-echo 'Hello, world!' > $TEAM1_REPO/foo
-echo 'Hello, world!' > $TEAM2_REPO/foo
+echo 'Hello, team1!' > $TEAM1_REPO/foo
+echo 'Hello, team2!' > $TEAM2_REPO/foo
 
 git $TEAM1_GIT_OPTS add $TEAM1_REPO/
 git $TEAM1_GIT_OPTS commit -m "Second commit of team1"
@@ -224,9 +228,77 @@ TEAM2_SHA=`git $TEAM2_GIT_OPTS rev-parse HEAD`
 chisubmit $TEAM1_OPTS team-project-submit team1 p1 $TEAM1_SHA 0 --yes
 chisubmit $TEAM2_OPTS team-project-submit team2 p1 $TEAM2_SHA 0 --yes
 
-# Now that the project has been submitted, the graders
-# need to access them and grade them.
+# Now that the project has been submitted, the admin
+# needs to set up the repositories for grading.
+
+# First of all, we can check what projects have been submitted:
+
+chisubmit admin-list-submissions p1
+
+# Next, we get a local copy of the team repos. We refer to these
+# as "grading repos". These grading repos are placed in:
 #
+# ~/.chisubmit/repositories/example/p1/
+#
+# To make this script rerunnable, we first delete that
+# directory
+rm -rf ~/.chisubmit/repositories/example/p1/
+
+chisubmit admin-create-grading-repos p1
+
+# To make this script rerunable, we we push these repos to
+# the staging server with --force and delete any existing tags. 
+# You do not need to do this in practice (this is just so this 
+# script will be rerunable).
+ADMIN_TEAM1_GRADING_REPO="$HOME/.chisubmit/repositories/example/p1/team1"
+ADMIN_TEAM2_GRADING_REPO="$HOME/.chisubmit/repositories/example/p1/team2"
+
+ADMIN_TEAM1_GRADING_GIT_OPTS="--git-dir=$ADMIN_TEAM1_GRADING_REPO/.git --work-tree=$ADMIN_TEAM1_GRADING_REPO"
+ADMIN_TEAM2_GRADING_GIT_OPTS="--git-dir=$ADMIN_TEAM2_GRADING_REPO/.git --work-tree=$ADMIN_TEAM2_GRADING_REPO"
+
+git $ADMIN_TEAM1_GRADING_GIT_OPTS push --force -u staging master
+git $ADMIN_TEAM1_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
+git $ADMIN_TEAM2_GRADING_GIT_OPTS push --force -u staging master
+git $ADMIN_TEAM2_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
+
+# We create grading branches. This will result in each repo having
+# a "p1-grading" branch starting from the commit tagged as "p1"
+# This is the branch on which the graders will work (they should 
+# never mess with the master branch (or any other branch for that matter)
+
+chisubmit admin-create-grading-branches p1
+
+# Once we've created the grading branches, we will generate the 
+# rubrics that the graders will use to specify the grades for
+# each team. Some of these grades are already known by the admin
+# (e.g., in the case of automated tests run on the submissions)
+# So, we set those scores for the teams.
+
+chisubmit team-project-set-grade team1 p1 Tests 45
+chisubmit team-project-set-grade team2 p1 Tests 50
+
+chisubmit admin-create-rubric-files p1
+
+git $ADMIN_TEAM1_GRADING_GIT_OPTS add $ADMIN_TEAM1_GRADING_REPO/
+git $ADMIN_TEAM1_GRADING_GIT_OPTS commit -m "Added grading rubric"
+
+git $ADMIN_TEAM2_GRADING_GIT_OPTS add $ADMIN_TEAM2_GRADING_REPO/
+git $ADMIN_TEAM2_GRADING_GIT_OPTS commit -m "Added grading rubric"
+
+# Now, we assign graders (in this case there's only one grader,
+# so she should be assigned to both teams)
+
+chisubmit admin-assign-graders p1
+
+# And we list those assignments:
+
+chisubmit admin-list-grader-assignments p1
+
+# Finally, we push the grading repos (with the grading branches)
+# to the staging server. 
+chisubmit admin-push-grading-branches --staging p1
+
+
 # The following commands would be run by a grader.
 # We use a different configuration directory, to simulate
 # that the commands are run by a different user.
@@ -237,65 +309,84 @@ cp ~/.chisubmit/github_token ~/.chisubmit-grader/
 cp ~/.chisubmit/courses/example.yaml ~/.chisubmit-grader/courses/
 GRADER_OPTS="--dir ~/.chisubmit-grader/"
 
-TEAM1_GRADING_REPO="$HOME/.chisubmit-grader/repositories/example/team1"
-TEAM2_GRADING_REPO="$HOME/.chisubmit-grader/repositories/example/team2"
+GRADER_TEAM1_GRADING_REPO="$HOME/.chisubmit-grader/repositories/example/p1/team1"
+GRADER_TEAM2_GRADING_REPO="$HOME/.chisubmit-grader/repositories/example/p1/team2"
 
-TEAM1_GRADING_GIT_OPTS="--git-dir=$TEAM1_GRADING_REPO/.git --work-tree=$TEAM1_GRADING_REPO"
-TEAM2_GRADING_GIT_OPTS="--git-dir=$TEAM2_GRADING_REPO/.git --work-tree=$TEAM2_GRADING_REPO"
+GRADER_TEAM1_GRADING_GIT_OPTS="--git-dir=$GRADER_TEAM1_GRADING_REPO/.git --work-tree=$GRADER_TEAM1_GRADING_REPO"
+GRADER_TEAM2_GRADING_GIT_OPTS="--git-dir=$GRADER_TEAM2_GRADING_REPO/.git --work-tree=$GRADER_TEAM2_GRADING_REPO"
 
 # The following commands create a clone of the GitHub repositories in
 #
-# ~/.chisubmit/repositories/example/
+# ~/.chisubmit-grader/repositories/example/p1/
 #
 # To make this script rerunnable, we first delete that
 # directory
-rm -rf ~/.chisubmit-grader/repositories/example/
-chisubmit $GRADER_OPTS grader-sync-grading-repo team1
-chisubmit $GRADER_OPTS grader-sync-grading-repo team2
+rm -rf ~/.chisubmit-grader/repositories/example/p1/
 
-# Next, we create the grading branches:
-chisubmit $GRADER_OPTS grader-create-grading-branch team1 p1
-chisubmit $GRADER_OPTS grader-create-grading-branch team2 p1
-
-# The above two commands will create a branch called "p1-grading"
-# and will make that the current branch. Graders should only
-# modify those branches, and should never mess with the master
-# branch (or any other branch for that matter)
-
-# Now, before doing anything else, we push with --force and
-# delete any existing tags. You do not need to do this in practice
-# (this is just so this script will be rerunable)
-git $TEAM1_GRADING_GIT_OPTS push --force -u staging master
-git $TEAM1_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
-git $TEAM2_GRADING_GIT_OPTS push --force -u staging master
-git $TEAM2_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs/heads/p1-grading
-
+chisubmit $GRADER_OPTS grader-create-grading-repos graderA p1
 
 # Now, let's do some "grading"
-echo 'Needs improvement' >> $TEAM1_GRADING_REPO/bar
-echo 'Great job!' >> $TEAM2_GRADING_REPO/bar
 
-git $TEAM1_GRADING_GIT_OPTS add $TEAM1_GRADING_REPO/
-git $TEAM1_GRADING_GIT_OPTS commit -m "Graded p1"
+# Grading for team1:
 
-git $TEAM2_GRADING_GIT_OPTS add $TEAM2_GRADING_REPO/
-git $TEAM2_GRADING_GIT_OPTS commit -m "Graded p1"
+echo 'Needs improvement' >> $GRADER_TEAM1_GRADING_REPO/bar
+
+echo "Points:
+    Tests:
+        Points Possible: 50
+        Points Obtained: 45
+
+    Design:
+        Points Possible: 50
+        Points Obtained: 30
+
+Total Points: 75 / 100
+
+Comments: >
+    None" > $GRADER_TEAM1_GRADING_REPO/p1.rubric.txt
+
+# We validate that the rubric is ok
+chisubmit $GRADER_OPTS grader-validate-rubric team1 p1
+
+git $GRADER_TEAM1_GRADING_GIT_OPTS add $GRADER_TEAM1_GRADING_REPO/
+git $GRADER_TEAM1_GRADING_GIT_OPTS commit -m "Graded p1"
+
+
+echo 'Great job!' >> $GRADER_TEAM2_GRADING_REPO/bar
+
+echo "Points:
+    Tests:
+        Points Possible: 50
+        Points Obtained: 50
+
+    Design:
+        Points Possible: 50
+        Points Obtained: 45
+
+Total Points: 95 / 100
+
+Comments: >
+    None" > $GRADER_TEAM2_GRADING_REPO/p1.rubric.txt
+
+# We validate that the rubric is ok
+chisubmit $GRADER_OPTS grader-validate-rubric team2 p1
+
+# Commit
+git $GRADER_TEAM2_GRADING_GIT_OPTS add $GRADER_TEAM2_GRADING_REPO/
+git $GRADER_TEAM2_GRADING_GIT_OPTS commit -m "Graded p1"
+
 
 # We push the grading branches to the staging repository
-chisubmit $GRADER_OPTS grader-push-grading-branch --staging team1 p1
-chisubmit $GRADER_OPTS grader-push-grading-branch --staging team2 p1
+chisubmit $GRADER_OPTS grader-push-grading-branches graderA p1
 
-# Now, the instructor creates her own grading repositories:
-rm -rf ~/.chisubmit/repositories/example/
-chisubmit grader-sync-grading-repo team1
-chisubmit grader-sync-grading-repo team2
 
-# Pulls the grading branches from the staging server
-chisubmit grader-pull-grading-branch --staging team1 p1
-chisubmit grader-pull-grading-branch --staging team2 p1
+# Now, the instructor pulls the grading branches
+chisubmit admin-pull-grading-branches --staging p1
 
-# And pushes them to GitHub
-chisubmit grader-push-grading-branch --github team1 p1
-chisubmit grader-push-grading-branch --github team2 p1
+# Collects the rubrics
+chisubmit admin-collect-rubrics p1
+
+# And pushes the grading branches to GitHub
+chisubmit admin-push-grading-branches --github p1
 
 

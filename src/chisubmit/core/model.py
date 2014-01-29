@@ -215,6 +215,9 @@ class Grader(object):
         
         self.conflicts = []
         
+    def __repr__(self):
+        return "<Grader %s: %s>" % (self.id, self.get_full_name())        
+        
     def get_full_name(self, comma = False):
         if comma:
             return "%s, %s" % (self.last_name, self.first_name)
@@ -252,10 +255,13 @@ class Team(object):
         return self.projects.has_key(project_id)
         
     def set_project_grade(self, project_id, grade_component, points):
+        assert(isinstance(grade_component, GradeComponent))
+
         team_project = self.get_project(project_id)
-        project = team_project.project
-        if project is None:
+        if team_project is None:
             raise ChisubmitModelException("Tried to assign grade, but team %s has not been assigned project %s" % (self.id, project_id)) 
+
+        project = team_project.project
 
         if grade_component not in project.grade_components:
             raise ChisubmitModelException("Tried to assign grade, but project %s does not have grade component %s" % (project.id, grade_component.name))

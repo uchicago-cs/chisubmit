@@ -32,26 +32,96 @@ from chisubmit.common.utils import create_subparser
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 import operator
 import random
-from chisubmit.core.repos import GradingGitRepo
+from chisubmit.core.repos import GradingGitRepo, GithubConnection
 import os.path
 from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
+from chisubmit.cli.common import create_grading_repos, get_teams,\
+    gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
+import chisubmit.core
 
 def create_admin_subparsers(subparsers):
+    subparser = create_subparser(subparsers, "admin-assign-project", cli_do__admin_assign_project)
+    subparser.add_argument('project_id', type=str)
+    subparser.add_argument('--force', action="store_true")
+
     subparser = create_subparser(subparsers, "admin-assign-graders", cli_do__admin_assign_graders)
     subparser.add_argument('project_id', type=str)
+    subparser.add_argument('--fromproject', type=str)
+    subparser.add_argument('--reset', action="store_true")
 
     subparser = create_subparser(subparsers, "admin-list-grader-assignments", cli_do__admin_list_grader_assignments)
     subparser.add_argument('project_id', type=str)
     subparser.add_argument('--grader', type=str)
 
+    subparser = create_subparser(subparsers, "admin-list-submissions", cli_do__admin_list_submissions)
+    subparser.add_argument('project_id', type=str)
+    
+    subparser = create_subparser(subparsers, "admin-create-grading-repos", cli_do__admin_create_grading_repos)
+    subparser.add_argument('project_id', type=str)
+    
+    subparser = create_subparser(subparsers, "admin-create-grading-branches", cli_do__admin_create_grading_branches)
+    subparser.add_argument('project_id', type=str)    
+    subparser.add_argument('--only', type=str)    
+
+    subparser = create_subparser(subparsers, "admin-pull-grading-branches", cli_do__admin_pull_grading_branches)
+    subparser.add_argument('project_id', type=str)    
+    subparser.add_argument('--staging', action="store_true")
+    subparser.add_argument('--github', action="store_true")
+    subparser.add_argument('--only', type=str)
+
+    subparser = create_subparser(subparsers, "admin-push-grading-branches", cli_do__admin_push_grading_branches)
+    subparser.add_argument('project_id', type=str)    
+    subparser.add_argument('--staging', action="store_true")
+    subparser.add_argument('--github', action="store_true")
+    subparser.add_argument('--only', type=str)
+
+    subparser = create_subparser(subparsers, "admin-create-rubric-files", cli_do__admin_add_rubrics)
+    subparser.add_argument('project_id', type=str)
+
     subparser = create_subparser(subparsers, "admin-collect-rubrics", cli_do__admin_collect_rubrics)
     subparser.add_argument('project_id', type=str)
+
+
+
+def cli_do__admin_assign_project(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist" % args.project_id
+        return CHISUBMIT_FAIL
+    
+    teams = [t for t in course.teams.values() if t.active]
+    
+    teams_notactive = [t for t in course.teams.values() if not t.active]
+    
+    for t in teams_notactive:
+        print "Skipping %s (not active)" % t.id
+    
+    for t in teams:
+        if t.has_project(project.id) and not args.force:
+            print "Team %s has already been assigned project %s. Use --force to override" % (t.id, project.id)
+            continue
+        
+        t.add_project(project)
+        print "Assigned project %s to team %s" % (project.id, t.id)
+            
 
     
 def cli_do__admin_assign_graders(course, args):
     project = course.get_project(args.project_id)
     if project is None:
         print "Project %s does not exist" % args.project_id
+        return CHISUBMIT_FAIL
+
+    from_project = None
+    if args.fromproject is not None:
+        from_project = course.get_project(args.fromproject)
+        if from_project is None:
+            print "Project %s does not exist" % from_project
+            return CHISUBMIT_FAIL
+        
+    if args.reset and args.fromproject is not None:
+        print "--reset and --fromproject are mutually exclusive"
         return CHISUBMIT_FAIL
     
     teams = [t for t in course.teams.values() if t.has_project(project.id)]
@@ -64,24 +134,36 @@ def cli_do__admin_assign_graders(course, args):
     random.shuffle(graders)
     
     for g in graders[:extra_teams]:
-        teams_per_grader[g] += 1
+        teams_per_grader[g] += 1    
+    
+    if from_project is not None:
+        common_teams = [t for t in course.teams.values() if t.has_project(project.id) and t.has_project(from_project.id)]
+        for t in common_teams:
+            team_project_from =  t.get_project(from_project.id)
+            team_project_to =  t.get_project(project.id)
+
+            grader = team_project_from.grader
+            if grader is not None and teams_per_grader[grader] > 0:           
+                team_project_to.grader = grader 
+                teams_per_grader[grader] -= 1
         
     for g in graders:
-        for t in teams:
-            team_project =  t.get_project(project.id)
-            if team_project.grader is None:
-                valid = True
-                
-                for s in t.students:
-                    if s in g.conflicts:
-                        valid = False
-                        break
+        if teams_per_grader[g] > 0:
+            for t in teams:
+                team_project =  t.get_project(project.id)
+                if team_project.grader is None or args.reset:
+                    valid = True
                     
-                if valid:
-                    team_project.grader = g
-                    teams_per_grader[g] -= 1
-                    if teams_per_grader[g] == 0:
-                        break
+                    for s in t.students:
+                        if s in g.conflicts:
+                            valid = False
+                            break
+                        
+                    if valid:
+                        team_project.grader = g
+                        teams_per_grader[g] -= 1
+                        if teams_per_grader[g] == 0:
+                            break
                     
     for g in graders:
         if teams_per_grader[g] != 0:
@@ -126,6 +208,142 @@ def cli_do__admin_list_grader_assignments(course, args):
                 
     return CHISUBMIT_SUCCESS
                 
+def cli_do__admin_list_submissions(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+        
+    teams = [t for t in course.teams.values() if t.has_project(project.id)]
+    teams.sort(key=operator.attrgetter("id"))        
+        
+    github_access_token = chisubmit.core.get_github_token()
+
+    if github_access_token is None:
+        print "You have not created a GitHub access token."
+        print "You can create one using 'chisubmit gh-token-create'"
+        return CHISUBMIT_FAIL    
+            
+    try:
+        gh = GithubConnection(github_access_token, course.github_organization)
+            
+        for team in teams:
+            submission_tag = gh.get_submission_tag(team, project.id)
+            
+            if submission_tag is None:
+                print "%25s NOT SUBMITTED" % team.id
+            else:
+                print "%25s SUBMITTED" % team.id
+            
+    except ChisubmitException, ce:
+        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+    except Exception, e:
+        handle_unexpected_exception()
+                
+    return CHISUBMIT_SUCCESS                
+                
+def cli_do__admin_create_grading_repos(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    teams = [t for t in course.teams.values() if t.has_project(project.id)]
+    
+    repos = create_grading_repos(course, project, teams)
+    
+    if repos == None:
+        return CHISUBMIT_FAIL
+    
+    return CHISUBMIT_SUCCESS
+                  
+                  
+def cli_do__admin_create_grading_branches(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    teams = get_teams(course, project, only = args.only)
+    
+    if teams is None:
+        return CHISUBMIT_FAIL
+    
+    for team in teams:
+        try:
+            repo = GradingGitRepo.get_grading_repo(course, team, project)
+            
+            if repo is None:
+                print "%s does not have a grading repository" % team.id
+                continue
+            
+            repo.create_grading_branch()
+        except ChisubmitException, ce:
+            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+        except Exception, e:
+            handle_unexpected_exception()    
+    
+    return CHISUBMIT_SUCCESS
+
+
+def cli_do__admin_push_grading_branches(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    teams = get_teams(course, project, only = args.only)
+    
+    if teams is None:
+        return CHISUBMIT_FAIL
+        
+    for team in teams:
+        print "Pushing grading branch for team %s... " % team.id
+        gradingrepo_push_grading_branch(course, team, project, staging = args.staging, github = args.github)
+    
+    return CHISUBMIT_SUCCESS
+
+
+def cli_do__admin_pull_grading_branches(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    teams = get_teams(course, project, only = args.only)
+    
+    if teams is None:
+        return CHISUBMIT_FAIL
+        
+    for team in teams:
+        print "Pulling grading branch for team %s... " % team.id
+        gradingrepo_pull_grading_branch(course, team, project, staging = args.staging, github = args.github)
+
+    return CHISUBMIT_SUCCESS
+
+
+
+def cli_do__admin_add_rubrics(course, args):
+    project = course.get_project(args.project_id)
+    if project is None:
+        print "Project %s does not exist"
+        return CHISUBMIT_FAIL
+    
+    teams = [t for t in course.teams.values() if t.has_project(project.id)]
+    
+    for team in teams:
+        team_project = team.get_project(project.id)
+        try:    
+            repo = GradingGitRepo.get_grading_repo(course, team, project)
+            
+            rubric = RubricFile.from_project(project, team_project)
+            rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+            rubric.save(rubricfile, include_blank_comments=True)            
+        except ChisubmitException, ce:
+            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+        except Exception, e:
+            handle_unexpected_exception()
+                
 
 def cli_do__admin_collect_rubrics(course, args):
     project = course.get_project(args.project_id)
@@ -140,9 +358,7 @@ def cli_do__admin_collect_rubrics(course, args):
     teams = [t for t in course.teams.values() if t.has_project(project.id)]
 
     for team in teams:
-        team_project = team.get_project(project.id)
-
-        repo = GradingGitRepo.get_grading_repo(course, team)
+        repo = GradingGitRepo.get_grading_repo(course, team, project)
         if repo is None:    
             print "Repository for %s does not exist" % (team.id)
             return CHISUBMIT_FAIL
@@ -167,5 +383,4 @@ def cli_do__admin_collect_rubrics(course, args):
                 points.append(`rubric.points[gc]`)
 
         print "%s,%s" % (team.id, ",".join(points))
-        
-        
+                

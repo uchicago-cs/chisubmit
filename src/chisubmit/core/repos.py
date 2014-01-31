@@ -330,6 +330,9 @@ class LocalGitRepo(object):
 
     def has_branch(self, branch):
         return (self.__get_branch(branch) is not None)
+
+    def has_remote_branch(self, remote_name, branch):
+        return (self.__get_ref("refs/remotes/%s/%s" % (remote_name, branch)) is not None)
     
     def checkout_branch(self, branch):
         branch_refpath = "refs/heads/%s" % branch
@@ -414,26 +417,42 @@ class GradingGitRepo(object):
     
     def sync(self):
         self.repo.fetch("origin")
+        self.repo.fetch("staging")
         self.repo.reset_branch("origin", "master")
         
     def create_grading_branch(self):
-        tag = self.repo.get_tag(self.project.id)
-        if tag is None:
-            raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.project.id))
-        
         branch_name = self.project.get_grading_branch_name()
         if self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository already has a %s branch" % (self.team.id, branch_name))
+
+        tag = self.repo.get_tag(self.project.id)
+        if tag is None:
+            self.sync()
+            tag = self.repo.get_tag(self.project.id)
+            if tag is None:
+                raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.project.id))
         
         self.repo.create_branch(branch_name, tag.commit)
         self.repo.checkout_branch(branch_name)
+        
+    def has_grading_branch(self):
+        branch_name = self.project.get_grading_branch_name()
+        return self.repo.has_branch(branch_name)        
+
+    def has_grading_branch_staging(self):
+        branch_name = self.project.get_grading_branch_name()
+        return self.repo.has_remote_branch("staging", branch_name)        
+
+    def has_grading_branch_github(self):
+        branch_name = self.project.get_grading_branch_name()
+        return self.repo.has_remote_branch("origin", branch_name)        
         
     def checkout_grading_branch(self):
         branch_name = self.project.get_grading_branch_name()
         if not self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository does not have a %s branch" % (self.team.id, branch_name))
 
-        self.repo.checkout_branch(branch_name)     
+        self.repo.checkout_branch(branch_name)    
         
     def push_grading_branch_to_github(self):
         self.__push_grading_branch("origin")

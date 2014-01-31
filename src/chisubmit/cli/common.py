@@ -32,6 +32,7 @@ def create_grading_repos(course, project, teams, grader = None):
             if repo is None:
                 print ("Creating grading repo for %s... " % team.id),
                 repo = GradingGitRepo.create_grading_repo(course, team, project)
+                repo.sync()
                 
                 repos.append(repo)
                 
@@ -53,6 +54,10 @@ def gradingrepo_push_grading_branch(course, team, project, github=False, staging
         if repo is None:
             print "%s does not have a grading repository" % team.id
             return CHISUBMIT_FAIL
+        
+        if not repo.has_grading_branch():
+            print "%s does not have a grading branch" % team.id
+            return CHISUBMIT_FAIL 
             
         if github:
             repo.push_grading_branch_to_github()
@@ -67,18 +72,25 @@ def gradingrepo_push_grading_branch(course, team, project, github=False, staging
     return CHISUBMIT_SUCCESS
 
 def gradingrepo_pull_grading_branch(course, team, project, github=False, staging=False):
+    assert(not (github and staging))
     try:
         repo = GradingGitRepo.get_grading_repo(course, team, project)
         
         if repo is None:
             print "%s does not have a grading repository" % team.id
             return CHISUBMIT_FAIL
-        
+       
         if github:
-            repo.pull_grading_branch_from_github()
+            if not repo.has_grading_branch_staging():
+                print "%s does not have a grading branch on GitHub" % team.id
+            else:
+                repo.pull_grading_branch_from_github()
         
         if staging:
-            repo.pull_grading_branch_from_staging()
+            if not repo.has_grading_branch_staging():
+                print "%s does not have a grading branch in staging" % team.id
+            else:
+                repo.pull_grading_branch_from_staging()
             
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd

@@ -277,7 +277,11 @@ def cli_do__admin_create_grading_branches(course, args):
                 print "%s does not have a grading repository" % team.id
                 continue
             
-            repo.create_grading_branch()
+            try:
+                repo.create_grading_branch()
+                print "Created grading branch for %s" % team.id
+            except ChisubmitException, ce:
+                print "Could not create grading branch for %s: %s" % (team.id, ce.message)
         except ChisubmitException, ce:
             raise ce # Propagate upwards, it will be handled by chisubmit_cmd
         except Exception, e:
@@ -298,9 +302,10 @@ def cli_do__admin_push_grading_branches(course, args):
         return CHISUBMIT_FAIL
         
     for team in teams:
-        print "Pushing grading branch for team %s... " % team.id
+        print ("Pushing grading branch for team %s... " % team.id), 
         gradingrepo_push_grading_branch(course, team, project, staging = args.staging, github = args.github)
-    
+        print "done."
+        
     return CHISUBMIT_SUCCESS
 
 
@@ -326,7 +331,7 @@ def cli_do__admin_pull_grading_branches(course, args):
 def cli_do__admin_add_rubrics(course, args):
     project = course.get_project(args.project_id)
     if project is None:
-        print "Project %s does not exist"
+        print "Project %s does not exist" % args.project_id
         return CHISUBMIT_FAIL
     
     teams = [t for t in course.teams.values() if t.has_project(project.id)]

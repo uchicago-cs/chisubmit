@@ -41,14 +41,16 @@ class ChisubmitRubricException(Exception):
 class RubricFile(object):
     
     FIELD_COMMENTS = "Comments"
+    FIELD_PENALTIES = "Penalties"
     FIELD_POINTS   = "Points"
     FIELD_TOTAL_POINTS = "Total Points"
     FIELD_POINTS_POSSIBLE = "Points Possible"
     FIELD_POINTS_OBTAINED = "Points Obtained"
     
-    def __init__(self, project, points, comments):
+    def __init__(self, project, points, penalties, comments):
         self.project = project
         self.points = points
+        self.penalties = penalties
         self.comments = comments
         
     def __format_points(self, n):
@@ -75,10 +77,18 @@ class RubricFile(object):
             s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_OBTAINED, p)
             s += "\n" 
             
+        penalty_points = 0.0
+        if self.penalties is not None:
+            s += "%s:\n" % self.FIELD_PENALTIES
+            for desc, v in self.penalties.items():
+                penalty_points += v
+                s += "%s%s:%s\n" % (" "*4, desc, self.__format_points(v))            
+            s += "\n"
+
         s += "%s: %s / %s\n" % (self.FIELD_TOTAL_POINTS,
-                              self.__format_points(total_points_obtained),
+                              self.__format_points(total_points_obtained + penalty_points),
                               self.__format_points(total_points_possible)) 
-        
+            
         if self.comments is not None or include_blank_comments:
             s += "\n"
             s += "%s: >\n" % self.FIELD_COMMENTS
@@ -145,6 +155,16 @@ class RubricFile(object):
 
             points[grade_component.name] = points_obtained
             total_points_possible += grade_component.points
+
+        penalty_points = 0.0
+        if rubric.has_key(RubricFile.FIELD_PENALTIES):
+            penalties = rubric[RubricFile.FIELD_PENALTIES]
+            for desc, v in penalties.items():
+                if v >= 0:
+                    raise ChisubmitRubricException("Rubric file has a non-negative penalty: %s (%s)" % (v, desc))
+                penalty_points += v
+        else:
+            penalties = None
             
         if type(rubric[RubricFile.FIELD_TOTAL_POINTS]) != str:
             raise ChisubmitRubricException("Total points is not a string: %s" % rubric[RubricFile.FIELD_TOTAL_POINTS])
@@ -154,9 +174,9 @@ class RubricFile(object):
         if len(total_points) != 2:
             raise ChisubmitRubricException("Improperly formatted total points: %s" % rubric[RubricFile.FIELD_TOTAL_POINTS])
         
-        if float(total_points[0]) != float(total_points_obtained):
+        if float(total_points[0]) != float(total_points_obtained) + penalty_points:
             raise ChisubmitRubricException("Incorrect number of total points obtained (Expected %.2f, got %.2f)" % 
-                                           (float(total_points_obtained), float(total_points[0])))
+                                           (float(total_points_obtained) + penalty_points, float(total_points[0])))
             
         if float(total_points[1]) != float(total_points_possible):
             raise ChisubmitRubricException("Incorrect number of total points obtained (Expected %.2f, got %.2f)" % 
@@ -167,7 +187,7 @@ class RubricFile(object):
         else:
             comments = rubric[RubricFile.FIELD_COMMENTS]
 
-        return cls(project, points, comments)
+        return cls(project, points, penalties, comments)
 
     @classmethod
     def from_project(cls, project, team_project = None):

@@ -8,8 +8,8 @@ def get_teams(course, project, grader = None, only = None):
         if team is None:
             print "Team %s does not exist"
             return None
-        if not team.has_project(project):
-            print "Team %s has not been assigned project %s" % project.id
+        if not team.has_project(project.id):
+            print "Team %s has not been assigned project %s" % (team.id, project.id)
             return None
         
         teams = [team]

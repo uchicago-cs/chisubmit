@@ -32,6 +32,8 @@ import yaml
 from chisubmit.core import ChisubmitException
 import textwrap
 
+def feq(a, b, eps=0.01):
+    return abs(a - b) <= eps
 
 class ChisubmitRubricException(Exception):
     def __init__(self, message):
@@ -165,20 +167,19 @@ class RubricFile(object):
                 penalty_points += v
         else:
             penalties = None
-            
+
         if type(rubric[RubricFile.FIELD_TOTAL_POINTS]) != str:
             raise ChisubmitRubricException("Total points is not a string: %s" % rubric[RubricFile.FIELD_TOTAL_POINTS])
-            
-            
+        
         total_points = rubric[RubricFile.FIELD_TOTAL_POINTS].split(" / ")
         if len(total_points) != 2:
             raise ChisubmitRubricException("Improperly formatted total points: %s" % rubric[RubricFile.FIELD_TOTAL_POINTS])
         
-        if float(total_points[0]) != float(total_points_obtained) + penalty_points:
+        if not feq(float(total_points[0]), float(total_points_obtained) + penalty_points):
             raise ChisubmitRubricException("Incorrect number of total points obtained (Expected %.2f, got %.2f)" % 
                                            (float(total_points_obtained) + penalty_points, float(total_points[0])))
             
-        if float(total_points[1]) != float(total_points_possible):
+        if not feq(float(total_points[1]), float(total_points_possible)):
             raise ChisubmitRubricException("Incorrect number of total points obtained (Expected %.2f, got %.2f)" % 
                                            (float(total_points_possible), float(total_points[1])))
             

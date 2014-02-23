@@ -50,6 +50,7 @@ def create_admin_subparsers(subparsers):
     subparser = create_subparser(subparsers, "admin-assign-graders", cli_do__admin_assign_graders)
     subparser.add_argument('project_id', type=str)
     subparser.add_argument('--fromproject', type=str)
+    subparser.add_argument('--avoidproject', type=str)
     subparser.add_argument('--reset', action="store_true")
 
     subparser = create_subparser(subparsers, "admin-list-grader-assignments", cli_do__admin_list_grader_assignments)
@@ -162,8 +163,19 @@ def cli_do__admin_assign_graders(course, args):
             print "Project %s does not exist" % from_project
             return CHISUBMIT_FAIL
         
-    if args.reset and args.fromproject is not None:
+    avoid_project = None
+    if args.fromproject is not None:
+        avoid_project = course.get_project(args.avoidproject)
+        if avoid_project is None:
+            print "Project %s does not exist" % avoid_project
+            return CHISUBMIT_FAIL        
+        
+    if args.reset is not None and args.fromproject is not None:
         print "--reset and --fromproject are mutually exclusive"
+        return CHISUBMIT_FAIL
+
+    if args.avoidproject is not None and args.fromproject is not None:
+        print "--avoidproject and --fromproject are mutually exclusive"
         return CHISUBMIT_FAIL
     
     teams = [t for t in course.teams.values() if t.has_project(project.id)]
@@ -189,11 +201,21 @@ def cli_do__admin_assign_graders(course, args):
                 team_project_to.grader = grader 
                 teams_per_grader[grader] -= 1
         
+    if args.reset:
+        for t in teams:
+            t.get_project(project.id).grader = None
+        
     for g in graders:
         if teams_per_grader[g] > 0:
             for t in teams:
                 team_project =  t.get_project(project.id)
-                if team_project.grader is None or args.reset:
+                
+                if avoid_project is not None:
+                    team_project_avoid = t.get_project(avoid_project.id)
+                    if team_project_avoid.grader == grader:
+                        continue
+                
+                if team_project.grader is None:
                     valid = True
                     
                     for s in t.students:

@@ -45,6 +45,8 @@ def create_admin_subparsers(subparsers):
     subparser.add_argument('project_id', type=str)
     subparser.add_argument('--force', action="store_true")
 
+    subparser = create_subparser(subparsers, "admin-list-grades", cli_do__admin_list_grades)
+
     subparser = create_subparser(subparsers, "admin-assign-graders", cli_do__admin_assign_graders)
     subparser.add_argument('project_id', type=str)
     subparser.add_argument('--fromproject', type=str)
@@ -105,7 +107,47 @@ def cli_do__admin_assign_project(course, args):
         t.add_project(project)
         print "Assigned project %s to team %s" % (project.id, t.id)
             
-
+def cli_do__admin_list_grades(course, args):
+    students = [s for s in course.students.values() if not s.dropped]
+    projects = course.projects.values()
+    
+    students.sort(key=operator.attrgetter("last_name"))
+    projects.sort(key=operator.attrgetter("deadline"))
+    
+    student_grades = dict([(s,dict([(p,None) for p in projects])) for s in students])
+    
+    for team in course.teams.values():
+        for team_project in team.projects.values():
+            for student in team.students:
+                if student_grades.has_key(student):
+                    if student_grades[student][team_project.project] is not None:
+                        print "Warning: %s already has a grade"
+                    else:
+                        student_grades[student][team_project.project] = team_project.grades
+    
+    fields = ["Last Name","First Name"]
+    for project in projects:
+        fields += ["%s - %s" % (project.id, gc.name) for gc in project.grade_components]
+        fields.append("%s - Total" % project.id)
+        
+    print ",".join(fields)
+    
+    for student in students:
+        fields = [student.last_name, student.first_name]
+        for project in projects:
+            total = 0.0
+            for gc in project.grade_components:
+                if student_grades[student][project] is None:
+                    fields.append("")
+                elif not student_grades[student][project].has_key(gc):
+                    fields.append("")
+                else:
+                    fields.append(str(student_grades[student][project][gc]))
+                    total += student_grades[student][project][gc]
+            fields.append(str(total))
+                
+        print ",".join(fields)
+        
     
 def cli_do__admin_assign_graders(course, args):
     project = course.get_project(args.project_id)
@@ -356,7 +398,7 @@ def cli_do__admin_collect_rubrics(course, args):
         print "Project %s does not exist" % args.project_id
         return CHISUBMIT_FAIL
 
-    gcs = [gc.name for gc in project.grade_components]
+    gcs = project.grade_components
 
     print "team," + ",".join(gcs)
     
@@ -382,10 +424,12 @@ def cli_do__admin_collect_rubrics(course, args):
 
         points = []
         for gc in gcs:
-            if rubric.points[gc] is None:
+            if rubric.points[gc.name] is None:
+                team.projects[project.id].grades[gc] = 0
                 points.append("")
             else:
-                points.append(`rubric.points[gc]`)
+                team.projects[project.id].grades[gc] = rubric.points[gc.name]
+                points.append(`rubric.points[gc.name]`)
 
         print "%s,%s" % (team.id, ",".join(points))
                 

@@ -39,6 +39,7 @@ import os.path
 import smtplib
 from string import Template
 import random
+import pprint
 
 def create_team_subparsers(subparsers):
     subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
@@ -46,6 +47,11 @@ def create_team_subparsers(subparsers):
 
     subparser = create_subparser(subparsers, "team-list", cli_do__team_list)
     subparser.add_argument('--ids', action="store_true")
+
+    subparser = create_subparser(subparsers, "team-show", cli_do__team_show)
+    subparser.add_argument('--search', action="store_true")
+    subparser.add_argument('--verbose', action="store_true")
+    subparser.add_argument('team_id', type=str)
     
     subparser = create_subparser(subparsers, "team-student-add", cli_do__team_student_add)
     subparser.add_argument('team_id', type=str)
@@ -111,6 +117,32 @@ def cli_do__team_list(course, args):
                         
             print "\t".join(fields)
 
+    return CHISUBMIT_SUCCESS
+
+def cli_do__team_show(course, args):
+    if not args.search:
+        team = course.get_team(args.team_id)
+        if team is None:
+            print "Team %s does not exist" % args.team_id
+            return CHISUBMIT_FAIL       
+        
+        teams = [team]
+    else:
+        teams = course.search_team(args.team_id)
+
+    pp = pprint.PrettyPrinter(indent=4, depth=6)
+    
+    for t in teams:
+        tdict = dict(vars(t))
+        if args.verbose:
+            tdict["projects"] = dict(tdict["projects"])
+            for p in tdict["projects"]:
+                tdict["projects"][p] = vars(tdict["projects"][p])
+               
+            tdict["students"] = [vars(s) for s in tdict["students"]]
+            
+        pp.pprint(tdict)
+    
     return CHISUBMIT_SUCCESS
 
     

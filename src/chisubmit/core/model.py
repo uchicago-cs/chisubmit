@@ -132,6 +132,20 @@ class Course(object):
     def add_team(self, team):
         self.teams[team.id] = team
         
+    def search_team(self, search_term):
+        teams = []
+        for t in self.teams.values():
+            fields = [t.id, t.private_name]
+            for s in t.students:
+                fields += [s.first_name, s.last_name, s.github_id] 
+            
+            for v in fields:
+                if search_term.lower() in v.lower():
+                    teams.append(t)
+                    break     
+        
+        return teams
+        
         
 class GradeComponent(object):
     def __init__(self, name, points):

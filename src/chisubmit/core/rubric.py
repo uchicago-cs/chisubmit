@@ -198,7 +198,7 @@ class RubricFile(object):
             for gc, gc_points in team_project.grades.items():
                 points[gc.name] = gc_points
         
-        return cls(project, points, comments = None)
+        return cls(project, points, penalties = None, comments = None)
         
     
     

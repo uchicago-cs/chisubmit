@@ -124,11 +124,12 @@ def cli_do__admin_list_grades(course, args):
                     if student_grades[student][team_project.project] is not None:
                         print "Warning: %s already has a grade"
                     else:
-                        student_grades[student][team_project.project] = team_project.grades
+                        student_grades[student][team_project.project] = team_project
     
     fields = ["Last Name","First Name"]
     for project in projects:
         fields += ["%s - %s" % (project.id, gc.name) for gc in project.grade_components]
+        fields.append("%s - Penalties" % project.id)
         fields.append("%s - Total" % project.id)
         
     print ",".join(fields)
@@ -136,16 +137,20 @@ def cli_do__admin_list_grades(course, args):
     for student in students:
         fields = [student.last_name, student.first_name]
         for project in projects:
-            total = 0.0
             for gc in project.grade_components:
                 if student_grades[student][project] is None:
                     fields.append("")
-                elif not student_grades[student][project].has_key(gc):
+                elif student_grades[student][project].grades is None:
+                    fields.append("")
+                elif not student_grades[student][project].grades.has_key(gc):
                     fields.append("")
                 else:
-                    fields.append(str(student_grades[student][project][gc]))
-                    total += student_grades[student][project][gc]
-            fields.append(str(total))
+                    fields.append(str(student_grades[student][project].grades[gc]))
+            if student_grades[student][project] is None:
+                fields += ["",""]
+            else:
+                fields.append(str(student_grades[student][project].get_total_penalties()))
+                fields.append(str(student_grades[student][project].get_total_grade()))
                 
         print ",".join(fields)
         
@@ -421,8 +426,6 @@ def cli_do__admin_collect_rubrics(course, args):
         return CHISUBMIT_FAIL
 
     gcs = project.grade_components
-
-    print "team," + ",".join(gcs)
     
     teams = [t for t in course.teams.values() if t.has_project(project.id)]
 
@@ -452,6 +455,10 @@ def cli_do__admin_collect_rubrics(course, args):
             else:
                 team.projects[project.id].grades[gc] = rubric.points[gc.name]
                 points.append(`rubric.points[gc.name]`)
+              
+        team.projects[project.id].penalties = []
+        if rubric.penalties is not None:
+            for desc, p in rubric.penalties.items():
+                team.projects[project.id].add_penalty(desc, p)
 
-        print "%s,%s" % (team.id, ",".join(points))
-                
+        print "%s: %s" % (team.id, team.projects[project.id].get_total_grade())

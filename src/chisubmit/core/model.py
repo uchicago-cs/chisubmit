@@ -289,6 +289,7 @@ class TeamProject(object):
         self.grader = None
         self.extensions_used = 0
         self.grades = {}
+        self.penalties = []
         
     def __repr__(self):
         return "<TeamProject %s>" % (self.project.id)        
@@ -302,3 +303,17 @@ class TeamProject(object):
         
         self.grades[grade_component] = points
     
+    def add_penalty(self, description, points):
+        if points >= 0 :
+            raise ChisubmitModelException("Tried to assign a non-negative penalty (%i points: %s)" %
+                                          (points, description))    
+        self.penalties.append( (description, points) )    
+
+    def get_total_penalties(self):
+        return sum([p for _, p in self.penalties])
+        
+    def get_total_grade(self):
+        points = sum([p for p in self.grades.values()])
+                
+        return points + self.get_total_penalties()
+        

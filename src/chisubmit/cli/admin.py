@@ -169,13 +169,13 @@ def cli_do__admin_assign_graders(course, args):
             return CHISUBMIT_FAIL
         
     avoid_project = None
-    if args.fromproject is not None:
+    if args.avoidproject is not None:
         avoid_project = course.get_project(args.avoidproject)
         if avoid_project is None:
             print "Project %s does not exist" % avoid_project
             return CHISUBMIT_FAIL        
         
-    if args.reset is not None and args.fromproject is not None:
+    if args.reset and args.fromproject is not None:
         print "--reset and --fromproject are mutually exclusive"
         return CHISUBMIT_FAIL
 

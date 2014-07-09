@@ -110,7 +110,7 @@ class RubricFile(object):
             f.write(self.to_yaml(include_blank_comments))
             f.close()
         except IOError, ioe:
-            raise ChisubmitException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.meesage), ioe)
+            raise ChisubmitException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.message), ioe)
         
     @classmethod
     def from_file(cls, rubric_file, project):
@@ -200,5 +200,4 @@ class RubricFile(object):
         
         return cls(project, points, penalties = None, comments = None)
         
-    
     

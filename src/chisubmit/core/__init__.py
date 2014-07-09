@@ -101,7 +101,7 @@ def __get_file(filename):
             contents = f.read().strip()
             return contents
         except IOError, ioe:
-            raise ChisubmitException("Error when reading from file %s: %s" % (fname, ioe.meesage), ioe)        
+            raise ChisubmitException("Error when reading from file %s: %s" % (fname, ioe.message), ioe)
 
 def __set_file(filename, contents):
     fname = chisubmit_dir + "/" + filename
@@ -109,7 +109,7 @@ def __set_file(filename, contents):
         f = open(fname, 'w')
         f.write(contents + "\n")
     except IOError, ioe:
-        raise ChisubmitException("Error when writing to file %s: %s" % (fname, ioe.meesage), ioe)        
+        raise ChisubmitException("Error when writing to file %s: %s" % (fname, ioe.message), ioe)
         
 def get_default_course():
     return __get_file(DEFAULT_COURSE_FILENAME)
@@ -134,4 +134,3 @@ def get_course_filename(course_id):
 
     
 
-    

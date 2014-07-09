@@ -73,7 +73,7 @@ class Course(object):
             yaml.dump(self, f)
             f.close()
         except IOError, ioe:
-            raise ChisubmitException("Error when saving course to file %s: %s" % (course_file, ioe.meesage), ioe)
+            raise ChisubmitException("Error when saving course to file %s: %s" % (course_file, ioe.message), ioe)
         
     @staticmethod
     def from_file(course_file):
@@ -316,4 +316,3 @@ class TeamProject(object):
         points = sum([p for p in self.grades.values()])
                 
         return points + self.get_total_penalties()
-        

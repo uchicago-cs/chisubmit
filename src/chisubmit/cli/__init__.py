@@ -33,7 +33,7 @@ import traceback
 import datetime
 import os.path
 
-from argparse import ArgumentParser
+import click
 
 import chisubmit.core
 import chisubmit.common.log as log
@@ -45,8 +45,6 @@ from chisubmit.cli.student import *
 from chisubmit.cli.team import create_team_subparsers
 from chisubmit.cli.project import create_project_subparsers
 from chisubmit.cli.submit import create_submit_subparsers
-from chisubmit.core import ChisubmitException
-from chisubmit.common import CHISUBMIT_FAIL
 from chisubmit.cli.shell import create_shell_subparsers
 from chisubmit.cli.grader import create_grader_subparsers
 from chisubmit.cli.gh import create_gh_subparsers
@@ -56,71 +54,37 @@ from chisubmit.cli.gradingrepo import create_gradingrepo_subparsers
 SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
-            
-def chisubmit_cmd(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-        
-    # Setup argument parser
-    parser = ArgumentParser(description="chisubmit")
-    parser.add_argument('--config', type=str, default=None)
-    parser.add_argument('--dir', type=str, default=None)
-    parser.add_argument('--noop', action="store_true")
-    parser.add_argument('--course', type=str, default=None)
-    parser.add_argument('--verbose', action="store_true")
-    parser.add_argument('--version', action='version', version="chisubmit %s" % RELEASE)
-    parser.add_argument('--debug', action="store_true")
 
-    subparsers = parser.add_subparsers(dest="subcommand")
+@click.group()      
+@click.option('--config', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--noop', is_flag=True)
+@click.option('--course', type=str, default=None)
+@click.option('--verbose', '-v', is_flag=True)
+@click.option('--debug', is_flag=True)
+@click.version_option(version=RELEASE)              
+@click.pass_context    
+def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
+    ctx.obj = {}
     
-    create_course_subparsers(subparsers)
-    create_project_subparsers(subparsers)
-    create_student_subparsers(subparsers)
-    create_team_subparsers(subparsers)
-    create_submit_subparsers(subparsers)
-    create_grader_subparsers(subparsers)
-    create_gradingrepo_subparsers(subparsers)
-    create_admin_subparsers(subparsers)
-    create_shell_subparsers(subparsers)
-    create_gh_subparsers(subparsers)
-    
-    args = parser.parse_args(args = argv)
-    
-    chisubmit.core.init_chisubmit(args.dir, args.config)
-    log.init_logging(args.verbose, args.debug)
+    chisubmit.core.init_chisubmit(dir, config)
+    log.init_logging(verbose, debug)
 
-    if args.subcommand not in SUBCOMMANDS_NO_COURSE:
-        if args.course is not None:
-            course_id = args.course
-        else:
-            course_id = chisubmit.core.get_default_course()
-        
-        if course_id is None:
-            print "ERROR: No course specified with --course and no default course in configuration file"
-            exit(CHISUBMIT_FAIL)
-        else:
-            course_obj = Course.from_course_id(course_id)
-            if course_obj is None:
-                print "ERROR: Course '%s' does not exist" % course_id
-                exit(CHISUBMIT_FAIL)
+    if course is not None:
+        course_specified = True
+        course_id = course
+        course_obj = Course.from_course_id(course)
+        if course_obj is None:
+            raise click.BadParameter("ERROR: Course '%s' does not exist" % course)
     else:
-        course_id, course_obj = None, None
+        course_specified = False
+        course_id = chisubmit.core.get_default_course()
+        course_obj = Course.from_course_id(course_id)
 
-    if not args.noop:
-        try:
-            rc = args.func(course_obj, args)
-        except ChisubmitException, ce:
-            print "ERROR: %s" % ce.message
-            if args.debug:
-                ce.print_exception()
-            exit(CHISUBMIT_FAIL)
-        except ChisubmitModelException, cme:
-            print "ERROR: %s" % cme.message
-            exit(CHISUBMIT_FAIL)
-        except Exception, e:
-            handle_unexpected_exception()
+    ctx.obj["course_specified"] = course_specified
+    ctx.obj["course_id"] = course_id
+    ctx.obj["course_obj"] = course_obj
 
-    if args.subcommand not in SUBCOMMANDS_DONT_SAVE:
-        course_obj.save()
+    return 0
 
-    return rc
+chisubmit_cmd.add_command(course)

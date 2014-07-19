@@ -75,11 +75,14 @@ def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
         course_id = course
         course_obj = Course.from_course_id(course)
         if course_obj is None:
-            raise click.BadParameter("ERROR: Course '%s' does not exist" % course)
+            raise click.BadParameter("Course '%s' does not exist" % course)
     else:
         course_specified = False
         course_id = chisubmit.core.get_default_course()
-        course_obj = Course.from_course_id(course_id)
+        if course_id is None:
+            course_obj = None
+        else:
+            course_obj = Course.from_course_id(course_id)
 
     ctx.obj["course_specified"] = course_specified
     ctx.obj["course_id"] = course_id

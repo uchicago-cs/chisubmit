@@ -38,6 +38,7 @@ from chisubmit.core.model import Course
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS
 from chisubmit.core import ChisubmitException
+from chisubmit.cli.common import requires_course
    
     
 @click.group()    
@@ -97,6 +98,7 @@ def course_install(ctx, make_default, filename):
 @click.command(name="github-settings")
 @click.argument('organization', type=str)
 @click.pass_context  
+@requires_course
 def course_github_settings(ctx, organization):
     course.github_organization = organization
     
@@ -118,7 +120,8 @@ def course_github_settings(ctx, organization):
 @click.command(name="git-staging-settings")
 @click.argument('git_username', type=str)
 @click.argument('git_hostname', type=str)
-@click.pass_context  
+@click.pass_context
+@requires_course  
 def course_git_staging_settings(ctx, git_username, git_hostname):
     course.git_staging_username = git_username
     course.git_staging_hostname = git_hostname
@@ -128,6 +131,7 @@ def course_git_staging_settings(ctx, git_username, git_hostname):
 @click.command(name="generate-distributable")
 @click.argument('filename', type=str)
 @click.pass_context  
+@requires_course
 def course_generate_distributable(ctx, filename):
     course.github_admins_team = None
     course.git_staging_username = None

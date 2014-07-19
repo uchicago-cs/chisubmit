@@ -1,6 +1,21 @@
+import click
+
 from chisubmit.core.repos import GradingGitRepo
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
+
+from functools import update_wrapper
+
+def requires_course(f):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        if ctx.obj["course_obj"] is None:
+            if not ctx.obj["course_specified"]:
+                raise click.UsageError("No course specified with --course and there is no default course")
+            else:
+                raise click.UsageError("Unexpected error. A course has been specified with --course, but not course object has been loaded.")
+        return ctx.invoke(f, *args, **kwargs)
+    return update_wrapper(new_func, f)
 
 def get_teams(course, project, grader = None, only = None):
     if only is not None:

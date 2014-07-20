@@ -28,36 +28,40 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+import click
+
 import chisubmit.core
 
-from chisubmit.common.utils import create_subparser, set_datetime_timezone_utc, convert_timezone_to_local
+from chisubmit.common.utils import set_datetime_timezone_utc, convert_timezone_to_local
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException
+from chisubmit.cli.common import pass_course, save_changes
 
-def create_submit_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "team-project-submit", cli_do__team_project_submit)
-    subparser.add_argument('team_id', type=str)    
-    subparser.add_argument('project_id', type=str)
-    subparser.add_argument('commit', type=str)
-    subparser.add_argument('extensions', type=int, default=0)
-    subparser.add_argument('--force', action="store_true")
-    subparser.add_argument('--yes', action="store_true")
-    subparser.add_argument('--ignore-extensions', action="store_true", dest="ignore_extensions")
-    
-    
-def cli_do__team_project_submit(course, args):
-    project = course.get_project(args.project_id)
+
+@click.command(name="submit")
+@click.argument('team_id', type=str)    
+@click.argument('project_id', type=str)
+@click.argument('commit', type=str)
+@click.argument('extensions', type=int, default=0)
+@click.option('--force', is_flag=True)
+@click.option('--yes', is_flag=True)
+@click.option('--ignore_extensions', is_flag=True)
+@pass_course
+@save_changes
+@click.pass_context  
+def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ignore_extensions):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
     
-    team = course.get_team(args.team_id)
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
-    extensions_requested = args.extensions
+    extensions_requested = extensions
     
     github_access_token = chisubmit.core.get_github_token()
     
@@ -72,7 +76,7 @@ def cli_do__team_project_submit(course, args):
         print "Unable to connect to GitHub: %s" % ce.message
         return CHISUBMIT_FAIL
 
-    commit = gh.get_commit(team, args.commit)
+    commit = gh.get_commit(team, commit)
     
     if commit is None:
         print "Commit %s does not exist in repository" % commit
@@ -112,13 +116,13 @@ def cli_do__team_project_submit(course, args):
         print "You only need to request %s extensions." % extensions_needed
         extensions_bad = True
 
-    if not args.ignore_extensions and extensions_bad:
+    if not ignore_extensions and extensions_bad:
         print
         print "You can use the --ignore-extensions option to submit regardless, but"
         print "you should get permission from the instructor before you do so."
         print
         return CHISUBMIT_FAIL
-    elif args.ignore_extensions and extensions_bad:
+    elif ignore_extensions and extensions_bad:
         print
         print "WARNING: You are forcing a submission with an incorrect number"
         print "of extensions. Make sure you have approval from the instructor"
@@ -127,14 +131,14 @@ def cli_do__team_project_submit(course, args):
     tag_name = project.id
     submission_tag = gh.get_submission_tag(team, tag_name)
     
-    if submission_tag is not None and not args.force:
+    if submission_tag is not None and not force:
         submission_commit = gh.get_commit(team, submission_tag.object.sha)
         print        
         print "Submission tag '%s' already exists" % tag_name
         print "It points to commit %s (%s)" % (submission_commit.commit.sha, submission_commit.commit.message)
         print "If you want to override this submission, please use the --force option"
         return CHISUBMIT_FAIL
-    elif submission_tag is not None and args.force:
+    elif submission_tag is not None and force:
         submission_commit = gh.get_commit(team, submission_tag.object.sha)
         print
         print "WARNING: Submission tag '%s' already exists" % tag_name
@@ -151,7 +155,7 @@ def cli_do__team_project_submit(course, args):
     print "      Author: %s <%s>" % (commit.commit.author.name, commit.commit.author.email)
     if not extensions_bad:
         print
-        print "The number of extensions you are requesting (%i) is acceptable." % args.extensions
+        print "The number of extensions you are requesting (%i) is acceptable." % extensions
         print "Please note that this program does not check how many extensions"
         print "you have left. It only checks whether the number of extensions is"
         print "correct given the deadline for the project."
@@ -159,14 +163,14 @@ def cli_do__team_project_submit(course, args):
     print
     print "Are you sure you want to continue? (y/n): ", 
     
-    if not args.yes:
+    if not yes:
         yesno = raw_input()
     else:
         yesno = 'y'
         print 'y'
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
-        message = "Extensions requested: %i\n" % args.extensions
+        message = "Extensions requested: %i\n" % extensions
         message += "Extensions needed: %i\n" % extensions_needed
         if extensions_bad:
             message += "Extensions bad: yes\n"

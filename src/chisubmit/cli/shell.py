@@ -28,15 +28,17 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import create_subparser
+import click
+
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
+from chisubmit.cli.common import pass_course
 
-def create_shell_subparsers(subparsers):
-    create_subparser(subparsers, "shell", cli_do__shell)
-    
-    
-def cli_do__shell(course, args):
+
+@click.command(name="shell")
+@click.pass_context  
+@pass_course
+def shell(ctx, course):
     try:
         from IPython import embed, __version__
         from IPython.config.loader import Config

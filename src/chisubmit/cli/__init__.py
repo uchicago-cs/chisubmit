@@ -40,16 +40,16 @@ import chisubmit.common.log as log
 from chisubmit import RELEASE
 from chisubmit.core.model import Course, Project, Student,\
     ChisubmitModelException
-from chisubmit.cli.course import *
-from chisubmit.cli.student import *
-from chisubmit.cli.team import create_team_subparsers
-from chisubmit.cli.project import create_project_subparsers
-from chisubmit.cli.submit import create_submit_subparsers
-from chisubmit.cli.shell import create_shell_subparsers
-from chisubmit.cli.grader import create_grader_subparsers
-from chisubmit.cli.gh import create_gh_subparsers
-from chisubmit.cli.admin import create_admin_subparsers
-from chisubmit.cli.gradingrepo import create_gradingrepo_subparsers
+from chisubmit.cli.course import course
+from chisubmit.cli.student import student
+from chisubmit.cli.team import team
+from chisubmit.cli.project import project
+from chisubmit.cli.submit import submit
+from chisubmit.cli.shell import shell
+from chisubmit.cli.grader import grader
+from chisubmit.cli.gh import gh
+from chisubmit.cli.admin import admin
+from chisubmit.cli.gradingrepo import gradingrepo
 
 SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
@@ -91,3 +91,7 @@ def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
     return 0
 
 chisubmit_cmd.add_command(course)
+chisubmit_cmd.add_command(project)
+chisubmit_cmd.add_command(student)
+chisubmit_cmd.add_command(team)
+chisubmit_cmd.add_command(submit)

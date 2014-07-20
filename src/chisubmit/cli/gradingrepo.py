@@ -28,52 +28,66 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import create_subparser
+import click
+
 from chisubmit.core.repos import GradingGitRepo
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
+from chisubmit.cli.common import pass_course, save_changes
+
 import os.path
 from chisubmit.cli.common import gradingrepo_push_grading_branch,\
     gradingrepo_pull_grading_branch
 
-def create_gradingrepo_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "gradingrepo-push-grading-branch", cli_do__gradingrepo_push_grading_branch)
-    subparser.add_argument('--staging', action="store_true")
-    subparser.add_argument('--github', action="store_true")
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
+@click.group()    
+@click.pass_context
+def gradingrepo(ctx):
+    pass
 
-    subparser = create_subparser(subparsers, "gradingrepo-pull-grading-branch", cli_do__gradingrepo_pull_grading_branch)
-    subparser.add_argument('--staging', action="store_true")
-    subparser.add_argument('--github', action="store_true")
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
-
-
-def cli_do__gradingrepo_push_grading_branch(course, args):
-    team = course.get_team(args.team_id)
+@click.command(name="push-grading-branch")
+@click.option('--staging', is_flag=True)
+@click.option('--github', is_flag=True)
+@click.argument('team_id', type=str)
+@click.argument('project_id', type=str)
+@pass_course
+@click.pass_context  
+def gradingrepo_push_grading_branch(ctx, course, staging, github, team_id, project_id):
+    team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist"
         return CHISUBMIT_FAIL
     
-    project = course.get_project(args.project_id)
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    return gradingrepo_push_grading_branch(course, team, project, args.github, args.staging)
+    return gradingrepo_push_grading_branch(course, team, project, github, staging)
 
-def cli_do__gradingrepo_pull_grading_branch(course, args):
-    team = course.get_team(args.team_id)
+
+@click.command(name="pull-grading-branch")
+@click.option('--staging', is_flag=True)
+@click.option('--github', is_flag=True)
+@click.argument('team_id', type=str)
+@click.argument('project_id', type=str)
+@pass_course
+@click.pass_context  
+def gradingrepo_pull_grading_branch(ctx, course, staging, github, team_id, project_id):
+    team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist"
         return CHISUBMIT_FAIL
     
-    project = course.get_project(args.project_id)
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    return gradingrepo_pull_grading_branch(course, team, project, args.github, args.staging)
+    return gradingrepo_pull_grading_branch(course, team, project, github, staging)
+                
+                
+
+gradingrepo.add_command(gradingrepo_push_grading_branch)
+gradingrepo.add_command(gradingrepo_pull_grading_branch)
                 

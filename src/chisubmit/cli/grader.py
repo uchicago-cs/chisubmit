@@ -28,65 +28,57 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import create_subparser
+import click
+
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core.model import Grader
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams
 from chisubmit.core.repos import GradingGitRepo
 from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
+from chisubmit.cli.common import pass_course, save_changes
 import os.path
 
-def create_grader_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "grader-create", cli_do__grader_create)
-    subparser.add_argument('id', type=str)
-    subparser.add_argument('first_name', type=str)
-    subparser.add_argument('last_name', type=str)
-    subparser.add_argument('email', type=str)
-    subparser.add_argument('github_id', type=str)
+@click.group()    
+@click.pass_context
+def grader(ctx):
+    pass
 
-    subparser = create_subparser(subparsers, "grader-add-conflict", cli_do__grader_add_conflict)
-    subparser.add_argument('grader_id', type=str)
-    subparser.add_argument('student_id', type=str)
-    
-    subparser = create_subparser(subparsers, "grader-create-grading-repos", cli_do__grader_create_grading_repos)
-    subparser.add_argument('grader_id', type=str)
-    subparser.add_argument('project_id', type=str)
-    
-    subparser = create_subparser(subparsers, "grader-validate-rubric", cli_do__grader_validate_rubric)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
-    
-    subparser = create_subparser(subparsers, "grader-pull-grading-branches", cli_do__grader_pull_grading_branch)
-    subparser.add_argument('grader_id', type=str)
-    subparser.add_argument('project_id', type=str)    
-    subparser.add_argument('--only', type=str)    
-
-    subparser = create_subparser(subparsers, "grader-push-grading-branches", cli_do__grader_push_grading_branch)
-    subparser.add_argument('grader_id', type=str)
-    subparser.add_argument('project_id', type=str)    
-    subparser.add_argument('--only', type=str)    
-
-
-def cli_do__grader_create(course, args):
-    grader = Grader(grader_id = args.id,
-                    first_name = args.first_name,
-                    last_name = args.last_name,
-                    email = args.email,
-                    github_id = args.github_id)
+@click.command(name="create")
+@click.argument('id', type=str)
+@click.argument('first_name', type=str)
+@click.argument('last_name', type=str)
+@click.argument('email', type=str)
+@click.argument('github_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def grader_create(ctx, course, id, first_name, last_name, email, github_id):
+    grader = Grader(grader_id = id,
+                    first_name = first_name,
+                    last_name = last_name,
+                    email = email,
+                    github_id = github_id)
     course.add_grader(grader)
     
     return CHISUBMIT_SUCCESS
 
-def cli_do__grader_add_conflict(course, args):
-    grader = course.get_grader(args.grader_id)
+
+@click.command(name="add-conflict")
+@click.argument('grader_id', type=str)
+@click.argument('student_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def grader_add_conflict(ctx, course, grader_id, student_id):
+    grader = course.get_grader(grader_id)
     if grader is None:
-        print "Grader %s does not exist" % args.grader_id
+        print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
     
-    student = course.get_student(args.student_id)
+    student = course.get_student(student_id)
     if student is None:
-        print "Student %s does not exist" % args.student_id
+        print "Student %s does not exist" % student_id
         return CHISUBMIT_FAIL
     
     if student in grader.conflicts:
@@ -96,13 +88,20 @@ def cli_do__grader_add_conflict(course, args):
     
     return CHISUBMIT_SUCCESS
 
-def cli_do__grader_create_grading_repos(course, args):
-    grader = course.get_grader(args.grader_id)
+
+@click.command(name="create-grading-repos")
+@click.argument('grader_id', type=str)
+@click.argument('project_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def grader_create_grading_repos(ctx, course, grader_id, project_id):
+    grader = course.get_grader(grader_id)
     if grader is None:
-        print "Grader %s does not exist" % args.grader_id
+        print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
         
-    project = course.get_project(args.project_id)
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
@@ -128,14 +127,19 @@ def cli_do__grader_create_grading_repos(course, args):
     return CHISUBMIT_SUCCESS
 
 
-
-def cli_do__grader_validate_rubric(course, args):
-    team = course.get_team(args.team_id)
+@click.command(name="validate-rubric")
+@click.argument('team_id', type=str)
+@click.argument('project_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def grader_validate_rubric(ctx, course, team_id, project_id):
+    team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist"
         return CHISUBMIT_FAIL
         
-    project = course.get_project(args.project_id)
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
@@ -162,19 +166,25 @@ def cli_do__grader_validate_rubric(course, args):
     return CHISUBMIT_SUCCESS
                 
                 
-
-def cli_do__grader_push_grading_branch(course, args):
-    grader = course.get_grader(args.grader_id)
+@click.command(name="push-grading-branch")                
+@click.argument('grader_id', type=str)
+@click.argument('project_id', type=str)    
+@click.option('--only', type=str)    
+@pass_course
+@save_changes
+@click.pass_context  
+def grader_push_grading_branch(ctx, course, grader_id, project_id, only):
+    grader = course.get_grader(grader_id)
     if grader is None:
-        print "Grader %s does not exist" % args.grader_id
+        print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
     
-    project = course.get_project(args.project_id)
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    teams = get_teams(course, project, grader = grader, only = args.only)
+    teams = get_teams(course, project, grader = grader, only = only)
     
     if teams is None:
         return CHISUBMIT_FAIL
@@ -185,19 +195,25 @@ def cli_do__grader_push_grading_branch(course, args):
     
     return CHISUBMIT_SUCCESS
 
-
-def cli_do__grader_pull_grading_branch(course, args):
-    grader = course.get_grader(args.grader_id)
+@click.command(name="pull-grading-branch")
+@click.argument('grader_id', type=str)
+@click.argument('project_id', type=str)    
+@click.option('--only', type=str)    
+@pass_course
+@save_changes
+@click.pass_context  
+def grader_pull_grading_branch(ctx, course, grader_id, project_id, only):
+    grader = course.get_grader(grader_id)
     if grader is None:
-        print "Grader %s does not exist" % args.grader_id
+        print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
     
-    project = course.get_project(args.project_id)
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    teams = get_teams(course, project, grader = grader, only = args.only)
+    teams = get_teams(course, project, grader = grader, only = only)
     
     if teams is None:
         return CHISUBMIT_FAIL
@@ -208,4 +224,11 @@ def cli_do__grader_pull_grading_branch(course, args):
 
     return CHISUBMIT_SUCCESS
 
+
+grader.add_command(grader_create)
+grader.add_command(grader_add_conflict)
+grader.add_command(grader_create_grading_repos)
+grader.add_command(grader_validate_rubric)
+grader.add_command(grader_push_grading_branch)
+grader.add_command(grader_pull_grading_branch)
                 

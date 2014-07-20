@@ -6,7 +6,7 @@ from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 
 from functools import update_wrapper
 
-def requires_course(f):
+def pass_course(f):
     @click.pass_context
     def new_func(ctx, *args, **kwargs):
         if ctx.obj["course_obj"] is None:
@@ -14,8 +14,21 @@ def requires_course(f):
                 raise click.UsageError("No course specified with --course and there is no default course")
             else:
                 raise click.UsageError("Unexpected error. A course has been specified with --course, but not course object has been loaded.")
-        return ctx.invoke(f, *args, **kwargs)
+            
+        return ctx.invoke(f, ctx.obj["course_obj"], *args, **kwargs)
+        
     return update_wrapper(new_func, f)
+
+
+def save_changes(f):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        ctx.call_on_close(ctx.obj["course_obj"].save)
+            
+        return ctx.invoke(f, *args, **kwargs)
+        
+    return update_wrapper(new_func, f)
+    
 
 def get_teams(course, project, grader = None, only = None):
     if only is not None:

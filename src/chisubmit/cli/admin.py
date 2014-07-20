@@ -28,7 +28,8 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import create_subparser
+import click
+
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 import operator
 import random
@@ -39,58 +40,24 @@ from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import create_grading_repos, get_teams,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
 import chisubmit.core
+from chisubmit.cli.common import pass_course, save_changes
 
-def create_admin_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "admin-assign-project", cli_do__admin_assign_project)
-    subparser.add_argument('project_id', type=str)
-    subparser.add_argument('--force', action="store_true")
-
-    subparser = create_subparser(subparsers, "admin-list-grades", cli_do__admin_list_grades)
-
-    subparser = create_subparser(subparsers, "admin-assign-graders", cli_do__admin_assign_graders)
-    subparser.add_argument('project_id', type=str)
-    subparser.add_argument('--fromproject', type=str)
-    subparser.add_argument('--avoidproject', type=str)
-    subparser.add_argument('--reset', action="store_true")
-
-    subparser = create_subparser(subparsers, "admin-list-grader-assignments", cli_do__admin_list_grader_assignments)
-    subparser.add_argument('project_id', type=str)
-    subparser.add_argument('--grader', type=str)
-
-    subparser = create_subparser(subparsers, "admin-list-submissions", cli_do__admin_list_submissions)
-    subparser.add_argument('project_id', type=str)
-    
-    subparser = create_subparser(subparsers, "admin-create-grading-repos", cli_do__admin_create_grading_repos)
-    subparser.add_argument('project_id', type=str)
-    
-    subparser = create_subparser(subparsers, "admin-create-grading-branches", cli_do__admin_create_grading_branches)
-    subparser.add_argument('project_id', type=str)    
-    subparser.add_argument('--only', type=str)    
-
-    subparser = create_subparser(subparsers, "admin-pull-grading-branches", cli_do__admin_pull_grading_branches)
-    subparser.add_argument('project_id', type=str)    
-    subparser.add_argument('--staging', action="store_true")
-    subparser.add_argument('--github', action="store_true")
-    subparser.add_argument('--only', type=str)
-
-    subparser = create_subparser(subparsers, "admin-push-grading-branches", cli_do__admin_push_grading_branches)
-    subparser.add_argument('project_id', type=str)    
-    subparser.add_argument('--staging', action="store_true")
-    subparser.add_argument('--github', action="store_true")
-    subparser.add_argument('--only', type=str)
-
-    subparser = create_subparser(subparsers, "admin-create-rubric-files", cli_do__admin_add_rubrics)
-    subparser.add_argument('project_id', type=str)
-
-    subparser = create_subparser(subparsers, "admin-collect-rubrics", cli_do__admin_collect_rubrics)
-    subparser.add_argument('project_id', type=str)
+@click.group()    
+@click.pass_context
+def admin(ctx):
+    pass
 
 
-
-def cli_do__admin_assign_project(course, args):
-    project = course.get_project(args.project_id)
+@click.command(name="assign-project")
+@click.argument('project_id', type=str)
+@click.option('--force', is_flag=True)
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_assign_project(ctx, course, project_id, force):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
     
     teams = [t for t in course.teams.values() if t.active]
@@ -101,14 +68,19 @@ def cli_do__admin_assign_project(course, args):
         print "Skipping %s (not active)" % t.id
     
     for t in teams:
-        if t.has_project(project.id) and not args.force:
+        if t.has_project(project.id) and not force:
             print "Team %s has already been assigned project %s. Use --force to override" % (t.id, project.id)
             continue
         
         t.add_project(project)
         print "Assigned project %s to team %s" % (project.id, t.id)
             
-def cli_do__admin_list_grades(course, args):
+
+@click.command(name="list-grades")
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_list_grades(ctx, course):
     students = [s for s in course.students.values() if not s.dropped]
     projects = course.projects.values()
     
@@ -154,32 +126,40 @@ def cli_do__admin_list_grades(course, args):
                 
         print ",".join(fields)
         
-    
-def cli_do__admin_assign_graders(course, args):
-    project = course.get_project(args.project_id)
+
+@click.command(name="assign-graders")
+@click.argument('project_id', type=str)
+@click.option('--fromproject', type=str)
+@click.option('--avoidproject', type=str)
+@click.option('--reset', is_flag=True)
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_assign_graders(ctx, course, project_id, fromproject, avoidproject, reset):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
 
     from_project = None
-    if args.fromproject is not None:
-        from_project = course.get_project(args.fromproject)
+    if fromproject is not None:
+        from_project = course.get_project(fromproject)
         if from_project is None:
             print "Project %s does not exist" % from_project
             return CHISUBMIT_FAIL
         
     avoid_project = None
-    if args.avoidproject is not None:
-        avoid_project = course.get_project(args.avoidproject)
+    if avoidproject is not None:
+        avoid_project = course.get_project(avoidproject)
         if avoid_project is None:
             print "Project %s does not exist" % avoid_project
             return CHISUBMIT_FAIL        
         
-    if args.reset and args.fromproject is not None:
+    if reset and fromproject is not None:
         print "--reset and --fromproject are mutually exclusive"
         return CHISUBMIT_FAIL
 
-    if args.avoidproject is not None and args.fromproject is not None:
+    if avoidproject is not None and fromproject is not None:
         print "--avoidproject and --fromproject are mutually exclusive"
         return CHISUBMIT_FAIL
     
@@ -206,7 +186,7 @@ def cli_do__admin_assign_graders(course, args):
                 team_project_to.grader = grader 
                 teams_per_grader[grader] -= 1
         
-    if args.reset:
+    if reset:
         for t in teams:
             t.get_project(project.id).grader = None
         
@@ -245,17 +225,23 @@ def cli_do__admin_assign_graders(course, args):
             
     return CHISUBMIT_SUCCESS
 
-                
-def cli_do__admin_list_grader_assignments(course, args):
-    project = course.get_project(args.project_id)
+
+@click.command(name="list-grader-assignments")
+@click.argument('project_id', type=str)
+@click.option('--grader-id', type=str)                
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_list_grader_assignments(ctx, course, project_id, grader_id):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist"
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
     
-    if args.grader is not None:
-        grader = course.get_grader(args.grader)
+    if grader_id is not None:
+        grader = course.get_grader(grader_id)
         if grader is None:
-            print "Grader %s does not exist" % args.grader_id
+            print "Grader %s does not exist" % grader_id
             return CHISUBMIT_FAIL
     else:
         grader = None
@@ -277,8 +263,14 @@ def cli_do__admin_list_grader_assignments(course, args):
                 
     return CHISUBMIT_SUCCESS
                 
-def cli_do__admin_list_submissions(course, args):
-    project = course.get_project(args.project_id)
+                
+@click.command(name="list-submissions")                
+@click.argument('project_id', type=str)                
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_list_submissions(ctx, course, project_id):
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
@@ -311,8 +303,14 @@ def cli_do__admin_list_submissions(course, args):
                 
     return CHISUBMIT_SUCCESS                
                 
-def cli_do__admin_create_grading_repos(course, args):
-    project = course.get_project(args.project_id)
+
+@click.command(name="create-grading-repor")                
+@click.argument('project_id', type=str)                
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_create_grading_repos(ctx, course, project_id):
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
@@ -327,13 +325,19 @@ def cli_do__admin_create_grading_repos(course, args):
     return CHISUBMIT_SUCCESS
                   
                   
-def cli_do__admin_create_grading_branches(course, args):
-    project = course.get_project(args.project_id)
+@click.command(name="create-grading-branches")                  
+@click.argument('project_id', type=str)    
+@click.option('--only', type=str)                      
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_create_grading_branches(ctx, course, project_id, only):
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    teams = get_teams(course, project, only = args.only)
+    teams = get_teams(course, project, only = only)
     
     if teams is None:
         return CHISUBMIT_FAIL
@@ -359,48 +363,70 @@ def cli_do__admin_create_grading_branches(course, args):
     return CHISUBMIT_SUCCESS
 
 
-def cli_do__admin_push_grading_branches(course, args):
-    project = course.get_project(args.project_id)
+@click.command(name="push-grading-branches")
+@click.argument('project_id', type=str)    
+@click.option('--staging', is_flag=True)
+@click.option('--github', is_flag=True)
+@click.option('--only', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_push_grading_branches(ctx, course, project_id, staging, github, only):
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    teams = get_teams(course, project, only = args.only)
+    teams = get_teams(course, project, only = only)
     
     if teams is None:
         return CHISUBMIT_FAIL
         
     for team in teams:
         print ("Pushing grading branch for team %s... " % team.id), 
-        gradingrepo_push_grading_branch(course, team, project, staging = args.staging, github = args.github)
+        gradingrepo_push_grading_branch(course, team, project, staging = staging, github = github)
         print "done."
         
     return CHISUBMIT_SUCCESS
 
 
-def cli_do__admin_pull_grading_branches(course, args):
-    project = course.get_project(args.project_id)
+
+@click.command(name="pull-grading-branches")
+@click.argument('project_id', type=str)    
+@click.option('--staging', is_flag=True)
+@click.option('--github', is_flag=True)
+@click.option('--only', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_pull_grading_branches(ctx, course, project_id, staging, github, only):
+    project = course.get_project(project_id)
     if project is None:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
     
-    teams = get_teams(course, project, only = args.only)
+    teams = get_teams(course, project, only = only)
     
     if teams is None:
         return CHISUBMIT_FAIL
         
     for team in teams:
         print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(course, team, project, staging = args.staging, github = args.github)
+        gradingrepo_pull_grading_branch(course, team, project, staging = staging, github = github)
 
     return CHISUBMIT_SUCCESS
 
 
 
-def cli_do__admin_add_rubrics(course, args):
-    project = course.get_project(args.project_id)
+@click.command(name="add-rubrics")
+@click.argument('project_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_add_rubrics(ctx, course, project_id):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
     
     teams = [t for t in course.teams.values() if t.has_project(project.id)]
@@ -418,11 +444,17 @@ def cli_do__admin_add_rubrics(course, args):
         except Exception, e:
             handle_unexpected_exception()
                 
-
-def cli_do__admin_collect_rubrics(course, args):
-    project = course.get_project(args.project_id)
+                
+                
+@click.command(name="collect-rubrics")
+@click.argument('project_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def admin_collect_rubrics(ctx, course, project_id):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
 
     gcs = project.grade_components
@@ -462,3 +494,17 @@ def cli_do__admin_collect_rubrics(course, args):
                 team.projects[project.id].add_penalty(desc, p)
 
         print "%s: %s" % (team.id, team.projects[project.id].get_total_grade())
+        
+        
+admin.add_command(admin_assign_project)
+admin.add_command(admin_list_grades)
+admin.add_command(admin_assign_graders)
+admin.add_command(admin_list_grader_assignments)
+admin.add_command(admin_list_submissions)
+admin.add_command(admin_create_grading_repos)
+admin.add_command(admin_create_grading_branches)
+admin.add_command(admin_push_grading_branches)
+admin.add_command(admin_pull_grading_branches)
+admin.add_command(admin_add_rubrics)
+admin.add_command(admin_collect_rubrics)
+        

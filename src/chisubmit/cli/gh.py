@@ -28,21 +28,27 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+import click
 import getpass
 
 import chisubmit.core
 
-from chisubmit.common.utils import create_subparser
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
-def create_gh_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "gh-token-create", cli_do__gh_token_create)
-    subparser.add_argument('--delete', action="store_true")
+
+@click.group()    
+@click.pass_context
+def gh(ctx):
+    pass
+
+
     
-    
-def cli_do__gh_token_create(course, args):
+@click.command(name="token-create")    
+@click.option('--delete', is_flag=True)    
+@click.pass_context  
+def gh_token_create(ctx, delete):
     
     try:
         username = raw_input("Enter your GitHub username: ")
@@ -53,12 +59,12 @@ def cli_do__gh_token_create(course, args):
         handle_unexpected_exception()
     
     try:
-        token = GithubConnection.get_token(username, password, delete = args.delete)
+        token = GithubConnection.get_token(username, password, delete = delete)
         
         if token is None:
             print "Unable to create token. Incorrect username/password."
         else:
-            if args.delete:
+            if delete:
                 chisubmit.core.set_github_delete_token(token)
             else:
                 chisubmit.core.set_github_token(token)
@@ -72,4 +78,5 @@ def cli_do__gh_token_create(course, args):
             
     return CHISUBMIT_SUCCESS
 
-        
+
+gh.add_command(gh_token_create)        

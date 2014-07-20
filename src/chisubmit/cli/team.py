@@ -28,87 +28,51 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+import click
+
 import chisubmit.core
 
-from chisubmit.common.utils import create_subparser
 from chisubmit.core.model import Team
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
+from chisubmit.cli.common import pass_course, save_changes
 import os.path
 import smtplib
 from string import Template
 import random
 import pprint
 
-def create_team_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "team-create", cli_do__team_create)
-    subparser.add_argument('team_id', type=str)
 
-    subparser = create_subparser(subparsers, "team-list", cli_do__team_list)
-    subparser.add_argument('--ids', action="store_true")
-
-    subparser = create_subparser(subparsers, "team-show", cli_do__team_show)
-    subparser.add_argument('--search', action="store_true")
-    subparser.add_argument('--verbose', action="store_true")
-    subparser.add_argument('team_id', type=str)
-    
-    subparser = create_subparser(subparsers, "team-student-add", cli_do__team_student_add)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('student_id', type=str)
-
-    subparser = create_subparser(subparsers, "team-project-add", cli_do__team_project_add)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
-
-    subparser = create_subparser(subparsers, "team-project-set-grade", cli_do__team_project_set_grade)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('project_id', type=str)
-    subparser.add_argument('grade_component', type=str)
-    subparser.add_argument('grade', type=float)
-
-    subparser = create_subparser(subparsers, "team-set-private-name", cli_do__team_set_private_name)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('private_name', type=str)
-    
-    subparser = create_subparser(subparsers, "team-gh-repo-create", cli_do__team_gh_repo_create)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('--ignore-existing', action="store_true", dest="ignore_existing")
-    subparser.add_argument('--public', action="store_true")
-    
-    subparser = create_subparser(subparsers, "team-gh-repo-update", cli_do__team_gh_repo_update)
-    subparser.add_argument('team_id', type=str)    
-
-    subparser = create_subparser(subparsers, "team-gh-repo-remove", cli_do__team_gh_repo_remove)
-    subparser.add_argument('team_id', type=str)
-
-    subparser = create_subparser(subparsers, "team-gh-repo-check", cli_do__team_gh_repo_check)
-    subparser.add_argument('team_id', type=str)
-
-    subparser = create_subparser(subparsers, "team-gh-repo-set", cli_do__team_gh_repo_set)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('github_repo', type=str)
-
-    subparser = create_subparser(subparsers, "team-gh-repo-email", cli_do__team_gh_repo_email)
-    subparser.add_argument('team_id', type=str)
-    subparser.add_argument('email_from', type=str)
-    subparser.add_argument('template', type=str)
-    subparser.add_argument('--force', action="store_true")
-    subparser.add_argument('--dry-run', action="store_true")
+@click.group()    
+@click.pass_context
+def team(ctx):
+    pass
 
 
-def cli_do__team_create(course, args):
-    team = Team(team_id = args.team_id)
+@click.command(name="create")
+@click.argument('team_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_create(ctx, course, team_id):
+    team = Team(team_id = team_id)
     course.add_team(team)
         
     return CHISUBMIT_SUCCESS
 
-def cli_do__team_list(course, args):
+
+@click.command(name="list")
+@click.option('--ids', is_flag=True)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_list(ctx, course, ids):
     team_ids = course.teams.keys()
     team_ids.sort()
     
     for team_id in team_ids:
-        if args.ids:
+        if ids:
             print team_id
         else:
             team = course.teams[team_id]
@@ -119,22 +83,30 @@ def cli_do__team_list(course, args):
 
     return CHISUBMIT_SUCCESS
 
-def cli_do__team_show(course, args):
-    if not args.search:
-        team = course.get_team(args.team_id)
+
+@click.command(name="show")
+@click.option('--search', is_flag=True)
+@click.option('--verbose', is_flag=True)
+@click.argument('team_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_show(ctx, course, search, verbose, team_id):
+    if not search:
+        team = course.get_team(team_id)
         if team is None:
-            print "Team %s does not exist" % args.team_id
+            print "Team %s does not exist" % team_id
             return CHISUBMIT_FAIL       
         
         teams = [team]
     else:
-        teams = course.search_team(args.team_id)
+        teams = course.search_team(team_id)
 
     pp = pprint.PrettyPrinter(indent=4, depth=6)
     
     for t in teams:
         tdict = dict(vars(t))
-        if args.verbose:
+        if verbose:
             tdict["projects"] = dict(tdict["projects"])
             for p in tdict["projects"]:
                 tdict["projects"][p] = vars(tdict["projects"][p])
@@ -145,16 +117,22 @@ def cli_do__team_show(course, args):
     
     return CHISUBMIT_SUCCESS
 
-    
-def cli_do__team_student_add(course, args):
-    student = course.get_student(args.student_id)
+
+@click.command(name="student-add")
+@click.argument('team_id', type=str)
+@click.argument('student_id', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_student_add(ctx, course, team_id, student_id):
+    student = course.get_student(student_id)
     if student is None:
-        print "Student %s does not exist" % args.student_id
+        print "Student %s does not exist" % student_id
         return CHISUBMIT_FAIL
     
-    team = course.get_team(args.team_id)
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL       
     
     team.add_student(student)   
@@ -162,15 +140,21 @@ def cli_do__team_student_add(course, args):
     return CHISUBMIT_SUCCESS
 
     
-def cli_do__team_project_add(course, args):
-    project = course.get_project(args.project_id)
+@click.command(name="project-add")    
+@click.argument('team_id', type=str)
+@click.argument('project_id', type=str)    
+@pass_course
+@save_changes
+@click.pass_context  
+def team_project_add(ctx, course, team_id, project_id):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL    
     
-    team = course.get_team(args.team_id)
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
     if team.projects.has_key(project.id):
@@ -181,39 +165,63 @@ def cli_do__team_project_add(course, args):
 
     return CHISUBMIT_SUCCESS
 
-def cli_do__team_project_set_grade(course, args):
-    project = course.get_project(args.project_id)
+
+@click.command(name="project-set-grade")
+@click.argument('team_id', type=str)
+@click.argument('project_id', type=str)
+@click.argument('grade_component', type=str)
+@click.argument('grade', type=float)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_project_set_grade(ctx, course, team_id, project_id, grade_component, grade):
+    project = course.get_project(project_id)
     if project is None:
-        print "Project %s does not exist" % args.project_id
+        print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL    
     
-    team = course.get_team(args.team_id)
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
-    grade_component = project.get_grade_component(args.grade_component)
+    grade_component = project.get_grade_component(grade_component)
     if grade_component is None:
-        print "Project %s does not have a grade component '%s'" % (project.id, args.grade_component)
+        print "Project %s does not have a grade component '%s'" % (project.id, grade_component)
         return CHISUBMIT_FAIL
     
-    team.set_project_grade(project.id, grade_component, args.grade)
+    team.set_project_grade(project.id, grade_component, grade)
 
-def cli_do__team_set_private_name(course, args):
-    team = course.get_team(args.team_id)
+
+@click.command(name="set-private-name")
+@click.argument('team_id', type=str)
+@click.argument('private_name', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_set_private_name(ctx, course, team_id, private_name):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
 
-    team.private_name = args.private_name
+    team.private_name = private_name
     
-def cli_do__team_gh_repo_create(course, args):
-    team = course.get_team(args.team_id)
+    
+@click.command(name="gh-repo-create")    
+@click.argument('team_id', type=str)
+@click.option('--ignore-existing', is_flag=True)
+@click.option('--public', is_flag=True)    
+@pass_course
+@save_changes
+@click.pass_context  
+def team_gh_repo_create(ctx, course, team_id, ignore_existing, public):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
 
-    if team.github_repo is not None and not args.ignore_existing:
+    if team.github_repo is not None and not ignore_existing:
         print "Repository for team %s has already been created." % team.id
         print "Maybe you meant to run team-repo-update?"
         return CHISUBMIT_FAIL
@@ -228,7 +236,7 @@ def cli_do__team_gh_repo_create(course, args):
     try:
         gh = GithubConnection(github_access_token, course.github_organization)
             
-        gh.create_team_repository(course, team, fail_if_exists = not args.ignore_existing, private = not args.public)
+        gh.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -236,11 +244,16 @@ def cli_do__team_gh_repo_create(course, args):
         
     return CHISUBMIT_SUCCESS
 
-    
-def cli_do__team_gh_repo_update(course, args):
-    team = course.get_team(args.team_id)
+
+@click.command(name="gh-repo-update")
+@click.argument('team_id', type=str)    
+@pass_course
+@save_changes
+@click.pass_context  
+def team_gh_repo_update(ctx, course, team_id):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:
@@ -265,10 +278,15 @@ def cli_do__team_gh_repo_update(course, args):
     return CHISUBMIT_SUCCESS
 
     
-def cli_do__team_gh_repo_remove(course, args):
-    team = course.get_team(args.team_id)
+@click.command(name="gh-repo-remove")    
+@click.argument('team_id', type=str)        
+@pass_course
+@save_changes
+@click.pass_context  
+def team_gh_repo_remove(ctx, course, team_id):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:
@@ -292,10 +310,16 @@ def cli_do__team_gh_repo_remove(course, args):
 
     return CHISUBMIT_SUCCESS
 
-def cli_do__team_gh_repo_check(course, args):
-    team = course.get_team(args.team_id)
+
+@click.command(name="gh-repo-check")
+@click.argument('team_id', type=str)    
+@pass_course
+@save_changes
+@click.pass_context  
+def team_gh_repo_check(ctx, course, team_id):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
     if team.github_repo is None:
@@ -325,24 +349,40 @@ def cli_do__team_gh_repo_check(course, args):
 
     return CHISUBMIT_SUCCESS
 
-def cli_do__team_gh_repo_set(course, args):
-    team = course.get_team(args.team_id)
+
+@click.command(name="gh-repo-set")
+@click.argument('team_id', type=str)
+@click.argument('github_repo', type=str)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_gh_repo_set(ctx, course, team_id, github_repo):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
-    team.github_repo = args.github_repo
+    team.github_repo = github_repo
     
     return CHISUBMIT_SUCCESS
 
 
-def cli_do__team_gh_repo_email(course, args):
-    team = course.get_team(args.team_id)
+@click.command(name="gh-repo-email")
+@click.argument('team_id', type=str)
+@click.argument('email_from', type=str)
+@click.argument('template', type=str)
+@click.option('--force', is_flag=True)
+@click.option('--dry-run', is_flag=True)
+@pass_course
+@save_changes
+@click.pass_context  
+def team_gh_repo_email(ctx, course, team_id, email_from, template, force, dry_run):
+    team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % args.team_id
+        print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
-    if team.github_email_sent and not args.force:
+    if team.github_email_sent and not force:
         print "E-mail to team %s has already been sent. Use --force to send anyways." % team.id
         return CHISUBMIT_FAIL
     
@@ -350,22 +390,22 @@ def cli_do__team_gh_repo_email(course, args):
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
-    if not os.path.exists(args.template):
+    if not os.path.exists(template):
         print "File %s does not exists"
         return CHISUBMIT_FAIL
        
     smtp_server = smtplib.SMTP(chisubmit.core.chisubmit_conf.get("smtp", "server"))
-    email_template = Template(open(args.template).read()) 
+    email_template = Template(open(template).read()) 
     email_to = ["%s %s <%s>" % (s.first_name, s.last_name, s.email) for s in team.students]
-    email_rcpt = [s.email for s in team.students] + [args.email_from]
+    email_rcpt = [s.email for s in team.students] + [email_from]
     github_repo = "https://github.com/%s/%s" % (course.github_organization, team.github_repo)
-    email_message = email_template.substitute(sender = args.email_from, 
+    email_message = email_template.substitute(sender = email_from, 
                                               recipients = ", ".join(email_to), 
                                               subject = "New GitHub repository: %s" % team.github_repo, 
                                               github_repo = github_repo)
     
-    if not args.dry_run:
-        smtp_server.sendmail(args.email_from, email_rcpt, email_message)
+    if not dry_run:
+        smtp_server.sendmail(email_from, email_rcpt, email_message)
         team.github_email_sent = True
         print "E-mail sent to team %s" % team.id
     else:
@@ -373,3 +413,17 @@ def cli_do__team_gh_repo_email(course, args):
         print
         print email_message
         
+        
+team.add_command(team_create)
+team.add_command(team_list)
+team.add_command(team_show)
+team.add_command(team_student_add)
+team.add_command(team_project_add)
+team.add_command(team_project_set_grade)
+team.add_command(team_set_private_name)
+team.add_command(team_gh_repo_create)
+team.add_command(team_gh_repo_update)
+team.add_command(team_gh_repo_remove)
+team.add_command(team_gh_repo_check)
+team.add_command(team_gh_repo_set)
+team.add_command(team_gh_repo_email)        

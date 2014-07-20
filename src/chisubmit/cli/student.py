@@ -28,39 +28,50 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import create_subparser
+import click
+
 from chisubmit.core.model import Student
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
+from chisubmit.cli.common import pass_course, save_changes
 
-def create_student_subparsers(subparsers):
-    subparser = create_subparser(subparsers, "student-create", cli_do__student_create)
-    subparser.add_argument('id', type=str)
-    subparser.add_argument('first_name', type=str)
-    subparser.add_argument('last_name', type=str)
-    subparser.add_argument('email', type=str)
-    subparser.add_argument('github_id', type=str)
-    
-    subparser = create_subparser(subparsers, "student-set-dropped", cli_do__student_set_dropped)
-    subparser.add_argument('id', type=str)
+@click.group()    
+@click.pass_context
+def student(ctx):
+    pass
 
-
-def cli_do__student_create(course, args):
-    student = Student(student_id = args.id,
-                      first_name = args.first_name,
-                      last_name = args.last_name,
-                      email = args.email,
-                      github_id = args.github_id)
+@click.command(name="create")
+@click.argument('id', type=str)
+@click.argument('first_name', type=str)
+@click.argument('last_name', type=str)
+@click.argument('email', type=str)
+@click.argument('github_id', type=str)
+@pass_course
+@click.pass_context  
+def student_create(ctx, course, id, first_name, last_name, email, github_id):
+    student = Student(student_id = id,
+                      first_name = first_name,
+                      last_name = last_name,
+                      email = email,
+                      github_id = github_id)
     course.add_student(student)
     
     return CHISUBMIT_SUCCESS
     
-    
-def cli_do__student_set_dropped(course, args):
-    student = course.get_student(args.id)
+
+@click.command(name="set-dropped")
+@click.argument('id', type=str)
+@pass_course
+@click.pass_context  
+def student_set_dropped(ctx, course, id):
+    student = course.get_student(id)
     if student is None:
-        print "Student %s does not exist" % args.id
+        print "Student %s does not exist" % id
         return CHISUBMIT_FAIL    
     
     student.dropped = True
     
     return CHISUBMIT_SUCCESS
+
+
+student.add_command(student_create)
+student.add_command(student_set_dropped)

@@ -52,7 +52,8 @@ setup(name='chisubmit',
       packages=find_packages("src"),
       
       install_requires = [ "PyGithub >= 1.21.0", "GitPython >= 0.3.2.RC1",
-                           "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0" ],
+                           "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0",
+                           "click >= 2.4" ],
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,
       

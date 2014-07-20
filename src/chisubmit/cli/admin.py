@@ -304,7 +304,7 @@ def admin_list_submissions(ctx, course, project_id):
     return CHISUBMIT_SUCCESS                
                 
 
-@click.command(name="create-grading-repor")                
+@click.command(name="create-grading-repos")                
 @click.argument('project_id', type=str)                
 @pass_course
 @save_changes

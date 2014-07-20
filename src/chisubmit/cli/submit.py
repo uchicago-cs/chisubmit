@@ -46,6 +46,7 @@ from chisubmit.cli.common import pass_course, save_changes
 @click.argument('extensions', type=int, default=0)
 @click.option('--force', is_flag=True)
 @click.option('--yes', is_flag=True)
+@click.option('--ignore_extensions', is_flag=True)
 @pass_course
 @save_changes
 @click.pass_context  

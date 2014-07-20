@@ -35,7 +35,7 @@ from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import pass_course
 
 
-@click.command
+@click.command(name="shell")
 @click.pass_context  
 @pass_course
 def shell(ctx, course):

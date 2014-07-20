@@ -5,6 +5,7 @@ from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 
 from functools import update_wrapper
+from chisubmit.common.utils import mkdatetime
 
 def pass_course(f):
     @click.pass_context
@@ -28,6 +29,18 @@ def save_changes(f):
         return ctx.invoke(f, *args, **kwargs)
         
     return update_wrapper(new_func, f)
+    
+    
+class DateTimeParamType(click.ParamType):
+    name = 'datetime'
+
+    def convert(self, value, param, ctx):
+        try:
+            return mkdatetime(value)
+        except ValueError:
+            self.fail('"%s" is not a valid datetime string' % value, param, ctx)
+
+DATETIME = DateTimeParamType()
     
 
 def get_teams(course, project, grader = None, only = None):

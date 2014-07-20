@@ -35,7 +35,7 @@ from chisubmit.common.utils import mkdatetime,\
 from chisubmit.core.model import Project, GradeComponent
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
-from chisubmit.cli.common import pass_course, save_changes
+from chisubmit.cli.common import pass_course, save_changes, DATETIME
 
 
 @click.group()    
@@ -47,7 +47,7 @@ def project(ctx):
 @click.command(name="create")
 @click.argument('project_id', type=str)
 @click.argument('name', type=str)
-@click.argument('deadline', type=mkdatetime)
+@click.argument('deadline', type=DATETIME)
 @pass_course
 @save_changes
 @click.pass_context  

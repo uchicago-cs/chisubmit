@@ -1,6 +1,6 @@
 import click
 
-from chisubmit.core.repos import GradingGitRepo
+from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 

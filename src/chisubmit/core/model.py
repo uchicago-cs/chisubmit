@@ -35,6 +35,7 @@ import chisubmit.core
 from chisubmit.common.utils import set_datetime_timezone_utc
 import urllib2
 from chisubmit.core import ChisubmitException
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 class ChisubmitModelException(Exception):
@@ -48,14 +49,12 @@ class Course(object):
         self.name = name
         self.extensions = extensions
         
-        self.github_organization = None
-        self.github_admins_team = None
-        
-        self.git_staging_username = None
-        self.git_staging_hostname = None
+        self.git_server_connection_string = None
+        self.git_staging_server_connection_string = None
         
         self.students = {}
         self.graders = {}
+        self.instructors = {}
         self.projects = {}
         self.teams = {}
         
@@ -119,6 +118,12 @@ class Course(object):
     
     def add_grader(self, grader):
         self.graders[grader.id] = grader
+        
+    def get_instructor(self, instructor_id):
+        return self.instructors.get(instructor_id)
+    
+    def add_instructor(self, instructor):
+        self.instructors[instructor.id] = instructor        
 
     def get_project(self, project_id):
         return self.projects.get(project_id)
@@ -145,6 +150,22 @@ class Course(object):
                     break     
         
         return teams
+    
+    def get_git_server_connection(self):
+        if self.git_server_connection_string is None:
+            raise ChisubmitModelException("Course %s does not have a connection string for its Git server" % (self.id))
+        
+        conn = RemoteRepositoryConnectionFactory.create_connection(self.git_server_connection_string)
+        
+        return conn
+
+    def get_git_staging_server_connection(self):
+        if self.git_staging_server_connection_string is None:
+            raise ChisubmitModelException("Course %s does not have a connection string for its Git staging server" % (self.id))
+        
+        conn = RemoteRepositoryConnectionFactory.create_connection(self.git_staging_server_connection_string)
+        
+        return conn
         
         
 class GradeComponent(object):
@@ -199,12 +220,12 @@ class Project(object):
         
 
 class Student(object):
-    def __init__(self, student_id, first_name, last_name, email, github_id):
+    def __init__(self, student_id, first_name, last_name, email, git_server_id):
         self.id = student_id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        self.github_id = github_id
+        self.git_server_id = git_server_id
         
         self.dropped = False
         
@@ -220,12 +241,13 @@ class Student(object):
         
    
 class Grader(object):
-    def __init__(self, grader_id, first_name, last_name, email, github_id):
+    def __init__(self, grader_id, first_name, last_name, email, git_server_id, git_staging_server_id):
         self.id = grader_id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        self.github_id = github_id
+        self.git_server_id = git_server_id
+        self.git_staging_server_id = git_staging_server_id
         
         self.conflicts = []
         
@@ -238,6 +260,24 @@ class Grader(object):
         else:
             return "%s %s" % (self.first_name, self.last_name)        
 
+class Instructor(object):
+    def __init__(self, instructor_id, first_name, last_name, email, git_server_id, git_staging_server_id):
+        self.id = instructor_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.git_server_id = git_server_id
+        self.git_staging_server_id = git_staging_server_id
+        
+    def __repr__(self):
+        return "<Instructor %s: %s>" % (self.id, self.get_full_name())        
+        
+    def get_full_name(self, comma = False):
+        if comma:
+            return "%s, %s" % (self.last_name, self.first_name)
+        else:
+            return "%s %s" % (self.first_name, self.last_name)    
+
         
 class Team(object):
     def __init__(self, team_id):
@@ -247,9 +287,8 @@ class Team(object):
 
         self.students = []
         self.active = True
-        self.github_repo = None
-        self.github_team = None
-        self.github_email_sent = False
+        self.git_repo_created = False
+        self.git_staging_repo_created = False
         
         self.projects = {}
 

@@ -53,10 +53,10 @@ chisubmit course create --make-default example "Example Course" 3
 
 # Next, we provide the GitHub settings for this course:
 
-chisubmit course github-settings $GITHUB_ORGANIZATION
+chisubmit course git-server $GIT_SERVER_CONNECTIONSTRING
 
 # And for the staging server
-chisubmit course git-staging-settings $GIT_STAGING_USERNAME $GIT_STAGING_HOSTNAME
+chisubmit course git-staging-server $GIT_STAGING_SERVER_CONNECTIONSTRING
 
 
 # We only need to specify the GitHub organization that will host the 
@@ -91,6 +91,13 @@ chisubmit project create p2 "Project 2" 2042-01-21T20:00
 chisubmit project grade-component-add p2 Tests 50
 chisubmit project grade-component-add p2 Design 50
 
+
+# Add instructors to the course
+
+chisubmit instructor create instructor1 FirstA LastA instructor1@uchicago.edu $GITHUB_USERNAME $GITHUB_USERNAME
+
+
+
 # Now, we add students to the course. In practice, this information
 # could be collected through an online form or from an enrolment
 # spreadsheet, and can easily be converted to calls to "chisubmit student-create".
@@ -115,13 +122,16 @@ chisubmit team student-add team2 student3
 chisubmit team student-add team2 student4
 
 # Next, we create a grader
-chisubmit grader create graderA FirstA LastA graderA@uchicago.edu $GITHUB_USERNAME
+chisubmit grader create graderA FirstA LastA graderA@uchicago.edu $GITHUB_USERNAME $GITHUB_USERNAME
 
 
 # Once we have our teams, we create their repositories:
 
-chisubmit team gh-repo-create team1 --ignore-existing --public
-chisubmit team gh-repo-create team2 --ignore-existing --public
+chisubmit team repo-create team1 --ignore-existing --public
+chisubmit team repo-create team1 --ignore-existing --public --staging
+
+chisubmit team repo-create team2 --ignore-existing --public
+chisubmit team repo-create team2 --ignore-existing --public --staging
 
 
 # Note: We use the --ignore-existing option here just so this script can be
@@ -143,7 +153,6 @@ chisubmit team gh-repo-create team2 --ignore-existing --public
 
 chisubmit admin assign-project p1
 
-chisubmit course generate-distributable example-dist.yaml
 
 
 # Now, we're going to simulate a few actions that a team would perform:
@@ -161,22 +170,20 @@ then
     rm -rf ~/.chisubmit-team2/
 fi
 
+mkdir -p ~/.chisubmit-team1/
+cp ~/.chisubmit/github_token ~/.chisubmit-team1/
+
+mkdir -p ~/.chisubmit-team2/
+cp ~/.chisubmit/github_token ~/.chisubmit-team2/
+
 TEAM1_OPTS="--dir ~/.chisubmit-team1/"
 TEAM2_OPTS="--dir ~/.chisubmit-team2/"
 
-chisubmit $TEAM1_OPTS course install --make-default example-dist.yaml
-chisubmit $TEAM1_OPTS team create team1
-chisubmit $TEAM1_OPTS team gh-repo-set team1 example-team1
+chisubmit $TEAM1_OPTS course install --make-default ~/.chisubmit/courses/example.yaml
+chisubmit $TEAM2_OPTS course install --make-default ~/.chisubmit/courses/example.yaml
 
-chisubmit $TEAM2_OPTS course install --make-default example-dist.yaml
-chisubmit $TEAM2_OPTS team create team2
-chisubmit $TEAM2_OPTS team gh-repo-set team2 example-team2
-
-cp ~/.chisubmit/github_token ~/.chisubmit-team1/
-chisubmit $TEAM1_OPTS team gh-repo-check team1
-
-cp ~/.chisubmit/github_token ~/.chisubmit-team2/
-chisubmit $TEAM2_OPTS team gh-repo-check team2
+chisubmit $TEAM1_OPTS team repo-check team1
+chisubmit $TEAM2_OPTS team repo-check team2
 
 TEAM1_REPO=`mktemp -d`
 TEAM2_REPO=`mktemp -d`

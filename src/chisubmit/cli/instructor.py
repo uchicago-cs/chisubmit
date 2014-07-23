@@ -29,54 +29,58 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import click
-import getpass
 
+from chisubmit.core.model import Student, Instructor
+from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
+from chisubmit.cli.common import pass_course, save_changes
 import chisubmit.core
-
-from chisubmit.repos.github import GitHubConnection
-from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
-
 
 @click.group()    
 @click.pass_context
-def gh(ctx):
+def instructor(ctx):
     pass
 
-
-    
-@click.command(name="token-create")    
-@click.option('--delete', is_flag=True)    
+@click.command(name="create")
+@click.argument('id', type=str)
+@click.argument('first_name', type=str)
+@click.argument('last_name', type=str)
+@click.argument('email', type=str)
+@click.argument('git_server_id', type=str)
+@click.argument('git_staging_server_id', type=str)
+@pass_course
+@save_changes
 @click.pass_context  
-def gh_token_create(ctx, delete):
-        
-    try:
-        username = raw_input("Enter your GitHub username: ")
-        password = getpass.getpass("Enter your GitHub password: ")
-    except KeyboardInterrupt, ki:
-        exit(CHISUBMIT_FAIL)
-    except Exception, e:
-        handle_unexpected_exception()
+def instructor_create(ctx, course, id, first_name, last_name, email, git_server_id, git_staging_server_id):
+    instructor = Instructor(instructor_id = id,
+                            first_name = first_name,
+                            last_name = last_name,
+                            email = email,
+                            git_server_id = git_server_id,
+                            git_staging_server_id = git_staging_server_id)
+    course.add_instructor(instructor)
     
-    try:
-        token = GitHubConnection.get_credentials(username, password, delete = delete)
-        
-        if token is None:
-            print "Unable to create token. Incorrect username/password."
-        else:
-            if delete:
-                chisubmit.core.set_github_delete_token(token)
-            else:
-                chisubmit.core.set_github_token(token)
-    
-            print "The following token has been created: %s" % token
-            print "chisubmit has been configured to use this token from now on."
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    github_access_token = chisubmit.core.get_github_token()
+
+    if github_access_token is not None:
+        try:    
+            if course.git_server_connection_string is not None:
+                conn = course.get_git_server_connection()
+                conn.connect(github_access_token)
+                conn.update_instructors(course)
             
+            if course.git_staging_server_connection_string is not None:
+                conn = course.get_git_staging_server_connection()
+                conn.connect(github_access_token)
+                conn.update_instructors(course)
+                
+        except ChisubmitException, ce:
+            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+        except Exception, e:
+            handle_unexpected_exception()
+    
+    
     return CHISUBMIT_SUCCESS
+    
 
-
-gh.add_command(gh_token_create)        
+instructor.add_command(instructor_create)

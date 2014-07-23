@@ -51,7 +51,6 @@ def grader(ctx):
 @click.argument('email', type=str)
 @click.argument('github_id', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def grader_create(ctx, course, id, first_name, last_name, email, github_id):
     grader = Grader(grader_id = id,
@@ -68,7 +67,6 @@ def grader_create(ctx, course, id, first_name, last_name, email, github_id):
 @click.argument('grader_id', type=str)
 @click.argument('student_id', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def grader_add_conflict(ctx, course, grader_id, student_id):
     grader = course.get_grader(grader_id)

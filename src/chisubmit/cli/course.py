@@ -37,7 +37,7 @@ from chisubmit.core.model import Course
 from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS
 from chisubmit.core import ChisubmitException
-from chisubmit.cli.common import pass_course, save_changes
+from chisubmit.cli.common import pass_course
    
     
 @click.group()    
@@ -57,7 +57,6 @@ def course_create(ctx, make_default, id, name, extensions):
                     extensions = extensions)
     
     try:
-        course.course_file = chisubmit.core.get_course_filename(course.id)
         course.save()
         
         if make_default:
@@ -82,7 +81,6 @@ def course_install(ctx, make_default, filename):
         f.close()
         
     try:
-        new_course.course_file = chisubmit.core.get_course_filename(new_course.id)
         new_course.save()
         
         if make_default:
@@ -97,7 +95,6 @@ def course_install(ctx, make_default, filename):
 @click.command(name="github-settings")
 @click.argument('organization', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def course_github_settings(ctx, course, organization):
     course.github_organization = organization
@@ -121,7 +118,6 @@ def course_github_settings(ctx, course, organization):
 @click.argument('git_username', type=str)
 @click.argument('git_hostname', type=str)
 @pass_course
-@save_changes
 @click.pass_context
 def course_git_staging_settings(ctx, course, git_username, git_hostname):
     course.git_staging_username = git_username
@@ -134,19 +130,6 @@ def course_git_staging_settings(ctx, course, git_username, git_hostname):
 @pass_course
 @click.pass_context  
 def course_generate_distributable(ctx, course, filename):
-    course.github_admins_team = None
-    course.git_staging_username = None
-    course.git_staging_hostname = None
-    course.students = {}
-    course.teams = {}
-    
-    try:
-        course.save(filename)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-        
     return CHISUBMIT_SUCCESS
 
 course.add_command(course_create)

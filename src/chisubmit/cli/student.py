@@ -32,7 +32,7 @@ import click
 
 from chisubmit.core.model import Student
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
-from chisubmit.cli.common import pass_course, save_changes
+from chisubmit.cli.common import pass_course
 
 @click.group()    
 @click.pass_context
@@ -46,7 +46,6 @@ def student(ctx):
 @click.argument('email', type=str)
 @click.argument('github_id', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def student_create(ctx, course, id, first_name, last_name, email, github_id):
     student = Student(student_id = id,
@@ -62,7 +61,6 @@ def student_create(ctx, course, id, first_name, last_name, email, github_id):
 @click.command(name="set-dropped")
 @click.argument('id', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def student_set_dropped(ctx, course, id):
     student = course.get_student(id)

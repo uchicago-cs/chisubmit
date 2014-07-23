@@ -35,7 +35,7 @@ from chisubmit.common.utils import mkdatetime,\
 from chisubmit.core.model import Project, GradeComponent
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
-from chisubmit.cli.common import pass_course, save_changes, DATETIME
+from chisubmit.cli.common import pass_course, DATETIME
 
 
 @click.group()    
@@ -49,7 +49,6 @@ def project(ctx):
 @click.argument('name', type=str)
 @click.argument('deadline', type=DATETIME)
 @pass_course
-@save_changes
 @click.pass_context  
 def project_create(ctx, course, project_id, name, deadline):
     project = Project(project_id = project_id,
@@ -64,7 +63,6 @@ def project_create(ctx, course, project_id, name, deadline):
 @click.option('--ids', is_flag=True)
 @click.option('--utc', is_flag=True)
 @pass_course
-@save_changes
 @click.pass_context  
 def project_list(ctx, course, ids, utc):
     project_ids = course.projects.keys()
@@ -93,7 +91,6 @@ def project_list(ctx, course, ids, utc):
 @click.argument('name', type=str)
 @click.argument('points', type=int) 
 @pass_course
-@save_changes
 @click.pass_context  
 def project_grade_component_add(ctx, course, project_id, name, points):
     project = course.get_project(project_id)
@@ -111,7 +108,6 @@ def project_grade_component_add(ctx, course, project_id, name, points):
 @click.argument('project_id', type=str)
 @click.option('--utc', is_flag=True)    
 @pass_course
-@save_changes
 @click.pass_context  
 def project_deadline_show(ctx, course, project_id, utc):
     project = course.get_project(project_id)

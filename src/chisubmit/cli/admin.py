@@ -52,7 +52,6 @@ def admin(ctx):
 @click.argument('project_id', type=str)
 @click.option('--force', is_flag=True)
 @pass_course
-@save_changes
 @click.pass_context  
 def admin_assign_project(ctx, course, project_id, force):
     project = course.get_project(project_id)

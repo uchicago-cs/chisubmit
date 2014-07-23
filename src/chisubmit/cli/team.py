@@ -53,7 +53,6 @@ def team(ctx):
 @click.command(name="create")
 @click.argument('team_id', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def team_create(ctx, course, team_id):
     team = Team(team_id = team_id)
@@ -122,7 +121,6 @@ def team_show(ctx, course, search, verbose, team_id):
 @click.argument('team_id', type=str)
 @click.argument('student_id', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def team_student_add(ctx, course, team_id, student_id):
     student = course.get_student(student_id)
@@ -144,7 +142,6 @@ def team_student_add(ctx, course, team_id, student_id):
 @click.argument('team_id', type=str)
 @click.argument('project_id', type=str)    
 @pass_course
-@save_changes
 @click.pass_context  
 def team_project_add(ctx, course, team_id, project_id):
     project = course.get_project(project_id)
@@ -172,7 +169,6 @@ def team_project_add(ctx, course, team_id, project_id):
 @click.argument('grade_component', type=str)
 @click.argument('grade', type=float)
 @pass_course
-@save_changes
 @click.pass_context  
 def team_project_set_grade(ctx, course, team_id, project_id, grade_component, grade):
     project = course.get_project(project_id)
@@ -197,7 +193,6 @@ def team_project_set_grade(ctx, course, team_id, project_id, grade_component, gr
 @click.argument('team_id', type=str)
 @click.argument('private_name', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def team_set_private_name(ctx, course, team_id, private_name):
     team = course.get_team(team_id)
@@ -213,7 +208,6 @@ def team_set_private_name(ctx, course, team_id, private_name):
 @click.option('--ignore-existing', is_flag=True)
 @click.option('--public', is_flag=True)    
 @pass_course
-@save_changes
 @click.pass_context  
 def team_gh_repo_create(ctx, course, team_id, ignore_existing, public):
     team = course.get_team(team_id)
@@ -248,7 +242,6 @@ def team_gh_repo_create(ctx, course, team_id, ignore_existing, public):
 @click.command(name="gh-repo-update")
 @click.argument('team_id', type=str)    
 @pass_course
-@save_changes
 @click.pass_context  
 def team_gh_repo_update(ctx, course, team_id):
     team = course.get_team(team_id)
@@ -281,7 +274,6 @@ def team_gh_repo_update(ctx, course, team_id):
 @click.command(name="gh-repo-remove")    
 @click.argument('team_id', type=str)        
 @pass_course
-@save_changes
 @click.pass_context  
 def team_gh_repo_remove(ctx, course, team_id):
     team = course.get_team(team_id)
@@ -314,7 +306,6 @@ def team_gh_repo_remove(ctx, course, team_id):
 @click.command(name="gh-repo-check")
 @click.argument('team_id', type=str)    
 @pass_course
-@save_changes
 @click.pass_context  
 def team_gh_repo_check(ctx, course, team_id):
     team = course.get_team(team_id)
@@ -354,7 +345,6 @@ def team_gh_repo_check(ctx, course, team_id):
 @click.argument('team_id', type=str)
 @click.argument('github_repo', type=str)
 @pass_course
-@save_changes
 @click.pass_context  
 def team_gh_repo_set(ctx, course, team_id, github_repo):
     team = course.get_team(team_id)
@@ -374,7 +364,6 @@ def team_gh_repo_set(ctx, course, team_id, github_repo):
 @click.option('--force', is_flag=True)
 @click.option('--dry-run', is_flag=True)
 @pass_course
-@save_changes
 @click.pass_context  
 def team_gh_repo_email(ctx, course, team_id, email_from, template, force, dry_run):
     team = course.get_team(team_id)

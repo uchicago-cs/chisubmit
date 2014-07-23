@@ -103,23 +103,24 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         # TODO: Remove graders that may have been removed
 
 
-    def create_team_repository(self, course, team, fail_if_exists=True, private=True):
+    def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
         repo_name = self.__get_team_ghrepo_name(course, team)
-        team_name = self.__get_team_ghteam_name(course, team)
         student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
         github_instructors = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))
         github_graders = self.__get_ghteam_by_name(self.__get_graders_ghteam_name(course))
-        github_students = []
         
-        # Make sure users exist
-        for s in team.students:
-            github_student = self.__get_user(s.git_server_id)
-            
-            if github_student is None:
-                raise ChisubmitException("GitHub user '%s' does not exist " % (s.git_server_id))
-            
-            github_students.append(github_student)
+        if team_access:
+            github_students = []
+
+            # Make sure users exist
+            for s in team.students:
+                github_student = self.__get_user(s.git_server_id)
+                
+                if github_student is None:
+                    raise ChisubmitException("GitHub user '%s' does not exist " % (s.git_server_id))
+                
+                github_students.append(github_student)
         
         github_repo = self.__get_repository(repo_name)
         
@@ -142,13 +143,16 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception adding repository to Graders team (%i: %s)" % (ge.status, ge.data["message"]), ge)
         
-        github_team = self.create_ghteam(team_name, [github_repo], "push", fail_if_exists)
+        if team_access:
+            team_name = self.__get_team_ghteam_name(course, team)
         
-        for github_student in github_students:
-            try:
-                github_team.add_to_members(github_student)
-            except GithubException as ge:
-                raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.git_server_id, ge.status, ge.data["message"]), ge)
+            github_team = self.__create_ghteam(team_name, [github_repo], "push", fail_if_exists)
+            
+            for github_student in github_students:
+                try:
+                    github_team.add_to_members(github_student)
+                except GithubException as ge:
+                    raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.git_server_id, ge.status, ge.data["message"]), ge)
             
 
     def update_team_repository(self, course, team):
@@ -162,6 +166,22 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
                 raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.git_server_id, ge.status, ge.data["message"]))
             
         #TODO: Remove students that may have been removed from team
+
+    def exists_team_repository(self, course, team):
+        r = self.__get_repository(self.__get_team_ghrepo_name(course, team))
+        
+        return (r is not None)
+
+
+    def get_repository_git_url(self, course, team):
+        orgname = self.github_organization
+        reponame = self.__get_team_ghrepo_name(course, team)
+        return "git@github.com:%s/%s.git" % (orgname, reponame)
+
+    def get_repository_http_url(self, course, team):
+        orgname = self.github_organization
+        reponame = self.__get_team_ghrepo_name(course, team)
+        return "https://github.com/%s/%s" % (orgname, reponame)
 
 
     # Return new commit object
@@ -180,7 +200,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def create_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
         github_repo = self.organization.get_repo(self.__get_team_ghrepo_name(course, team))
         
-        commit = self.get_commit(team, commit_sha)
+        commit = self.get_commit(course, team, commit_sha)
         
         this_user = self.gh.get_user()
 
@@ -266,7 +286,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
                 return github_team
         else:
             try:
-                github_team = self.organization.create_ghteam(team_name, repos, permissions)
+                github_team = self.organization.create_team(team_name, repos, permissions)
                 return github_team
             except GithubException as ge:
                 raise ChisubmitException("Unexpected exception creating team %s (%i: %s)" % (team_name, ge.status, ge.data["message"]), ge)
@@ -289,12 +309,6 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
             raise ChisubmitException("GitHub team '%s' does not exist " % ghteam_name) 
         
         self.__add_user_to_ghteam(github_id, ghteam)
-
-
-    def __repository_exists(self, github_repo):
-        r = self.__get_repository(github_repo)
-        
-        return (r is not None)
         
 
     def __get_user(self, username):

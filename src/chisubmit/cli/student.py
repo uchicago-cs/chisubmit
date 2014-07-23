@@ -44,16 +44,16 @@ def student(ctx):
 @click.argument('first_name', type=str)
 @click.argument('last_name', type=str)
 @click.argument('email', type=str)
-@click.argument('github_id', type=str)
+@click.argument('git_server_id', type=str)
 @pass_course
 @save_changes
 @click.pass_context  
-def student_create(ctx, course, id, first_name, last_name, email, github_id):
+def student_create(ctx, course, id, first_name, last_name, email, git_server_id):
     student = Student(student_id = id,
                       first_name = first_name,
                       last_name = last_name,
                       email = email,
-                      github_id = github_id)
+                      git_server_id = git_server_id)
     course.add_student(student)
     
     return CHISUBMIT_SUCCESS

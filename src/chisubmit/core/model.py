@@ -35,6 +35,7 @@ import chisubmit.core
 from chisubmit.common.utils import set_datetime_timezone_utc
 import urllib2
 from chisubmit.core import ChisubmitException
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 class ChisubmitModelException(Exception):
@@ -49,7 +50,7 @@ class Course(object):
         self.extensions = extensions
         
         self.git_server_connection_string = None
-        self.staging_git_server_connection_string = None
+        self.git_staging_server_connection_string = None
         
         self.students = {}
         self.graders = {}
@@ -149,6 +150,22 @@ class Course(object):
                     break     
         
         return teams
+    
+    def get_git_server_connection(self):
+        if self.git_server_connection_string is None:
+            raise ChisubmitModelException("Course %s does not have a connection string for its Git server" % (self.id))
+        
+        conn = RemoteRepositoryConnectionFactory.create_connection(self.git_server_connection_string)
+        
+        return conn
+
+    def get_git_staging_server_connection(self):
+        if self.git_staging_server_connection_string is None:
+            raise ChisubmitModelException("Course %s does not have a connection string for its Git staging server" % (self.id))
+        
+        conn = RemoteRepositoryConnectionFactory.create_connection(self.git_staging_server_connection_string)
+        
+        return conn
         
         
 class GradeComponent(object):
@@ -224,13 +241,13 @@ class Student(object):
         
    
 class Grader(object):
-    def __init__(self, grader_id, first_name, last_name, email, git_server_id, staging_git_server_id):
+    def __init__(self, grader_id, first_name, last_name, email, git_server_id, git_staging_server_id):
         self.id = grader_id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
         self.git_server_id = git_server_id
-        self.staging_git_server_id = staging_git_server_id
+        self.git_staging_server_id = git_staging_server_id
         
         self.conflicts = []
         
@@ -271,7 +288,7 @@ class Team(object):
         self.students = []
         self.active = True
         self.git_repo_created = False
-        self.staging_git_repo_created = False
+        self.git_staging_repo_created = False
         
         self.projects = {}
 

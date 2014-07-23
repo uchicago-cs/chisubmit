@@ -101,7 +101,7 @@ def project_grade_component_add(ctx, course, project_id, name, points):
         print "Project %s does not exist" % project_id
         return CHISUBMIT_FAIL
 
-    grade_component = GradeComponent(name, points)
+    grade_component = GradeComponent(name=name, points=points)
     project.add_grade_component(grade_component)    
 
     return CHISUBMIT_SUCCESS

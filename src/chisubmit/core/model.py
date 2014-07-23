@@ -244,13 +244,13 @@ class Grader(object):
             return "%s %s" % (self.first_name, self.last_name)        
 
 class Instructor(object):
-    def __init__(self, grader_id, first_name, last_name, email, git_server_id, staging_git_server_id):
-        self.id = grader_id
+    def __init__(self, instructor_id, first_name, last_name, email, git_server_id, git_staging_server_id):
+        self.id = instructor_id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
         self.git_server_id = git_server_id
-        self.staging_git_server_id = staging_git_server_id
+        self.git_staging_server_id = git_staging_server_id
         
     def __repr__(self):
         return "<Instructor %s: %s>" % (self.id, self.get_full_name())        

@@ -31,11 +31,11 @@
 import click
 import getpass
 
-import chisubmit.core
 
 from chisubmit.repos.github import GitHubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
+from chisubmit.core import ChisubmitException, handle_unexpected_exception,\
+    chisubmit_config
 
 
 @click.group()    
@@ -64,10 +64,7 @@ def gh_token_create(ctx, delete):
         if token is None:
             print "Unable to create token. Incorrect username/password."
         else:
-            if delete:
-                chisubmit.core.set_github_delete_token(token)
-            else:
-                chisubmit.core.set_github_token(token)
+            chisubmit_config().set_git_credentials("GitHub", token)
     
             print "The following token has been created: %s" % token
             print "chisubmit has been configured to use this token from now on."

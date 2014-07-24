@@ -171,10 +171,10 @@ then
 fi
 
 mkdir -p ~/.chisubmit-team1/
-cp ~/.chisubmit/github_token ~/.chisubmit-team1/
+cp ~/.chisubmit/chisubmit.conf ~/.chisubmit-team1/
 
 mkdir -p ~/.chisubmit-team2/
-cp ~/.chisubmit/github_token ~/.chisubmit-team2/
+cp ~/.chisubmit/chisubmit.conf ~/.chisubmit-team2/
 
 TEAM1_OPTS="--dir ~/.chisubmit-team1/"
 TEAM2_OPTS="--dir ~/.chisubmit-team2/"
@@ -314,7 +314,7 @@ chisubmit admin push-grading-branches --staging p1
 mkdir -p ~/.chisubmit-grader/
 mkdir -p ~/.chisubmit-grader/courses
 cp ~/.chisubmit/default_course ~/.chisubmit-grader/
-cp ~/.chisubmit/github_token ~/.chisubmit-grader/
+cp ~/.chisubmit/chisubmit.conf ~/.chisubmit-grader/
 cp ~/.chisubmit/courses/example.yaml ~/.chisubmit-grader/courses/
 GRADER_OPTS="--dir ~/.chisubmit-grader/"
 

@@ -30,7 +30,7 @@
 
 import click
 
-import chisubmit.core
+from chisubmit.core import chisubmit_config
 
 from chisubmit.core.model import Team
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
@@ -76,7 +76,7 @@ def team_list(ctx, course, ids):
         else:
             team = course.teams[team_id]
             
-            fields = [team.id, `team.active`, team.github_repo, team.github_team, `team.github_email_sent`]
+            fields = [team.id, `team.active`]
                         
             print "\t".join(fields)
 
@@ -224,14 +224,7 @@ def team_repo_create(ctx, course, team_id, ignore_existing, public, staging):
     if team.git_repo_created and not ignore_existing:
         print "Repository for team %s has already been created." % team.id
         print "Maybe you meant to run team-repo-update?"
-        return CHISUBMIT_FAIL
-
-    github_access_token = chisubmit.core.get_github_token()
-
-    if github_access_token is None:
-        print "You have not created a GitHub access token."
-        print "You can create one using 'chisubmit gh-token-create'"
-        return CHISUBMIT_FAIL    
+        return CHISUBMIT_FAIL     
     
     try:
         if staging:
@@ -240,8 +233,15 @@ def team_repo_create(ctx, course, team_id, ignore_existing, public, staging):
         else:
             conn = course.get_git_server_connection()
             team_access = True
+
+        server_type = conn.get_server_type_name()
+        git_credentials = chisubmit_config().get_git_credentials(server_type)
+    
+        if git_credentials is None:
+            print "You do not have %s credentials." % server_type
+            return CHISUBMIT_FAIL    
             
-        conn.connect(github_access_token)
+        conn.connect(git_credentials)
             
         conn.create_team_repository(course, team, team_access, fail_if_exists = not ignore_existing, private = not public)
     except ChisubmitException, ce:
@@ -272,16 +272,16 @@ def team_repo_update(ctx, course, team_id):
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
-    github_access_token = chisubmit.core.get_github_token()
+    conn = course.get_git_server_connection()
+    server_type = conn.get_server_type_name()
+    git_credentials = chisubmit_config().get_git_credentials(server_type)
 
-    if github_access_token is None:
-        print "You have not created a GitHub access token."
-        print "You can create one using 'chisubmit gh-token-create'"
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL    
-    
-    try:    
-        conn = course.get_git_server_connection()
-        conn.connect(github_access_token)
+        
+    try:
+        conn.connect(git_credentials)
         conn.update_team_repository(team)    
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
@@ -306,13 +306,6 @@ def team_repo_remove(ctx, course, team_id, staging):
     if team.github_repo is None:
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
-
-    github_access_token = chisubmit.core.get_github_delete_token()
-    
-    if github_access_token is None:
-        print "No GitHub access token with delete permissions found."
-        print "You can create one with 'chisubmit gh-token-create --delete"
-        return CHISUBMIT_FAIL
         
     try:
         if staging:
@@ -320,7 +313,15 @@ def team_repo_remove(ctx, course, team_id, staging):
         else:
             conn = course.get_git_server_connection()
         
-        conn.connect(github_access_token)
+        server_type = conn.get_server_type_name()
+        git_credentials = chisubmit_config().get_git_credentials(server_type)
+    
+        if git_credentials is None:
+            print "You do not have %s credentials." % server_type
+            return CHISUBMIT_FAIL    
+            
+        conn.connect(git_credentials)
+
         conn.delete_team_repository(team)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
@@ -345,16 +346,16 @@ def team_repo_check(ctx, course, team_id):
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
-    github_access_token = chisubmit.core.get_github_token()
+    conn = course.get_git_server_connection()
+    server_type = conn.get_server_type_name()
+    git_credentials = chisubmit_config().get_git_credentials(server_type)
 
-    if github_access_token is None:
-        print "You have not created a GitHub access token."
-        print "You can create one using 'chisubmit gh-token-create'"
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL    
         
     try:
-        conn = course.get_git_server_connection()
-        conn.connect(github_access_token)
+        conn.connect(git_credentials)
     except ChisubmitException, ce:
         print "Unable to connect to GitHub: %s" % ce.message
         return CHISUBMIT_FAIL
@@ -398,7 +399,9 @@ def team_repo_email(ctx, course, team_id, email_from, template, force, dry_run):
         print "File %s does not exists"
         return CHISUBMIT_FAIL
        
-    smtp_server = smtplib.SMTP(chisubmit.core.chisubmit_conf.get("smtp", "server"))
+    # Commenting this out for now, since the e-mail functionality is eventually
+    # going to be implemented from scratch
+    smtp_server = None #smtplib.SMTP(chisubmit.core.chisubmit_conf.get("smtp", "server"))
     email_template = Template(open(template).read()) 
     email_to = ["%s %s <%s>" % (s.first_name, s.last_name, s.email) for s in team.students]
     email_rcpt = [s.email for s in team.students] + [email_from]

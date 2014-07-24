@@ -34,12 +34,10 @@ import ConfigParser
 import shutil
 import traceback
 from chisubmit.common import CHISUBMIT_FAIL
+import yaml
 
 DEFAULT_CHISUBMIT_DIR = os.path.expanduser("~/.chisubmit/")
 DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
-DEFAULT_COURSE_FILENAME = "default_course"
-GHTOKEN_FILENAME = "github_token"
-GHDELETETOKEN_FILENAME = "github_delete_token"
 
 chisubmit_dir = None
 chisubmit_conf = None
@@ -55,11 +53,67 @@ class ChisubmitException(Exception):
 
     def print_exception(self):
         print self.traceback
+        
+        
+class ConfigFile(object):
+    
+    REQUIRED_FIELDS = []
+    OPTIONAL_FIELDS = ["default-course", "git-credentials"]
+        
+    def __init__(self, config_file):
+        self.config_file = config_file
+        
+        f = open(config_file)
+        config = yaml.load(f)
+        f.close()
+        
+        if type(config) != dict:
+            raise ChisubmitException("Configuration file does not contain a YAML object")
+        
+        options = config.keys()
+        
+        for p in self.REQUIRED_FIELDS:
+            if p not in options:
+                raise ChisubmitException("Configuration file does not have required option '%s'" % p)
+            options.remove(p)
+            
+        for p in options:
+            if p not in self.OPTIONAL_FIELDS:
+                raise ChisubmitException("Configuration file has invalid option '%s'" % p)
+
+        self.options = config
+                
+    def save(self):
+        try:
+            f = open(self.config_file, 'w')
+            yaml.dump(self.options, f, default_flow_style=False)
+            f.close()
+        except IOError, ioe:
+            raise ChisubmitException("Error when saving configuration to file %s: %s" % (self.config_file, ioe.meesage), ioe)
+        
+    def get_default_course(self):
+        return self.options.get("default-course")
+
+    def set_default_course(self, default_course):
+        self.options["default-course"] = default_course 
+        self.save()
+    
+    def get_git_credentials(self, server_type):
+        if self.options.has_key("git-credentials"):
+            return self.options["git-credentials"].get(server_type)
+        else:
+            return None
+
+    def set_git_credentials(self, server_type, git_credentials):
+        self.options.set_default("git_credentials", {})[server_type] = git_credentials 
+        self.save()
+
 
 def handle_unexpected_exception():
     print "ERROR: Unexpected exception"
     print traceback.format_exc()
     exit(CHISUBMIT_FAIL)
+
 
 def init_chisubmit(base_dir = None, config_file = None):
     global chisubmit_dir, chisubmit_conf
@@ -88,46 +142,12 @@ def init_chisubmit(base_dir = None, config_file = None):
         example_conf = resource_filename(Requirement.parse("chisubmit"), "config/chisubmit.sample.conf")    
         shutil.copyfile(example_conf, chisubmit_config_file)   
     
-    chisubmit_conf = ConfigParser.ConfigParser()
-    chisubmit_conf.read(chisubmit_config_file)
+    chisubmit_conf = ConfigFile(chisubmit_config_file)
 
-def __get_file(filename):
-    fname = chisubmit_dir + "/" + filename
-    if not os.path.exists(fname):
-        return None
-    else:
-        try:
-            f = open(fname)
-            contents = f.read().strip()
-            return contents
-        except IOError, ioe:
-            raise ChisubmitException("Error when reading from file %s: %s" % (fname, ioe.meesage), ioe)        
 
-def __set_file(filename, contents):
-    fname = chisubmit_dir + "/" + filename
-    try:
-        f = open(fname, 'w')
-        f.write(contents + "\n")
-    except IOError, ioe:
-        raise ChisubmitException("Error when writing to file %s: %s" % (fname, ioe.meesage), ioe)        
-        
-def get_default_course():
-    return __get_file(DEFAULT_COURSE_FILENAME)
-
-def set_default_course(course_id):
-    __set_file(DEFAULT_COURSE_FILENAME, course_id)
-
-def get_github_token():
-    return __get_file(GHTOKEN_FILENAME)
-
-def set_github_token(token):
-    __set_file(GHTOKEN_FILENAME, token)
-
-def get_github_delete_token():
-    return __get_file(GHDELETETOKEN_FILENAME)
-
-def set_github_delete_token(token):
-    __set_file(GHDELETETOKEN_FILENAME, token)
+def chisubmit_config():
+    global chisubmit_conf
+    return chisubmit_conf
     
 def get_course_filename(course_id):
     return chisubmit_dir + "/courses/" + course_id + ".yaml"

@@ -30,11 +30,11 @@
 
 import click
 
-import chisubmit.core
+from chisubmit.core import chisubmit_config, get_course_filename
 
 from chisubmit.core import handle_unexpected_exception
 from chisubmit.core.model import Course
-from chisubmit.common import CHISUBMIT_SUCCESS
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException
 from chisubmit.cli.common import pass_course, save_changes
    
@@ -56,11 +56,11 @@ def course_create(ctx, make_default, id, name, extensions):
                     extensions = extensions)
     
     try:
-        course.course_file = chisubmit.core.get_course_filename(course.id)
+        course.course_file = get_course_filename(course.id)
         course.save()
         
         if make_default:
-            chisubmit.core.set_default_course(id)
+            chisubmit_config().set_default_course(id)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -81,11 +81,11 @@ def course_install(ctx, make_default, filename):
         f.close()
         
     try:
-        new_course.course_file = chisubmit.core.get_course_filename(new_course.id)
+        new_course.course_file = get_course_filename(new_course.id)
         new_course.save()
         
         if make_default:
-            chisubmit.core.set_default_course(new_course.id)
+            chisubmit_config().set_default_course(new_course.id)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -101,12 +101,17 @@ def course_install(ctx, make_default, filename):
 def course_git_server(ctx, course, connection_string):
         
     course.git_server_connection_string = connection_string
-    
+        
     conn = course.get_git_server_connection()
-    
+    server_type = conn.get_server_type_name()
+    git_credentials = chisubmit_config().get_git_credentials(server_type)
+
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return CHISUBMIT_FAIL    
+        
     try:
-        github_access_token = chisubmit.core.get_github_token()
-        conn.connect(github_access_token)
+        conn.connect(git_credentials)
 
         conn.init_course(course)
         
@@ -124,12 +129,18 @@ def course_git_server(ctx, course, connection_string):
 @click.pass_context  
 def course_git_staging_server(ctx, course, connection_string):
     course.git_staging_server_connection_string = connection_string
-    
+        
     conn = course.get_git_staging_server_connection()
-    
+    server_type = conn.get_server_type_name()
+    git_credentials = chisubmit_config().get_git_credentials(server_type)
+
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return CHISUBMIT_FAIL    
+        
     try:
-        github_access_token = chisubmit.core.get_github_token()
-        conn.connect(github_access_token)
+        conn.connect(git_credentials)
+
 
         conn.init_course(course)
         

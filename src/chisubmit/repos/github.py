@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from github import Github, InputGitAuthor
 from github.GithubException import GithubException
 
-import chisubmit.core
 from chisubmit.repos import RemoteRepositoryConnectionBase
 from chisubmit.core import ChisubmitException
 import pytz

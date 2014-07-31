@@ -30,11 +30,9 @@
 
 import click
 
-import chisubmit.core
-
 from chisubmit.common.utils import set_datetime_timezone_utc, convert_timezone_to_local
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException
+from chisubmit.core import ChisubmitException, chisubmit_config
 from chisubmit.cli.common import pass_course, save_changes
 
 
@@ -62,16 +60,16 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
     
     extensions_requested = extensions
     
-    github_access_token = chisubmit.core.get_github_token()
-    
-    if github_access_token is None:
-        print "You have not created a GitHub access token."
-        print "You can create one using 'chisubmit gh-token-create'"
-        return CHISUBMIT_FAIL
+    conn = course.get_git_server_connection()
+    server_type = conn.get_server_type_name()
+    git_credentials = chisubmit_config().get_git_credentials(server_type)
+
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return CHISUBMIT_FAIL    
     
     try:
-        conn = course.get_git_server_connection()
-        conn.connect(github_access_token)        
+        conn.connect(git_credentials)        
     except ChisubmitException, ce:
         print "Unable to connect to GitHub: %s" % ce.message
         return CHISUBMIT_FAIL

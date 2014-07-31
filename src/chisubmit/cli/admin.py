@@ -39,7 +39,7 @@ from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import create_grading_repos, get_teams,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
-import chisubmit.core
+from chisubmit.core import chisubmit_config
 from chisubmit.cli.common import pass_course, save_changes
 
 @click.group()    
@@ -277,16 +277,16 @@ def admin_list_submissions(ctx, course, project_id):
     teams = [t for t in course.teams.values() if t.has_project(project.id)]
     teams.sort(key=operator.attrgetter("id"))        
         
-    github_access_token = chisubmit.core.get_github_token()
+    conn = course.get_git_server_connection()
+    server_type = conn.get_server_type_name()
+    git_credentials = chisubmit_config().get_git_credentials(server_type)
 
-    if github_access_token is None:
-        print "You have not created a GitHub access token."
-        print "You can create one using 'chisubmit gh-token-create'"
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL    
-            
+        
     try:
-        conn = course.get_git_server_connection()
-        conn.connect(github_access_token)
+        conn.connect(git_credentials)
             
         for team in teams:
             submission_tag = conn.get_submission_tag(course, team, project.id)

@@ -35,7 +35,7 @@ import os.path
 
 import click
 
-import chisubmit.core
+from chisubmit.core import init_chisubmit, chisubmit_config
 import chisubmit.common.log as log
 from chisubmit import RELEASE
 from chisubmit.core.model import Course, Project, Student,\
@@ -68,7 +68,7 @@ SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-dis
 def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
     ctx.obj = {}
     
-    chisubmit.core.init_chisubmit(dir, config)
+    init_chisubmit(dir, config)
     log.init_logging(verbose, debug)
 
     if course is not None:
@@ -79,7 +79,7 @@ def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
             raise click.BadParameter("Course '%s' does not exist" % course)
     else:
         course_specified = False
-        course_id = chisubmit.core.get_default_course()
+        course_id = chisubmit_config().get_default_course()
         if course_id is None:
             course_obj = None
         else:

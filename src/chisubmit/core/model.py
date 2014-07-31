@@ -36,6 +36,7 @@ import json
 from datetime import datetime
 
 api_url = "http://localhost:5000/api/%s"
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 class ChisubmitModelException(Exception):
@@ -46,7 +47,7 @@ class ChisubmitModelException(Exception):
 class Course(object):
 
     updatable_attributes = ('github_organization', 'github_admins_team',
-                            'git_staging_username', 'git_staging_hostname')
+                            'git_server_connection_string', 'git_server_connection_string')
     updatable_children = ('students', 'projects', 'teams', 'graders')
 
     def __getattr__(self, name):
@@ -138,7 +139,17 @@ class Course(object):
         r = requests.put(api_url % 'courses/%s' % (self.id),
                          data=data,
                          headers={'content-type': 'application/json'})
-
+        
+    def get_instructor(self, instructor_id):
+        return Instructor.from_uri(api_url % 'instructors/%s' % (instructor_id))
+    
+    def add_instructor(self, instructor):
+        attrs = {'course_id': self.id, 'instructor_id': instructor.id}
+        data = json.dumps({'instructors': {'add': [attrs]}})
+        r = requests.put(api_url % 'courses/%s' % (self.id),
+                         data=data,
+                         headers={'content-type': 'application/json'})
+ 
     # TODO 15JULY14: move this to Project.get() or something similar
     def get_project(self, project_id):
         return Project.from_uri(api_url % 'projects/%s' % (project_id))
@@ -180,8 +191,24 @@ class Course(object):
                     break
 
         return teams
+    
+    def get_git_server_connection(self):
+        if self.git_server_connection_string is None:
+            raise ChisubmitModelException("Course %s does not have a connection string for its Git server" % (self.id))
+        
+        conn = RemoteRepositoryConnectionFactory.create_connection(self.git_server_connection_string)
+        
+        return conn
 
-
+    def get_git_staging_server_connection(self):
+        if self.git_staging_server_connection_string is None:
+            raise ChisubmitModelException("Course %s does not have a connection string for its Git staging server" % (self.id))
+        
+        conn = RemoteRepositoryConnectionFactory.create_connection(self.git_staging_server_connection_string)
+        
+        return conn
+        
+        
 class AttrOverride(type):
 
     def __getattr__(self, name):
@@ -337,23 +364,22 @@ class Project(ApiObject):
 
 class Student(ApiObject):
 
-    api_attrs = ('student_id', 'first_name', 'last_name', 'email', 'github_id')
+    api_attrs = ('student_id', 'first_name', 'last_name', 'email', 'git_server_id')
 
     def save(self):
         r = requests.get(api_url % 'students/%s' % self.student_id)
         if r.status_code == 404:
             super(Student, self).save()
 
-    def get_full_name(self, comma=False):
+    def get_full_name(self, comma = False):
         if comma:
             return "%s, %s" % (self.last_name, self.first_name)
         else:
             return "%s %s" % (self.first_name, self.last_name)
-
 
 class Grader(ApiObject):
 
-    api_attrs = ('grader_id', 'first_name', 'last_name', 'email', 'github_id')
+    api_attrs = ('grader_id', 'first_name', 'last_name', 'email', 'git_server_id', 'git_staging_server_id')
 
     def get_full_name(self, comma=False):
         if comma:
@@ -361,12 +387,31 @@ class Grader(ApiObject):
         else:
             return "%s %s" % (self.first_name, self.last_name)
 
+
+class Instructor(ApiObject):
+
+    api_attrs = ('instructor_id', 'first_name', 'last_name', 'email', 'git_server_id')
+    updatable_attributes = ('git_server_id', 'git_staging_server_id')
+    updatable_children = ('students', 'projects')
+    
+    def __init__(self, instructor_id, first_name, last_name, email, git_server_id, git_staging_server_id):
+        self.id = instructor_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.git_server_id = git_server_id
+        self.git_staging_server_id = git_staging_server_id
+        
+    def get_full_name(self, comma = False):
+        if comma:
+            return "%s, %s" % (self.last_name, self.first_name)
+        else:
+            return "%s %s" % (self.first_name, self.last_name)    
 
 class Team(ApiObject):
 
     api_attrs = ('team_id',)
-    updatable_attributes = ('github_repo', 'github_team',
-                            'private_name', 'github_email_sent', 'active')
+    updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
     updatable_children = ('students', 'projects')
 
     def __setattr__(self, name, value):
@@ -378,6 +423,7 @@ class Team(ApiObject):
     def save(self):
         pass
 
+        
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
         data = json.dumps({'students': {'add': [attrs]}})
@@ -417,7 +463,8 @@ class Team(ApiObject):
         team_project.set_grade(grade_component, points)
 
 
-class TeamProject(object):
+class TeamProject(ApiObject):
+
     def __init__(self, project):
         self.project = project
 
@@ -425,9 +472,6 @@ class TeamProject(object):
         self.extensions_used = 0
         self.grades = {}
         self.penalties = []
-
-    def __repr__(self):
-        return "<TeamProject %s>" % (self.project.id)
 
     def set_grade(self, grade_component, points):
         assert(isinstance(grade_component, GradeComponent))

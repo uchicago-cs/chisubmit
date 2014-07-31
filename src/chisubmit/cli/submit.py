@@ -33,7 +33,6 @@ import click
 import chisubmit.core
 
 from chisubmit.common.utils import set_datetime_timezone_utc, convert_timezone_to_local
-from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException
 from chisubmit.cli.common import pass_course, save_changes
@@ -71,12 +70,13 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
         return CHISUBMIT_FAIL
     
     try:
-        gh = GithubConnection(github_access_token, course.github_organization)
+        conn = course.get_git_server_connection()
+        conn.connect(github_access_token)        
     except ChisubmitException, ce:
         print "Unable to connect to GitHub: %s" % ce.message
         return CHISUBMIT_FAIL
 
-    commit = gh.get_commit(team, commit)
+    commit = conn.get_commit(course, team, commit)
     
     if commit is None:
         print "Commit %s does not exist in repository" % commit
@@ -129,17 +129,17 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
         print "to do this."
         
     tag_name = project.id
-    submission_tag = gh.get_submission_tag(team, tag_name)
+    submission_tag = conn.get_submission_tag(course, team, tag_name)
     
     if submission_tag is not None and not force:
-        submission_commit = gh.get_commit(team, submission_tag.object.sha)
+        submission_commit = conn.get_commit(course, team, submission_tag.object.sha)
         print        
         print "Submission tag '%s' already exists" % tag_name
         print "It points to commit %s (%s)" % (submission_commit.commit.sha, submission_commit.commit.message)
         print "If you want to override this submission, please use the --force option"
         return CHISUBMIT_FAIL
     elif submission_tag is not None and force:
-        submission_commit = gh.get_commit(team, submission_tag.object.sha)
+        submission_commit = conn.get_commit(course, team, submission_tag.object.sha)
         print
         print "WARNING: Submission tag '%s' already exists" % tag_name
         print "It currently points to commit %s...: %s" % (submission_commit.commit.sha[:8], submission_commit.commit.message)
@@ -176,9 +176,9 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
             message += "Extensions bad: yes\n"
             
         if submission_tag is None:
-            gh.create_submission_tag(team, tag_name, message, commit.commit.sha)
+            conn.create_submission_tag(course, team, tag_name, message, commit.commit.sha)
         else:
-            gh.update_submission_tag(team, tag_name, message, commit.commit.sha)
+            conn.update_submission_tag(course, team, tag_name, message, commit.commit.sha)
             
         print
         print "Your submission has been completed."

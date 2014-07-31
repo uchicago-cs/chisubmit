@@ -33,7 +33,7 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 import operator
 import random
-from chisubmit.core.repos import GradingGitRepo, GithubConnection
+from chisubmit.repos.grading import GradingGitRepo
 import os.path
 from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
@@ -285,10 +285,11 @@ def admin_list_submissions(ctx, course, project_id):
         return CHISUBMIT_FAIL    
             
     try:
-        gh = GithubConnection(github_access_token, course.github_organization)
+        conn = course.get_git_server_connection()
+        conn.connect(github_access_token)
             
         for team in teams:
-            submission_tag = gh.get_submission_tag(team, project.id)
+            submission_tag = conn.get_submission_tag(course, team, project.id)
             
             if submission_tag is None:
                 print "%25s NOT SUBMITTED" % team.id

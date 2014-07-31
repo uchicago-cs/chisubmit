@@ -1,6 +1,7 @@
 from api import db
 from api.graders.models import Grader
 from api.students.models import Student
+from api.instructors.models import Instructor
 from api.projects.models import Project
 from api.teams.models import Team
 from api.models.mixins import ExposedModel
@@ -8,6 +9,8 @@ from api.models.mixins import ExposedModel
 
 class CoursesGraders(db.Model):
     __tablename__ = 'courses_graders'
+    git_server_id = db.Column(db.Unicode)
+    git_staging_server_id = db.Column(db.Unicode)
     grader_id = db.Column('grader_id',
                           db.Unicode,
                           db.ForeignKey('graders.grader_id'), primary_key=True)
@@ -22,6 +25,9 @@ class CoursesGraders(db.Model):
 
 class CoursesStudents(db.Model):
     __tablename__ = 'courses_students'
+    git_server_id = db.Column(db.Unicode)
+    dropped = db.Column('dropped', db.Boolean, server_default='0',
+                        nullable=False)
     student_id = db.Column('student_id',
                            db.Unicode,
                            db.ForeignKey('students.student_id'),
@@ -30,38 +36,41 @@ class CoursesStudents(db.Model):
                           db.Integer,
                           db.ForeignKey('courses.course_id'),
                           primary_key=True)
-    dropped = db.Column('dropped', db.Boolean, server_default='0',
-                        nullable=False)
     student = db.relationship("Student")
     course = db.relationship("Course",
                              backref=db.backref("courses_students",
                                                 cascade="all, delete-orphan"))
 
+class CoursesInstructors(db.Model):
+    __tablename__ = 'courses_instructors'
+    git_server_id = db.Column(db.Unicode)
+    git_staging_server_id = db.Column(db.Unicode)
+    instructor_id = db.Column('instructor_id',
+                           db.Unicode,
+                           db.ForeignKey('instructors.instructor_id'),
+                           primary_key=True)
+    course_id = db.Column('course_id',
+                          db.Integer,
+                          db.ForeignKey('courses.course_id'),
+                          primary_key=True)
+    instructor = db.relationship("Instructor")
+    course = db.relationship("Course",
+                             backref=db.backref("courses_instructors",
+                                                cascade="all, delete-orphan"))
+
 
 class Course(ExposedModel, db.Model):
-    attr_accessible = ('github_organization', 'name',
-                       'extensions', 'github_admins_team',
-                       'git_staging_username', 'git_staging_hostname')
-
     __tablename__ = 'courses'
-    id = db.Column(db.Integer, autoincrement=True, unique=True)
     course_id = db.Column(db.Unicode, primary_key=True, unique=True)
     name = db.Column(db.Unicode)
-    github_organization = db.Column(db.Unicode)
-    github_admins_team = db.Column(db.Unicode)
-    git_staging_username = db.Column(db.Unicode)
-    git_staging_hostname = db.Column(db.Unicode)
     extensions = db.Column(db.Integer)
-
-    # students = association_proxy('courses_students',
-    #            'student',
-    #            creator=lambda student: CoursesStudents(student=student))
+    git_server_connection_string = db.Column(db.Unicode)
+    git_staging_server_connection_string = db.Column(db.Unicode)
     students = db.relationship('CoursesStudents',
                                cascade="all, delete-orphan")
     graders = db.relationship('CoursesGraders',
                               cascade="all, delete-orphan")
-    # graders = association_proxy('courses_graders',
-    #               'grader',
-    #                creator=lambda grader: CoursesGraders(grader=grader))
+    instructors = db.relationship('CoursesInstructors',
+                              cascade="all, delete-orphan")
     projects = db.relationship("Project", backref="course")
     teams = db.relationship("Team", backref="course")

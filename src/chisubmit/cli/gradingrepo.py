@@ -30,13 +30,11 @@
 
 import click
 
-from chisubmit.core.repos import GradingGitRepo
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import pass_course
 
-import os.path
 from chisubmit.cli.common import gradingrepo_push_grading_branch,\
     gradingrepo_pull_grading_branch
 

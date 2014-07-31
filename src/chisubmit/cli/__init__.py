@@ -42,6 +42,7 @@ from chisubmit.core.model import Course, Project, Student,\
     ChisubmitModelException
 from chisubmit.cli.course import course
 from chisubmit.cli.student import student
+from chisubmit.cli.instructor import instructor
 from chisubmit.cli.team import team
 from chisubmit.cli.project import project
 from chisubmit.cli.submit import submit
@@ -93,6 +94,7 @@ def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
 chisubmit_cmd.add_command(course)
 chisubmit_cmd.add_command(project)
 chisubmit_cmd.add_command(student)
+chisubmit_cmd.add_command(instructor)
 chisubmit_cmd.add_command(team)
 chisubmit_cmd.add_command(grader)
 chisubmit_cmd.add_command(gradingrepo)

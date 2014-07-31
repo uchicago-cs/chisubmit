@@ -7,7 +7,7 @@ class Project(db.Model):
     project_id = db.Column(db.Unicode, primary_key=True)
     name = db.Column(db.Unicode)
     deadline = db.Column(db.DateTime)
-    course_id = db.Column('course_id', db.Integer, db.ForeignKey('courses.id'))
+    course_id = db.Column('course_id', db.Integer, db.ForeignKey('courses.course_id'))
     grade_components = db.relationship("GradeComponent", backref="project")
 
 

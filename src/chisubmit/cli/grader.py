@@ -34,10 +34,12 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core.model import Grader
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams
-from chisubmit.core.repos import GradingGitRepo
+from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import pass_course, save_changes
 import os.path
+import chisubmit.core
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
 @click.group()    
 @click.pass_context
@@ -45,20 +47,42 @@ def grader(ctx):
     pass
 
 @click.command(name="create")
-@click.argument('id', type=str)
+@click.argument('grader_id', type=str)
 @click.argument('first_name', type=str)
 @click.argument('last_name', type=str)
 @click.argument('email', type=str)
-@click.argument('github_id', type=str)
+@click.argument('git_server_id', type=str)
+@click.argument('git_staging_server_id', type=str)
 @pass_course
 @click.pass_context  
-def grader_create(ctx, course, id, first_name, last_name, email, github_id):
-    grader = Grader(grader_id = id,
+def grader_create(ctx, course, grader_id, first_name, last_name, email, git_server_id, git_staging_server_id):
+    grader = Grader(grader_id = grader_id,
                     first_name = first_name,
                     last_name = last_name,
                     email = email,
-                    github_id = github_id)
+                    git_server_id = git_server_id,
+                    git_staging_server_id = git_staging_server_id)
     course.add_grader(grader)
+    
+    github_access_token = chisubmit.core.get_github_token()
+
+    if github_access_token is not None:
+        try:    
+            if course.git_server_connection_string is not None:
+                conn = course.get_git_server_connection()
+                conn.connect(github_access_token)
+                conn.update_graders(course)
+            
+            if course.git_staging_server_connection_string is not None:
+                conn = course.get_git_staging_server_connection()
+                conn.connect(github_access_token)
+                conn.update_graders(course)
+                
+        except ChisubmitException, ce:
+            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+        except Exception, e:
+            handle_unexpected_exception()
+    
     
     return CHISUBMIT_SUCCESS
 

@@ -30,13 +30,15 @@
 
 import click
 
-from chisubmit.core.model import Student
+from chisubmit.core.model import Student, Instructor
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, save_changes
+import chisubmit.core
+from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
 @click.group()    
 @click.pass_context
-def student(ctx):
+def instructor(ctx):
     pass
 
 @click.command(name="create")
@@ -45,33 +47,40 @@ def student(ctx):
 @click.argument('last_name', type=str)
 @click.argument('email', type=str)
 @click.argument('git_server_id', type=str)
+@click.argument('git_staging_server_id', type=str)
 @pass_course
+@save_changes
 @click.pass_context  
-def student_create(ctx, course, id, first_name, last_name, email, git_server_id):
-    student = Student(student_id = id,
-                      first_name = first_name,
-                      last_name = last_name,
-                      email = email,
-                      git_server_id = git_server_id)
-    course.add_student(student)
+def instructor_create(ctx, course, id, first_name, last_name, email, git_server_id, git_staging_server_id):
+    instructor = Instructor(instructor_id = id,
+                            first_name = first_name,
+                            last_name = last_name,
+                            email = email,
+                            git_server_id = git_server_id,
+                            git_staging_server_id = git_staging_server_id)
+    course.add_instructor(instructor)
+    
+    github_access_token = chisubmit.core.get_github_token()
+
+    if github_access_token is not None:
+        try:    
+            if course.git_server_connection_string is not None:
+                conn = course.get_git_server_connection()
+                conn.connect(github_access_token)
+                conn.update_instructors(course)
+            
+            if course.git_staging_server_connection_string is not None:
+                conn = course.get_git_staging_server_connection()
+                conn.connect(github_access_token)
+                conn.update_instructors(course)
+                
+        except ChisubmitException, ce:
+            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
+        except Exception, e:
+            handle_unexpected_exception()
+    
     
     return CHISUBMIT_SUCCESS
     
 
-@click.command(name="set-dropped")
-@click.argument('id', type=str)
-@pass_course
-@click.pass_context  
-def student_set_dropped(ctx, course, id):
-    student = course.get_student(id)
-    if student is None:
-        print "Student %s does not exist" % id
-        return CHISUBMIT_FAIL    
-    
-    student.dropped = True
-    
-    return CHISUBMIT_SUCCESS
-
-
-student.add_command(student_create)
-student.add_command(student_set_dropped)
+instructor.add_command(instructor_create)

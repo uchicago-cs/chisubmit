@@ -33,7 +33,6 @@ import click
 import chisubmit.core
 
 from chisubmit.core.model import Team
-from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import pass_course, save_changes
@@ -203,19 +202,20 @@ def team_set_private_name(ctx, course, team_id, private_name):
     team.private_name = private_name
     
     
-@click.command(name="gh-repo-create")    
+@click.command(name="repo-create")
 @click.argument('team_id', type=str)
 @click.option('--ignore-existing', is_flag=True)
-@click.option('--public', is_flag=True)    
+@click.option('--public', is_flag=True)
+@click.option('--staging', is_flag=True)
 @pass_course
 @click.pass_context  
-def team_gh_repo_create(ctx, course, team_id, ignore_existing, public):
+def team_repo_create(ctx, course, team_id, ignore_existing, public, staging):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
 
-    if team.github_repo is not None and not ignore_existing:
+    if team.git_repo_created and not ignore_existing:
         print "Repository for team %s has already been created." % team.id
         print "Maybe you meant to run team-repo-update?"
         return CHISUBMIT_FAIL
@@ -228,22 +228,34 @@ def team_gh_repo_create(ctx, course, team_id, ignore_existing, public):
         return CHISUBMIT_FAIL    
     
     try:
-        gh = GithubConnection(github_access_token, course.github_organization)
+        if staging:
+            conn = course.get_git_staging_server_connection()
+            team_access = False
+        else:
+            conn = course.get_git_server_connection()
+            team_access = True
             
-        gh.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
+        conn.connect(github_access_token)
+            
+        conn.create_team_repository(course, team, team_access, fail_if_exists = not ignore_existing, private = not public)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
         handle_unexpected_exception()
         
+    if staging:
+        team.git_repo_created = True
+    else:
+        team.git_staging_repo_created = True
+        
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="gh-repo-update")
+@click.command(name="repo-update")
 @click.argument('team_id', type=str)    
 @pass_course
 @click.pass_context  
-def team_gh_repo_update(ctx, course, team_id):
+def team_repo_update(ctx, course, team_id):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
@@ -261,8 +273,9 @@ def team_gh_repo_update(ctx, course, team_id):
         return CHISUBMIT_FAIL    
     
     try:    
-        gh = GithubConnection(github_access_token, course.github_organization)
-        gh.update_team_repository(team)    
+        conn = course.get_git_server_connection()
+        conn.connect(github_access_token)
+        conn.update_team_repository(team)    
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -271,11 +284,12 @@ def team_gh_repo_update(ctx, course, team_id):
     return CHISUBMIT_SUCCESS
 
     
-@click.command(name="gh-repo-remove")    
-@click.argument('team_id', type=str)        
+@click.command(name="repo-remove")    
+@click.argument('team_id', type=str)    
+@click.option('--staging', is_flag=True)    
 @pass_course
 @click.pass_context  
-def team_gh_repo_remove(ctx, course, team_id):
+def team_repo_remove(ctx, course, team_id, staging):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
@@ -293,8 +307,13 @@ def team_gh_repo_remove(ctx, course, team_id):
         return CHISUBMIT_FAIL
         
     try:
-        gh = GithubConnection(github_access_token, course.github_organization)
-        gh.delete_team_repository(team)
+        if staging:
+            conn = course.get_git_staging_server_connection()
+        else:
+            conn = course.get_git_server_connection()
+        
+        conn.connect(github_access_token)
+        conn.delete_team_repository(team)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -303,17 +322,17 @@ def team_gh_repo_remove(ctx, course, team_id):
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="gh-repo-check")
+@click.command(name="repo-check")
 @click.argument('team_id', type=str)    
 @pass_course
 @click.pass_context  
-def team_gh_repo_check(ctx, course, team_id):
+def team_repo_check(ctx, course, team_id):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
     
-    if team.github_repo is None:
+    if not team.git_repo_created:
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
@@ -325,39 +344,25 @@ def team_gh_repo_check(ctx, course, team_id):
         return CHISUBMIT_FAIL    
         
     try:
-        gh = GithubConnection(github_access_token, course.github_organization)
+        conn = course.get_git_server_connection()
+        conn.connect(github_access_token)
     except ChisubmitException, ce:
         print "Unable to connect to GitHub: %s" % ce.message
         return CHISUBMIT_FAIL
         
-    if not gh.repository_exists(team.github_repo):
+    if not conn.exists_team_repository(course, team):
         print "The repository '%s' does not exist or you do not have permission to access it." % team.github_repo
         return CHISUBMIT_FAIL
 
     # TODO: Check that the user actually has push access
-    print "Repository '%s' exists and you have access to it." % team.github_repo
-    print "GitHub URL: https://github.com/%s/%s" % (course.github_organization, team.github_repo)
+    print "Your repository exists and you have access to it."
+    print "Repository website: %s" % conn.get_repository_http_url(course, team)
+    print "Repository URL: %s" % conn.get_repository_git_url(course, team)
 
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="gh-repo-set")
-@click.argument('team_id', type=str)
-@click.argument('github_repo', type=str)
-@pass_course
-@click.pass_context  
-def team_gh_repo_set(ctx, course, team_id, github_repo):
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        return CHISUBMIT_FAIL
-    
-    team.github_repo = github_repo
-    
-    return CHISUBMIT_SUCCESS
-
-
-@click.command(name="gh-repo-email")
+@click.command(name="repo-email")
 @click.argument('team_id', type=str)
 @click.argument('email_from', type=str)
 @click.argument('template', type=str)
@@ -365,7 +370,7 @@ def team_gh_repo_set(ctx, course, team_id, github_repo):
 @click.option('--dry-run', is_flag=True)
 @pass_course
 @click.pass_context  
-def team_gh_repo_email(ctx, course, team_id, email_from, template, force, dry_run):
+def team_repo_email(ctx, course, team_id, email_from, template, force, dry_run):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
@@ -410,9 +415,8 @@ team.add_command(team_student_add)
 team.add_command(team_project_add)
 team.add_command(team_project_set_grade)
 team.add_command(team_set_private_name)
-team.add_command(team_gh_repo_create)
-team.add_command(team_gh_repo_update)
-team.add_command(team_gh_repo_remove)
-team.add_command(team_gh_repo_check)
-team.add_command(team_gh_repo_set)
-team.add_command(team_gh_repo_email)        
+team.add_command(team_repo_create)
+team.add_command(team_repo_update)
+team.add_command(team_repo_remove)
+team.add_command(team_repo_check)
+team.add_command(team_repo_email)        

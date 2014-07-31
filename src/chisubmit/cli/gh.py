@@ -33,7 +33,7 @@ import getpass
 
 import chisubmit.core
 
-from chisubmit.core.repos import GithubConnection
+from chisubmit.repos.github import GitHubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.core import ChisubmitException, handle_unexpected_exception
 
@@ -49,7 +49,7 @@ def gh(ctx):
 @click.option('--delete', is_flag=True)    
 @click.pass_context  
 def gh_token_create(ctx, delete):
-    
+        
     try:
         username = raw_input("Enter your GitHub username: ")
         password = getpass.getpass("Enter your GitHub password: ")
@@ -59,7 +59,7 @@ def gh_token_create(ctx, delete):
         handle_unexpected_exception()
     
     try:
-        token = GithubConnection.get_token(username, password, delete = delete)
+        token = GitHubConnection.get_credentials(username, password, delete = delete)
         
         if token is None:
             print "Unable to create token. Incorrect username/password."

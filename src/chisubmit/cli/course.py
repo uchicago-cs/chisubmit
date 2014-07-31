@@ -34,7 +34,6 @@ import chisubmit.core
 
 from chisubmit.core import handle_unexpected_exception
 from chisubmit.core.model import Course
-from chisubmit.core.repos import GithubConnection
 from chisubmit.common import CHISUBMIT_SUCCESS
 from chisubmit.core import ChisubmitException
 from chisubmit.cli.common import pass_course
@@ -92,21 +91,22 @@ def course_install(ctx, make_default, filename):
         
     return CHISUBMIT_SUCCESS
 
-@click.command(name="github-settings")
-@click.argument('organization', type=str)
+@click.command(name="git-server")
+@click.argument('connection_string', type=str)
 @pass_course
 @click.pass_context  
-def course_github_settings(ctx, course, organization):
-    course.github_organization = organization
+def course_git_server(ctx, course, connection_string):
+        
+    course.git_server_connection_string = connection_string
+    
+    conn = course.get_git_server_connection()
     
     try:
-        # Try connecting to GitHub
         github_access_token = chisubmit.core.get_github_token()
-        gh = GithubConnection(github_access_token, course.github_organization)
+        conn.connect(github_access_token)
+
+        conn.init_course(course)
         
-        # Create GitHub team to contain admins for this course
-        course.github_admins_team = "%s-admins" % course.id
-        gh.create_team(course.github_admins_team, [], "admin", fail_if_exists = False)    
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -114,14 +114,25 @@ def course_github_settings(ctx, course, organization):
     
     return CHISUBMIT_SUCCESS
 
-@click.command(name="git-staging-settings")
-@click.argument('git_username', type=str)
-@click.argument('git_hostname', type=str)
+@click.command(name="git-staging-server")
+@click.argument('connection_string', type=str)
 @pass_course
-@click.pass_context
-def course_git_staging_settings(ctx, course, git_username, git_hostname):
-    course.git_staging_username = git_username
-    course.git_staging_hostname = git_hostname
+@click.pass_context  
+def course_git_staging_server(ctx, course, connection_string):
+    course.git_staging_server_connection_string = connection_string
+    
+    conn = course.get_git_staging_server_connection()
+    
+    try:
+        github_access_token = chisubmit.core.get_github_token()
+        conn.connect(github_access_token)
+
+        conn.init_course(course)
+        
+    except ChisubmitException, ce:
+        raise click.ClickException(ce.message)
+    except Exception, e:
+        handle_unexpected_exception()
     
     return CHISUBMIT_SUCCESS
 
@@ -134,6 +145,6 @@ def course_generate_distributable(ctx, course, filename):
 
 course.add_command(course_create)
 course.add_command(course_install)
-course.add_command(course_github_settings)
-course.add_command(course_git_staging_settings)
+course.add_command(course_git_server)
+course.add_command(course_git_staging_server)
 course.add_command(course_generate_distributable)

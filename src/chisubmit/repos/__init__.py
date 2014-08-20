@@ -74,6 +74,55 @@ class RemoteRepositoryConnectionBase(object):
     def disconnect(self):
         pass
 
-
-
+    @abc.abstractmethod
+    def init_course(self, course):
+        pass
+    
+    @abc.abstractmethod
+    def update_instructors(self, course):
+        pass
+    
+    @abc.abstractmethod
+    def update_graders(self, course):
+        pass
+    
+    @abc.abstractmethod
+    def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
+        pass
+    
+    @abc.abstractmethod
+    def update_team_repository(self, course, team):
+        pass
+    
+    @abc.abstractmethod
+    def exists_team_repository(self, course, team):
+        pass
+    
+    @abc.abstractmethod
+    def get_repository_git_url(self, course, team):
+        pass
+    
+    @abc.abstractmethod
+    def get_repository_http_url(self, course, team):
+        pass
+    
+    @abc.abstractmethod
+    def get_commit(self, course, team, commit_sha):
+        pass
+    
+    @abc.abstractmethod
+    def create_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
+        pass
+    
+    @abc.abstractmethod
+    def update_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
+        pass
+    
+    @abc.abstractmethod
+    def get_submission_tag(self, course, team, tag_name):
+        pass
+    
+    @abc.abstractmethod
+    def delete_team_repository(self, course, team):
+        pass
 

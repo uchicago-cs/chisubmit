@@ -75,7 +75,7 @@ class RemoteRepositoryConnectionBase(object):
         pass
 
     @abc.abstractmethod
-    def init_course(self, course):
+    def init_course(self, course, fail_if_exists=True):
         pass
     
     @abc.abstractmethod

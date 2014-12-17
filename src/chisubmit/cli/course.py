@@ -111,8 +111,8 @@ def course_git_server(ctx, course, connection_string):
     try:
         conn.connect(git_credentials)
 
-        conn.init_course(course)
-
+        # TODO: Control fail_if_exists via CLI parameter
+        conn.init_course(course, fail_if_exists = False)
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
@@ -138,9 +138,8 @@ def course_git_staging_server(ctx, course, connection_string):
     try:
         conn.connect(git_credentials)
 
-
-        conn.init_course(course)
-
+        # TODO: Control fail_if_exists via CLI parameter
+        conn.init_course(course, fail_if_exists = False)
     except ChisubmitException, ce:
         raise click.ClickException(ce.message)
     except Exception, e:

@@ -73,9 +73,9 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
                 raise ChisubmitException("Unexpected error accessing organization %s (%i: %s)" % (self.github_organization, ge.status, ge.data["message"]), ge)
 
 
-    def init_course(self, course):
-        instructors_ghteam = self.__create_ghteam(self.__get_instructors_ghteam_name(course), [], "admin", fail_if_exists = False)
-        graders_ghteam = self.__create_ghteam(self.__get_graders_ghteam_name(course), [], "push", fail_if_exists = False)
+    def init_course(self, course, fail_if_exists=True):
+        instructors_ghteam = self.__create_ghteam(self.__get_instructors_ghteam_name(course), [], "admin", fail_if_exists = fail_if_exists)
+        graders_ghteam = self.__create_ghteam(self.__get_graders_ghteam_name(course), [], "push", fail_if_exists = fail_if_exists)
 
         for instructor in course.instructors:
             self.__add_user_to_ghteam(instructor.git_server_id, instructors_ghteam)

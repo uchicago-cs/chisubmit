@@ -29,13 +29,19 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import math
-from chisubmit.common.utils import set_datetime_timezone_utc
-from chisubmit.core import ChisubmitException
-import requests
 import json
-from datetime import datetime
+from chisubmit.common.utils import set_datetime_timezone_utc
+import re
+from chisubmit.core import ChisubmitException
+from chisubmit.core.client import client
+from dateutil.parser import parse
+from chisubmit.common.utils import convert_timezone_to_local
+from requests import exceptions
 
-api_url = "http://localhost:5000/api/%s"
+# TODO 17DEC14: use the internal config api
+api_url = "http://localhost:5000/api/v0/"
+client.setup(api_url, 'chudler')
+
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
@@ -46,35 +52,35 @@ class ChisubmitModelException(Exception):
 
 class Course(object):
 
-    updatable_attributes = ('github_organization', 'github_admins_team',
-                            'git_server_connection_string', 'git_server_connection_string')
-    updatable_children = ('students', 'projects', 'teams', 'graders')
+    _updatable_attributes = ('github_organization', 'github_admins_team',
+                            'git_server_connection_string', 'git_server_connection_string', 'git_staging_server_connection_string')
+    _has_many = ('students', 'projects', 'teams', 'graders', 'instructors')
 
     def __getattr__(self, name):
-        if name in self.updatable_attributes:
+        if name in self._updatable_attributes:
             if name in self._json_response:
                 return self._json_response[name]
             else:
                 # FIXME 23JULY14: there is no possibility it is unfetched?
                 return None
-        elif name in self.updatable_children:
-            results = {}
-            result = requests.get((api_url % 'courses/%s') % self.id).json()
+        elif name in self._has_many:
+            results = []
+            result = client.get(('courses/%s') % self.id)['course']
             for item in result[name]:
                 # FIXME 22JULY14: very crappy inflection, sorry
-                singular_name = name[:-1]
+                singular_name = "_".join( [re.sub('s$', '', subname) for subname in name.split('_') ])
                 # FIXME 22JULY14: assumtion is unlikely to hold
                 item_id = singular_name + '_id'
                 item_from_uri = \
                     globals()[singular_name.title()].from_json(item)
                 # CLI expects to have the items keyed by their id (in a dict)
-                results[getattr(item_from_uri, item_id)] = item_from_uri
+                results.append(item_from_uri)
             return results
         else:
             raise AttributeError()
 
     def __setattr__(self, name, value):
-        if name in self.updatable_attributes:
+        if name in self._updatable_attributes:
             self._api_update(name, value)
         else:
             super(Course, self).__setattr__(name, value)
@@ -85,98 +91,84 @@ class Course(object):
         self.extensions = extensions
 
     def save(self):
-        data = json.dumps({'course_id': self.course_id,
+        data = json.dumps({'id': self.course_id,
                            'name': self.name, 'extensions': self.extensions})
-        r = requests.post(api_url % 'courses',
-                          data, headers={'content-type': 'application/json'})
+        client.post('courses', data)
+    @staticmethod
+    def from_uri(course_uri):
+        json = client.get(course_uri)
+        return Course.from_json(json)
 
     @staticmethod
     def from_json(data, course=None):
+        course_data = data['course']
         if not course:
             course = \
-                Course(data['course_id'], data['name'], data['extensions'])
-        course.id = data['course_id']
-        course._json_response = data
+                Course(course_data['id'], course_data['name'], course_data['extensions'])
+        course.id = course_data['id']
+        course._json_response = course_data
         return course
 
     @staticmethod
-    def from_uri(course_uri):
-        r = requests.get(course_uri)
-        return Course.from_json(r.json())
-
-    @staticmethod
     def from_course_id(course_id):
-        course_uri = api_url % 'courses/' + course_id
+        course_uri = 'courses/' + course_id
         return Course.from_uri(course_uri)
 
     def _api_update(self, attr, value):
         data = json.dumps({attr: value})
-        r = requests.patch(api_url % 'courses/%s' % (self.id),
-                           data=data,
-                           headers={'content-type': 'application/json'})
-        Course.from_json(r.json(), self)
+        result = client.put('courses/%s' % (self.id),
+                           data=data)
+        Course.from_json(result, self)
 
     def get_student(self, student_id):
-        return Student.from_uri(api_url % 'students/%s' % (student_id))
+        return Student.from_uri('courses/%s/students/%s' % (self.id, student_id))
 
     def add_student(self, student):
         attrs = {'course_id': self.id, 'student_id': student.id}
         data = json.dumps({'students': {'add': [attrs]}})
-        r = requests.put(api_url % 'courses/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        client.put('courses/%s' % (self.id), data=data)
 
     def dropped(self, student):
-        requests.put(api_url % 'courses/%s/dropped_student/%s' % (self.id,
+        client.put('courses/%s/dropped_student/%s' % (self.id,
                                                                   student.id))
+    def add_team(self, team):
+        attrs = {'course_id': self.id, 'team_id': team.id}
+        data = json.dumps({'teams': {'add': [attrs]}})
+        client.put('courses/%s' % (self.id), data=data)
 
     def get_grader(self, grader_id):
-        return Grader.from_uri(api_url % 'graders/%s' % (grader_id))
+        return Grader.from_uri('graders/%s' % (grader_id))
 
     def add_grader(self, grader):
         attrs = {'course_id': self.id, 'grader_id': grader.id}
         data = json.dumps({'graders': {'add': [attrs]}})
-        r = requests.put(api_url % 'courses/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        client.put('courses/%s' % (self.id), data=data)
         
     def get_instructor(self, instructor_id):
-        return Instructor.from_uri(api_url % 'instructors/%s' % (instructor_id))
+        return Instructor.from_uri('instructors/%s' % (instructor_id))
     
     def add_instructor(self, instructor):
         attrs = {'course_id': self.id, 'instructor_id': instructor.id}
         data = json.dumps({'instructors': {'add': [attrs]}})
-        r = requests.put(api_url % 'courses/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        client.put('courses/%s' % (self.id), data=data)
  
     # TODO 15JULY14: move this to Project.get() or something similar
     def get_project(self, project_id):
-        return Project.from_uri(api_url % 'projects/%s' % (project_id))
+        return Project.from_uri('projects/%s' % (project_id))
 
     def add_project(self, project):
         attrs = {'course_id': self.id}
-        for attr in project.api_attrs:
+        for attr in project._api_attrs:
             if attr == 'deadline':
                 attrs[attr] = getattr(project, attr, None).isoformat()
             else:
                 attrs[attr] = getattr(project, attr, None)
-        # api_attrs = ('name', 'deadline', 'project_id')
+        # _api_attrs = ('name', 'deadline', 'project_id')
         data = json.dumps({'projects': {'add': [attrs]}})
-        requests.put(api_url % 'courses/%s' % (self.id),
-                     data=data, headers={'content-type': 'application/json'})
+        client.put('courses/%s' % (self.id), data=data)
 
     def get_team(self, team_id):
-        return Team.from_uri(api_url % 'teams/%s' % (team_id))
-
-    def add_team(self, team):
-        attrs = {'course_id': self.id}
-        for attr in team.api_attrs:
-            attrs[attr] = getattr(team, attr, None)
-        data = json.dumps({'teams': {'add': [attrs]}})
-        r = requests.put(api_url % 'courses/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        return Team.from_uri('teams/%s' % (team_id))
 
     def search_team(self, search_term):
         teams = []
@@ -212,8 +204,10 @@ class Course(object):
 class AttrOverride(type):
 
     def __getattr__(self, name):
+        if name == 'singularize':
+            return re.sub('(?!^)([A-Z]+)', r'_\1', self.__class__.__name__).lower()
         if name == 'pluralize':
-            return self.__class__.__name__.lower() + 's'
+            return self.singularize + 's'
         elif name == 'identifier':
             return self.__class__.__name__.lower() + '_id'
         else:
@@ -225,24 +219,46 @@ class ApiObject(object):
     __metaclass__ = AttrOverride
 
     def __getattr__(self, name):
+        class_attrs = self.__class__.__dict__
+        if name == 'singularize':
+            if '_singularize' in class_attrs:
+              return class_attrs['_singularize']
+            return re.sub('(?!^)([A-Z]+)', r'_\1', self.__class__.__name__).lower()
         if name == 'pluralize':
-            return self.__class__.__name__.lower() + 's'
+            if '_pluralize' in class_attrs:
+              return class_attrs['_pluralize']
+            return self.singularize() + 's'
         elif name == 'identifier':
-            return self.__class__.__name__.lower() + '_id'
-        elif name in self.updatable_attributes:
+            if '_primary_key' in class_attrs:
+                return class_attrs['_primary_key']
+            return self.singularize() + '_id'
+        elif '_updatable_attributes' in class_attrs and name in class_attrs['_updatable_attributes']:
             if name in self._json_response:
                 return self._json_response[name]
             else:
                 return None
-        elif name in self.updatable_children:
+        elif '_has_one' in class_attrs and name in class_attrs['_has_one']:
+            result = None
+            result = client.get(('%s/%s') % (self.pluralize(), self.id))
+            item = result[self.singularize()][name]
+            cls = name.title().translate(None, '_')
+            return globals()[cls].from_json(item)
+ 
+        elif '_has_many' in class_attrs and name in class_attrs['_has_many']:
             results = []
-            r = requests.get((api_url % 'teams/%s') % self.id)
-            result = r.json()
-            for item in result[name]:
-                singular_name = name[:-1]
+            result = client.get(('%s/%s') % (self.pluralize(), self.id))[self.singularize()]
+            singular_name = "_".join( [re.sub('s$', '', subname) for subname in name.split('_') ])
+            cls = singular_name.title().translate(None, '_')
+            child_attrs = globals()[cls].__dict__
+            if '_primary_key' in child_attrs:
+                item_id = child_attrs['_primary_key']
+            else:
                 item_id = singular_name + '_id'
+            for item in result[name]:
+                g = globals()
+                c = g[cls]
                 item_from_uri = \
-                    globals()[singular_name.title()].from_id(item[item_id])
+                    c.from_json(item)
                 results.append(item_from_uri)
             return results
         else:
@@ -250,100 +266,112 @@ class ApiObject(object):
 
     @classmethod
     def pluralize(cls):
-        return cls.__name__.lower() + 's'
+        return cls.singularize() + 's'
+
+    @classmethod
+    def singularize(cls):
+        return re.sub('(?!^)([A-Z]+)', r'_\1', cls.__name__).lower()
 
     @classmethod
     def from_json(cls, data, obj=None):
+        cls_data = data
         if not obj:
-            obj = cls(**data)
-        obj._json_response = data
+            obj = cls(backendSave=False, **cls_data)
+        obj._json_response = cls_data
         return obj
 
     @classmethod
     def from_id(cls, identifier):
-        url = api_url % cls.pluralize() + '/%s' % identifier
+        url = cls.pluralize() + '/%s' % identifier
         return cls.from_uri(url)
 
     def _api_update(self, attr, value):
         data = json.dumps({attr: value})
-        r = requests.patch(api_url % '%s/%s' % (self.__class__.pluralize(),
+        result = client.put('%s/%s' % (self.__class__.pluralize(),
                                                 self.id),
-                           data=data,
-                           headers={'content-type': 'application/json'})
-        self.__class__.from_json(r.json(), self)
+                           data=data)
+        self.__class__.from_json(result, self)
 
     @classmethod
     def from_uri(cls, uri):
-        r = requests.get(uri)
-        return cls.from_json(data=r.json())
+        result = client.get(uri)
+        return cls.from_json(data=result[cls.singularize()])
 
-    def __init__(self, **kw):
+    def __init__(self, backendSave=True, **kw):
         class_id = self.__class__.__name__.lower() + '_id'
-        for attr in self.api_attrs:
+        for attr in self._api_attrs:
             if attr not in kw:
                 kw[attr] = None
             setattr(self, attr, kw[attr])
             # FIXME 16JULY14: "alias" the id attribute.
-            # This is a hack. *this* internal API of the CLI should use id
-            # or ${model}_id.
-            # The problem arrises because the backend wants to use "id"
-            # to refer to the database row by that name (which may not exist),
-            # which has no relation to the id used by this client
             if attr == class_id:
                 self.id = kw[attr]
-        self.save()
+        if backendSave:
+            self.save()
 
     def save(self):
-        attributes = {attr: getattr(self, attr) for attr in self.api_attrs}
+        attributes = {'id': self.identifier}
+        attributes.update({attr: getattr(self, attr) for attr in self._api_attrs})
         data = json.dumps(attributes)
-        requests.post(api_url % type(self).__name__.lower() + 's', data,
-                      headers={'content-type': 'application/json'})
+        client.post(type(self).pluralize(), data)
 
     def __repr__(self):
-        representation = "<%s %s -- " % (self.__class__.__name__, self.id)
+        representation = "<%s -- " % (self.__class__.__name__)
         attrs = []
-        for attr in self.api_attrs:
+        for attr in self._api_attrs:
             attrs.append("%s:%s" % (attr, repr(getattr(self, attr))))
         return representation + ', '.join(attrs) + '>'
 
 
 class GradeComponent(ApiObject):
 
-    api_attrs = ('name', 'points')
+    _api_attrs = ('name', 'points')
+    _primary_key = 'name'
+
+    @classmethod
+    def pluralize(cls):
+        return 'grade_components'
 
     def save(self):
         pass
 
+class Grade(ApiObject):
+
+    _api_attrs = ('points', 'id')
+    _updatable_attributes = ('points', )
+    _has_one = ('grade_component', )
 
 class Project(ApiObject):
 
-    api_attrs = ('name', 'deadline', 'project_id')
+    _api_attrs = ('name', 'deadline', 'id')
+    _has_many = ('grade_components', 'teams')
 
     def __init__(self, **kw):
-        for attr in self.api_attrs:
+        for attr in self._api_attrs:
             if attr == 'deadline':
                 if hasattr(kw['deadline'], 'isoformat'):
                     self.deadline = kw['deadline']
                 else:
-                    self.deadline = datetime.strptime(kw['deadline'],
-                                                      '%Y-%m-%dT%H:%M:%S')
+                    self.deadline = convert_timezone_to_local(parse(kw['deadline']))
+            elif attr == 'id':
+              if 'project_id' in kw:
+                self.id = kw['project_id']
+              else:
+                self.id = kw['id']
             else:
                 setattr(self, attr, kw[attr])
-        self.id = kw['project_id']
 
     def get_grade_component(self, grade_component_name):
-        url = api_url % 'projects/%s/grade_components/%s' % \
-            (project_id, grade_component_name)
+        url = 'projects/%s/grade_components/%s' % \
+            (self.id, grade_component_name)
         return GradeComponent.from_uri(url)
 
     def add_grade_component(self, gc):
         attrs = {'project_id': self.id}
-        for attr in gc.api_attrs:
+        for attr in gc._api_attrs:
             attrs[attr] = getattr(gc, attr, None)
         data = json.dumps({'grade_components': {'add': [attrs]}})
-        r = requests.put(api_url % 'projects/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        client.put('projects/%s' % (self.id), data=data)
 
     def get_deadline(self):
         return self.deadline
@@ -359,17 +387,25 @@ class Project(ApiObject):
             return int(extensions_needed)
 
     def get_grading_branch_name(self):
-        return self.project_id + "-grading"
+        return self.id + "-grading"
 
+class Person(ApiObject):
 
-class Student(ApiObject):
-
-    api_attrs = ('student_id', 'first_name', 'last_name', 'email', 'git_server_id')
+    _api_attrs = ('id', 'first_name', 'last_name', 'email', 'git_server_id', 'git_staging_server_id')
+    _updatable_attributes = ('git_server_id', 'git_staging_server_id')
+    _primary_key = 'person_id'
+    _singularize = 'person'
+    _pluralize = 'people'
 
     def save(self):
-        r = requests.get(api_url % 'students/%s' % self.student_id)
-        if r.status_code == 404:
-            super(Student, self).save()
+        try:
+          client.get('people/%s' % self.id)
+        except exceptions.HTTPError, exception:
+            if exception.response.status_code == 404:
+                # the person does not exist, so create it
+                super(Person, self).save()
+            else:
+                raise(exception)
 
     def get_full_name(self, comma = False):
         if comma:
@@ -377,121 +413,99 @@ class Student(ApiObject):
         else:
             return "%s %s" % (self.first_name, self.last_name)
 
-class Grader(ApiObject):
+class Student(Person):
+    pass
 
-    api_attrs = ('grader_id', 'first_name', 'last_name', 'email', 'git_server_id', 'git_staging_server_id')
+class Grader(Person):
+    pass
 
-    def get_full_name(self, comma=False):
-        if comma:
-            return "%s, %s" % (self.last_name, self.first_name)
-        else:
-            return "%s %s" % (self.first_name, self.last_name)
-
-
-class Instructor(ApiObject):
-
-    api_attrs = ('instructor_id', 'first_name', 'last_name', 'email', 'git_server_id')
-    updatable_attributes = ('git_server_id', 'git_staging_server_id')
-    updatable_children = ('students', 'projects')
+class Instructor(Person):
+    _has_many = ('students', 'projects')
     
-    def __init__(self, instructor_id, first_name, last_name, email, git_server_id, git_staging_server_id):
-        self.id = instructor_id
-        self.first_name = first_name
-        self.last_name = last_name
-        self.email = email
-        self.git_server_id = git_server_id
-        self.git_staging_server_id = git_staging_server_id
-        
-    def get_full_name(self, comma = False):
-        if comma:
-            return "%s, %s" % (self.last_name, self.first_name)
-        else:
-            return "%s %s" % (self.first_name, self.last_name)    
-
 class Team(ApiObject):
 
-    api_attrs = ('team_id',)
-    updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
-    updatable_children = ('students', 'projects')
+    _api_attrs = ('id', 'course_id')
+    _updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
+    _has_many = ('students', 'projects', 'grades', 'projects_teams')
 
     def __setattr__(self, name, value):
-        if name in self.updatable_attributes:
+        if name in self._updatable_attributes:
             self._api_update(name, value)
         else:
             super(Team, self).__setattr__(name, value)
 
-    def save(self):
-        pass
-
-        
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
         data = json.dumps({'students': {'add': [attrs]}})
-        r = requests.put(api_url % 'teams/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        client.put('teams/%s' % (self.id), data=data)
 
     def get_project(self, project_id):
-        return self.projects.get(project_id)
+        return next(project_team for project_team in self.projects_teams if project_team.project_id == project_id)
 
     def add_project(self, project):
         attrs = {'team_id': self.id, 'project_id': project.id}
         data = json.dumps({'projects': {'add': [attrs]}})
-        r = requests.put(api_url % 'teams/%s' % (self.id),
-                         data=data,
-                         headers={'content-type': 'application/json'})
+        client.put('teams/%s' % (self.id), data=data)
 
     def has_project(self, project_id):
-        r = requests.get(api_url % 'teams/%s/projects/%s' %
-                         (self.team_id, project_id))
-        return r.status_code != 404
+        try:
+            client.get('teams/%s/projects/%s' %
+                         (self.id, project_id))
+        except exceptions.HTTPError, exception:
+            if exception.response.status_code == 404:
+                # the project does not exist
+                return False
+            else:
+                raise(exception)
+        return True
 
-    def set_project_grade(self, project_id, grade_component, points):
+    def set_project_grade(self, project, grade_component, points):
         assert(isinstance(grade_component, GradeComponent))
 
-        team_project = self.get_project(project_id)
-        if team_project is None:
+
+        project_team = self.get_project(project.id)
+        if not project_team:
             raise ChisubmitModelException("Tried to assign grade, but team %s has not been assigned project %s" %
-                                          (self.id, project_id))
+                                          (self.id, project.id))
 
-        project = team_project.project
-
-        if grade_component not in project.grade_components:
+        component = project.get_grade_component(grade_component.name)
+        
+        if not component:
             raise ChisubmitModelException("Tried to assign grade, but project %s does not have grade component %s" %
                                           (project.id, grade_component.name))
 
-        team_project.set_grade(grade_component, points)
+        project_team.set_grade(grade_component, points)
+        #self.set_grade(component, project_team, points)
 
 
-class TeamProject(ApiObject):
+class ProjectTeam(ApiObject):
+    _api_attrs = ('extensions_used', 'grader_id', 'project_id', 'team_id', 'id')
+    _pluralize = 'project_team'
+    _has_many = ('grades', )
 
-    def __init__(self, project):
-        self.project = project
+    def get_grader(self):
+        if self.grader_id is None:
+            return None
+        return Grader.from_uri('graders/%s' % (self.grader_id))
 
-        self.grader = None
-        self.extensions_used = 0
-        self.grades = {}
-        self.penalties = []
+    def add_grader(self, grader):
+        attrs = {'grader_id': grader.id}
+        data = json.dumps(attrs)
+        client.put('teams/%s/projects/%s' % (self.team_id, self.project_id), data=data)
 
     def set_grade(self, grade_component, points):
-        assert(isinstance(grade_component, GradeComponent))
-
-        if points < 0 or points > grade_component.points:
-            raise ChisubmitModelException("Tried to assign invalid number of points in '%s' (got %.2f, expected 0 <= x <= %.2f)" %
-                                          (grade_component.name, points, grade_component.points))
-
-        self.grades[grade_component] = points
-
-    def add_penalty(self, description, points):
-        if points >= 0:
-            raise ChisubmitModelException("Tried to assign a non-negative penalty (%i points: %s)" %
-                                          (points, description))
-        self.penalties.append((description, points))
+        try:
+          next(grade for grade in self.grades if grade.grade_component_name == grade_component.name)
+          grade.points = points
+        except StopIteration:
+          # No grade exists for this component and team. Persist a new one
+          attrs = {'grade_component_name':grade_component.name, 'points':points}
+          data = json.dumps({'grades': {'add': [attrs]}})
+          client.put('teams/%s/projects/%s' % (self.team_id, self.project_id), data=data)
 
     def get_total_penalties(self):
-        return sum([p for _, p in self.penalties])
+        return sum([p.points for _, p in self.penalties])
 
     def get_total_grade(self):
-        points = sum([p for p in self.grades.values()])
-
-        return points + self.get_total_penalties()
+        points = sum([p.points for p in self.grades])
+        return points #+ self.get_total_penalties()

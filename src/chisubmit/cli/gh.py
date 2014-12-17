@@ -38,18 +38,16 @@ from chisubmit.core import ChisubmitException, handle_unexpected_exception,\
     chisubmit_config
 
 
-@click.group()    
+@click.group()
 @click.pass_context
 def gh(ctx):
     pass
 
-
-    
-@click.command(name="token-create")    
-@click.option('--delete', is_flag=True)    
-@click.pass_context  
+@click.command(name="token-create")
+@click.option('--delete', is_flag=True)
+@click.pass_context
 def gh_token_create(ctx, delete):
-        
+
     try:
         username = raw_input("Enter your GitHub username: ")
         password = getpass.getpass("Enter your GitHub password: ")
@@ -57,23 +55,23 @@ def gh_token_create(ctx, delete):
         exit(CHISUBMIT_FAIL)
     except Exception, e:
         handle_unexpected_exception()
-    
+
     try:
         token = GitHubConnection.get_credentials(username, password, delete = delete)
-        
+
         if token is None:
             print "Unable to create token. Incorrect username/password."
         else:
             chisubmit_config().set_git_credentials("GitHub", token)
-    
+
             print "The following token has been created: %s" % token
             print "chisubmit has been configured to use this token from now on."
     except ChisubmitException, ce:
         raise ce # Propagate upwards, it will be handled by chisubmit_cmd
     except Exception, e:
         handle_unexpected_exception()
-            
+
     return CHISUBMIT_SUCCESS
 
 
-gh.add_command(gh_token_create)        
+gh.add_command(gh_token_create)

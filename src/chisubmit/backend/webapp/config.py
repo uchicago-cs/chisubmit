@@ -4,6 +4,7 @@ _basedir = os.path.abspath(os.path.dirname(__file__))
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(_basedir, 'api.db')
 SQLALCHEMY_MIGRATE_REPO = os.path.join(_basedir, 'db_repository')
 DATABASE_CONNECT_OPTIONS = {}
+# SQLALCHEMY_ECHO = True
 
 THREADS_PER_PAGE = 8
 DEBUG = True

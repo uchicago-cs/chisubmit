@@ -9,7 +9,6 @@ class ExposedModel(object):
         print "SELF HAS %s" % self.__dict__
         selfname = self.__name__.lower()
         # FIXME 23JULY14: assumptions unlikely to hold
-        endpoint = "get_" + selfname
         identifier = selfname + "_id"
         return url_for('get',
                        **{identifier: getattr(self, 'course_id'),

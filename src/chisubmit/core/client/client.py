@@ -28,5 +28,31 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-VERSION = "0.1"
-RELEASE = "0.1.2-pre3"
+import requests
+import json
+
+session = None
+endpoint = None
+
+def setup(url, access_key):
+    global session
+    global endpoint
+    endpoint = url
+    session = requests.Session()
+    session.auth = (access_key, access_key)
+    session.headers = {'content-type': 'application/json'}
+
+def get(resource, **kwargs):
+    response = session.get(endpoint + resource, **kwargs)
+    response.raise_for_status()
+    return response.json()
+
+def post(resource, data, **kwargs):
+    response = session.post(endpoint + resource, data, **kwargs)
+    response.raise_for_status()
+    return response.json()
+
+def put(resource, data, **kwargs):
+    response = session.put(endpoint + resource, data, **kwargs)
+    response.raise_for_status()
+    return response.json()

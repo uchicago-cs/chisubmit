@@ -52,9 +52,13 @@ setup(name='chisubmit',
       package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
       
-      install_requires = [ "PyGithub >= 1.21.0", "GitPython >= 0.3.2.RC1",
+      install_requires = [ "PyGithub >= 1.25.2", "GitPython >= 0.3.2.1",
                            "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0",
-                           "click >= 2.4" ],
+                           "click >= 3.3", "requests >= 2.5.1" ],
+      extras_require = {
+                         "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
+                                     "flask-restless >= 0.15", "python-ldap >= 2.4.18"] 
+                        },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,
       

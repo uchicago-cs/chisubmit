@@ -5,8 +5,6 @@ class ExposedModel(object):
 
     @classmethod
     def uri(self):
-        print "SELF is %s" % self
-        print "SELF HAS %s" % self.__dict__
         selfname = self.__name__.lower()
         # FIXME 23JULY14: assumptions unlikely to hold
         identifier = selfname + "_id"

@@ -30,16 +30,15 @@
 
 import click
 
+import os.path
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core.model import Grader
+from chisubmit.client.person import Grader
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams
 from chisubmit.repos.grading import GradingGitRepo
-from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
+from chisubmit.rubric import RubricFile
 from chisubmit.cli.common import pass_course, save_changes
-import os.path
-from chisubmit.core import ChisubmitException, handle_unexpected_exception,\
-    chisubmit_config
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 @click.group()
 @click.pass_context
@@ -64,36 +63,29 @@ def grader_create(ctx, course, grader_id, first_name, last_name, email, git_serv
                     git_staging_server_id = git_staging_server_id)
     course.add_grader(grader)
 
-    try:
-        if course.git_server_connection_string is not None:
-            conn = course.get_git_server_connection()
-            server_type = conn.get_server_type_name()
-            git_credentials = chisubmit_config().get_git_credentials(server_type)
+    if course.git_server_connection_string:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
+        server_type = conn.get_server_type_name()
+        git_credentials = ctx.obj['config']['git-credentials']
 
-            if git_credentials is None:
-                print "You do not have %s credentials." % server_type
-                return CHISUBMIT_FAIL
+        if not git_credentials:
+            print "You do not have %s credentials." % server_type
+            return CHISUBMIT_FAIL
 
-            conn.connect(git_credentials)
-            conn.update_graders(course)
+        conn.connect(git_credentials)
+        conn.update_graders(course)
 
-        if course.git_staging_server_connection_string is not None:
-            conn = course.get_git_staging_server_connection()
-            server_type = conn.get_server_type_name()
-            git_credentials = chisubmit_config().get_git_credentials(server_type)
+    if course.git_staging_server_connection_string:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
+        server_type = conn.get_server_type_name()
+        git_credentials = ctx.obj['config']['git-credentials']
 
-            if git_credentials is None:
-                print "You do not have %s credentials." % server_type
-                return CHISUBMIT_FAIL
+        if not git_credentials:
+            print "You do not have %s credentials." % server_type
+            return CHISUBMIT_FAIL
 
-            conn.connect(git_credentials)
-            conn.update_graders(course)
-
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-
+        conn.connect(git_credentials)
+        conn.update_graders(course)
 
     return CHISUBMIT_SUCCESS
 
@@ -105,12 +97,12 @@ def grader_create(ctx, course, grader_id, first_name, last_name, email, git_serv
 @click.pass_context
 def grader_add_conflict(ctx, course, grader_id, student_id):
     grader = course.get_grader(grader_id)
-    if grader is None:
+    if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
     student = course.get_student(student_id)
-    if student is None:
+    if not student:
         print "Student %s does not exist" % student_id
         return CHISUBMIT_FAIL
 
@@ -130,12 +122,12 @@ def grader_add_conflict(ctx, course, grader_id, student_id):
 @click.pass_context
 def grader_create_grading_repos(ctx, course, grader_id, project_id):
     grader = course.get_grader(grader_id)
-    if grader is None:
+    if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
     project = course.get_project(project_id)
-    if project is None:
+    if not project:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
 
@@ -147,7 +139,7 @@ def grader_create_grading_repos(ctx, course, grader_id, project_id):
 
     repos = create_grading_repos(course, project, teams, grader = grader)
 
-    if repos is None:
+    if not repos:
         print "There was some kind of problem creating the grading repos."
         return CHISUBMIT_FAIL
 
@@ -169,17 +161,17 @@ def grader_create_grading_repos(ctx, course, grader_id, project_id):
 @click.pass_context
 def grader_validate_rubric(ctx, course, team_id, project_id):
     team = course.get_team(team_id)
-    if team is None:
+    if not team:
         print "Team %s does not exist"
         return CHISUBMIT_FAIL
 
     project = course.get_project(project_id)
-    if project is None:
+    if not project:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
 
     repo = GradingGitRepo.get_grading_repo(course, team, project)
-    if repo is None:
+    if not repo:
         print "Repository for %s does not exist" % (team.id)
         return CHISUBMIT_FAIL
 
@@ -189,12 +181,8 @@ def grader_validate_rubric(ctx, course, team_id, project_id):
         print "Repository for %s does not exist have a rubric for project %s" % (team.id, project.id)
         return CHISUBMIT_FAIL
 
-    try:
-        RubricFile.from_file(open(rubricfile), project)
-    except ChisubmitRubricException, cre:
-        print "Error in rubric: %s" % cre.message
-        return CHISUBMIT_FAIL
-
+    # FIXME 18DEC14: validation explicit
+    RubricFile.from_file(open(rubricfile), project)
     print "Rubric OK."
 
     return CHISUBMIT_SUCCESS
@@ -209,18 +197,18 @@ def grader_validate_rubric(ctx, course, team_id, project_id):
 @click.pass_context
 def grader_push_grading_branch(ctx, course, grader_id, project_id, only):
     grader = course.get_grader(grader_id)
-    if grader is None:
+    if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
     project = course.get_project(project_id)
-    if project is None:
+    if not project:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
 
     teams = get_teams(course, project, grader = grader, only = only)
 
-    if teams is None:
+    if not teams:
         return CHISUBMIT_FAIL
 
     for team in teams:
@@ -238,18 +226,18 @@ def grader_push_grading_branch(ctx, course, grader_id, project_id, only):
 @click.pass_context
 def grader_pull_grading_branch(ctx, course, grader_id, project_id, only):
     grader = course.get_grader(grader_id)
-    if grader is None:
+    if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
     project = course.get_project(project_id)
-    if project is None:
+    if not project:
         print "Project %s does not exist"
         return CHISUBMIT_FAIL
 
     teams = get_teams(course, project, grader = grader, only = only)
 
-    if teams is None:
+    if not teams:
         return CHISUBMIT_FAIL
 
     for team in teams:

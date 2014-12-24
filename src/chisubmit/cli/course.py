@@ -30,14 +30,10 @@
 
 import click
 
-from chisubmit.core import chisubmit_config, get_course_filename
-
-from chisubmit.core import handle_unexpected_exception
-from chisubmit.core.model import Course
+from chisubmit.client.course import Course
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.cli.common import pass_course
-
 
 @click.group()
 @click.pass_context
@@ -55,15 +51,10 @@ def course_create(ctx, make_default, id, name, extensions):
                     name = name,
                     extensions = extensions)
 
-    try:
-        course.save()
+    course.save()
 
-        if make_default:
-            chisubmit_config().set_default_course(id)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    if make_default:
+        ctx.obj['config']['default-course'] = id
 
     return CHISUBMIT_SUCCESS
 
@@ -72,7 +63,14 @@ def course_create(ctx, make_default, id, name, extensions):
 @click.argument('filename', type=str)
 @click.pass_context
 def course_install(ctx, make_default, filename):
+    # FIXME 23DEC14: OKAY. Strange.
+    # I don't know what the intention of this function
+    # is. Besides that, click behaves as if it no longer
+    # even exists!
+    # $ chisubmit course install => Error: No such command "install".
+
     return CHISUBMIT_SUCCESS
+
     if filename.startswith("http"):
         new_course = Course.from_url(filename)
     else:
@@ -100,23 +98,18 @@ def course_git_server(ctx, course, connection_string):
 
     course.git_server_connection_string = connection_string
 
-    conn = course.get_git_server_connection()
+    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
     server_type = conn.get_server_type_name()
-    git_credentials = chisubmit_config().get_git_credentials(server_type)
+    git_credentials = ctx.obj['config']['git-credentials']
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL
 
-    try:
-        conn.connect(git_credentials)
+    conn.connect(git_credentials)
 
-        # TODO: Control fail_if_exists via CLI parameter
-        conn.init_course(course, fail_if_exists = False)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    # TODO: Control fail_if_exists via CLI parameter
+    conn.init_course(course, fail_if_exists = False)
 
     return CHISUBMIT_SUCCESS
 
@@ -127,23 +120,18 @@ def course_git_server(ctx, course, connection_string):
 def course_git_staging_server(ctx, course, connection_string):
     course.git_staging_server_connection_string = connection_string
 
-    conn = course.get_git_staging_server_connection()
+    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
     server_type = conn.get_server_type_name()
-    git_credentials = chisubmit_config().get_git_credentials(server_type)
+    git_credentials = ctx.obj['config']['git-credentials']
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL
 
-    try:
-        conn.connect(git_credentials)
+    conn.connect(git_credentials)
 
-        # TODO: Control fail_if_exists via CLI parameter
-        conn.init_course(course, fail_if_exists = False)
-    except ChisubmitException, ce:
-        raise click.ClickException(ce.message)
-    except Exception, e:
-        handle_unexpected_exception()
+    # TODO: Control fail_if_exists via CLI parameter
+    conn.init_course(course, fail_if_exists = False)
 
     return CHISUBMIT_SUCCESS
 
@@ -155,7 +143,6 @@ def course_generate_distributable(ctx, course, filename):
     return CHISUBMIT_SUCCESS
 
 course.add_command(course_create)
-course.add_command(course_install)
 course.add_command(course_git_server)
 course.add_command(course_git_staging_server)
 course.add_command(course_generate_distributable)

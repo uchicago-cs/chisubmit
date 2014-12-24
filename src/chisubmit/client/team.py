@@ -28,37 +28,42 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import click
-import getpass
+from chisubmit.client.base import ApiObject
+from chisubmit.client import session
+from chisubmit.client.grade_component import GradeComponent
+import json
 
+class Team(ApiObject):
 
-from chisubmit.repos.github import GitHubConnection
-from chisubmit.common import CHISUBMIT_SUCCESS
+    _api_attrs = ('id', 'course_id')
+    _updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
+    _has_many = ('students', 'projects', 'grades', 'projects_teams')
 
+    def __setattr__(self, name, value):
+        if name in self._updatable_attributes:
+            self._api_update(name, value)
+        else:
+            super(Team, self).__setattr__(name, value)
 
-@click.group()
-@click.pass_context
-def gh(ctx):
-    pass
+    def add_student(self, student):
+        attrs = {'team_id': self.id, 'student_id': student.id}
+        data = json.dumps({'students': {'add': [attrs]}})
+        session.put('teams/%s' % (self.id), data=data)
 
-@click.command(name="token-create")
-@click.option('--delete', is_flag=True)
-@click.pass_context
-def gh_token_create(ctx, delete):
+    def get_project(self, project_id):
+        return next(project_team for project_team in self.projects_teams if project_team.project_id == project_id)
 
-    username = raw_input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password: ")
+    def add_project(self, project):
+        attrs = {'team_id': self.id, 'project_id': project.id}
+        data = json.dumps({'projects': {'add': [attrs]}})
+        session.put('teams/%s' % (self.id), data=data)
 
-    token = GitHubConnection.get_credentials(username, password, delete = delete)
+    def has_project(self, project_id):
+        return session.exists('teams/%s/projects/%s' %
+                         (self.id, project_id))
 
-    if token is None:
-        print "Unable to create token. Incorrect username/password."
-    else:
-      ctx.obj['config']['git-credentials'] = token
+    def set_project_grade(self, project, grade_component, points):
+        assert(isinstance(grade_component, GradeComponent))
 
-      print "The following token has been created: %s" % token
-      print "chisubmit has been configured to use this token from now on."
-
-    return CHISUBMIT_SUCCESS
-
-gh.add_command(gh_token_create)
+        project_team = self.get_project(project.id)
+        project_team.set_grade(grade_component, points)

@@ -1,7 +1,7 @@
 from wtforms import Form
 from wtforms.validators import InputRequired, Optional,\
     Length, Email
-from wtforms.fields import StringField
+from wtforms.fields import StringField, BooleanField
 
 
 class CreatePersonInput(Form):
@@ -33,3 +33,7 @@ class UpdatePersonInput(Form):
     git_staging_server_id = StringField('git_staging_server_id',
                                         validators=[Length(max=36, min=5),
                                                     Optional()])
+
+class GenerateAccessTokenInput(Form):
+    password = StringField(validators=[InputRequired()])
+    reset = BooleanField(validators=[Optional()])

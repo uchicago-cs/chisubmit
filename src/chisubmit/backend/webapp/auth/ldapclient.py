@@ -1,4 +1,5 @@
 import ldap
+from api import app
 from ldap.filter import filter_format
 
 global conn
@@ -9,11 +10,11 @@ conn.protocol_version = ldap.VERSION3
 
 def authenticate(username, password):
     dn = user_dn(username)
+    app.logger.error("Authenticating username: %s dn: %s" % (username, dn))
     conn.simple_bind(dn, password)
 
 
 def user_dn(uid):
-    print "USER IS %s" % uid
     search_filter = filter_format("uid=%s", (uid,))
     return next(user[0]
                 for user in conn.search_s('dc=uchicago,dc=edu',

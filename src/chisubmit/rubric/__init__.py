@@ -29,7 +29,6 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import yaml
-from chisubmit.core import ChisubmitException
 import textwrap
 
 def feq(a, b, eps=0.01):
@@ -110,7 +109,7 @@ class RubricFile(object):
             f.write(self.to_yaml(include_blank_comments))
             f.close()
         except IOError, ioe:
-            raise ChisubmitException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.message), ioe)
+            raise ChisubmitRubricException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.message), ioe)
         
     @classmethod
     def from_file(cls, rubric_file, project):

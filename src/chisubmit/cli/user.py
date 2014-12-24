@@ -30,35 +30,32 @@
 
 import click
 import getpass
-
-
-from chisubmit.repos.github import GitHubConnection
+from chisubmit.client.user import User
 from chisubmit.common import CHISUBMIT_SUCCESS
+import getpass
 
 
 @click.group()
 @click.pass_context
-def gh(ctx):
+def user(ctx):
     pass
 
 @click.command(name="token-create")
+@click.option('--user', prompt='Your CNetID please', default=lambda: getpass.getuser())
 @click.option('--delete', is_flag=True)
 @click.pass_context
-def gh_token_create(ctx, delete):
+def api_token_create(ctx, user, delete):
 
-    username = raw_input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password: ")
+    click.echo("No prob")
+    password = getpass.getpass("Enter your password: ")
+    token = User.get_token(user, password, delete)
 
-    token = GitHubConnection.get_credentials(username, password, delete = delete)
-
-    if token is None:
-        print "Unable to create token. Incorrect username/password."
+    if token:
+        ctx.obj['config']['api-token'] = token
+        click.echo("OK. Your access token has been saved")
     else:
-      ctx.obj['config']['git-credentials'] = token
-
-      print "The following token has been created: %s" % token
-      print "chisubmit has been configured to use this token from now on."
+        click.echo("Unable to create token. Incorrect username/password.")
 
     return CHISUBMIT_SUCCESS
 
-gh.add_command(gh_token_create)
+user.add_command(api_token_create)

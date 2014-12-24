@@ -30,3 +30,17 @@
 
 CHISUBMIT_SUCCESS = 0
 CHISUBMIT_FAIL = 1
+
+import traceback
+
+class ChisubmitException(Exception):
+    def __init__(self, message, original_exception = None):
+        Exception.__init__(self, message)
+        self.original_exception = original_exception
+        if original_exception is not None:
+            self.traceback = traceback.format_exc()
+        else:
+            self.traceback = None
+
+    def print_exception(self):
+        print self.traceback

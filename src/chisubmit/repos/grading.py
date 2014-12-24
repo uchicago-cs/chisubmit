@@ -1,9 +1,9 @@
 import git
 import os.path
 
-import chisubmit.core
-from chisubmit.core import ChisubmitException
+from chisubmit.common import ChisubmitException
 from git.exc import GitCommandError
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 class LocalGitRepo(object):
@@ -68,7 +68,7 @@ class LocalGitRepo(object):
 
         try:
             branch_head.checkout()
-        except GitCommandError, gce:
+        except GitCommandError:
             raise ChisubmitException("Error checking out")
 
     def get_tag(self, tag):
@@ -124,8 +124,8 @@ class GradingGitRepo(object):
         self.repo_path = repo_path
 
     @classmethod
-    def get_grading_repo(cls, course, team, project):
-        repo_path = cls.get_grading_repo_path(course, team, project)
+    def get_grading_repo(cls, base_dir, course, team, project):
+        repo_path = cls.get_grading_repo_path(base_dir, course, team, project)
         if not os.path.exists(repo_path):
             return None
         else:
@@ -133,11 +133,11 @@ class GradingGitRepo(object):
             return cls(team, project, repo, repo_path)
 
     @classmethod
-    def create_grading_repo(cls, course, team, project):
-        conn = course.get_git_server_connection()
-        conn_staging = course.get_git_staging_server_connection()
+    def create_grading_repo(cls, base_dir, course, team, project):
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
+        conn_staging = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
 
-        repo_path = cls.get_grading_repo_path(course, team, project)
+        repo_path = cls.get_grading_repo_path(base_dir, course, team, project)
         gh_url = conn.get_repository_git_url(course, team)
         staging_url = conn_staging.get_repository_git_url(course, team)
 
@@ -226,6 +226,7 @@ class GradingGitRepo(object):
             self.repo.checkout_branch(branch_name)
 
     @staticmethod
-    def get_grading_repo_path(course, team, project):
-        return "%s/repositories/%s/%s/%s" % (chisubmit.core.chisubmit_dir, course.id, project.id, team.id)
-
+    def get_grading_repo_path(base_dir, course, team, project):
+        # TODO 18DEC14: This code could be a problem
+        # The base_dir is passed from far away
+        return "%s/repositories/%s/%s/%s" % (base_dir, course.id, project.id, team.id)

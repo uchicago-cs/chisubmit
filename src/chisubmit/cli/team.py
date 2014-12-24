@@ -29,17 +29,12 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import click
-
-from chisubmit.core import chisubmit_config
-
-from chisubmit.core.model import Team
+from chisubmit.client.team import Team
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import pass_course, save_changes
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 import os.path
-import smtplib
 from string import Template
-import random
 import pprint
 
 
@@ -54,7 +49,7 @@ def team(ctx):
 @pass_course
 @click.pass_context
 def team_create(ctx, course, team_id):
-    team = Team(id = team_id, course_id = course.id)
+    Team(id = team_id, course_id = course.id)
 
     return CHISUBMIT_SUCCESS
 
@@ -219,28 +214,22 @@ def team_repo_create(ctx, course, team_id, ignore_existing, public, staging):
         print "Maybe you meant to run team-repo-update?"
         return CHISUBMIT_FAIL
 
-    try:
-        if staging:
-            conn = course.get_git_staging_server_connection()
-            team_access = False
-        else:
-            conn = course.get_git_server_connection()
-            team_access = True
+    if staging:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
+        team_access = False
+    else:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
+        team_access = True
 
-        server_type = conn.get_server_type_name()
-        git_credentials = chisubmit_config().get_git_credentials(server_type)
+    server_type = conn.get_server_type_name()
+    git_credentials = ctx.obj['config']['git-credentials']
 
-        if git_credentials is None:
-            print "You do not have %s credentials." % server_type
-            return CHISUBMIT_FAIL
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return CHISUBMIT_FAIL
 
-        conn.connect(git_credentials)
-
-        conn.create_team_repository(course, team, team_access, fail_if_exists = not ignore_existing, private = not public)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    conn.connect(git_credentials)
+    conn.create_team_repository(course, team, team_access, fail_if_exists = not ignore_existing, private = not public)
 
     if staging:
         team.git_repo_created = True
@@ -264,22 +253,16 @@ def team_repo_update(ctx, course, team_id):
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
-    conn = course.get_git_server_connection()
+    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
     server_type = conn.get_server_type_name()
-    git_credentials = chisubmit_config().get_git_credentials(server_type)
+    git_credentials = ctx.obj['config']['git-credentials']
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL
 
-    try:
-        conn.connect(git_credentials)
-        conn.update_team_repository(team)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-
+    conn.connect(git_credentials)
+    conn.update_team_repository(team)
     return CHISUBMIT_SUCCESS
 
 
@@ -298,26 +281,21 @@ def team_repo_remove(ctx, course, team_id, staging):
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
-    try:
-        if staging:
-            conn = course.get_git_staging_server_connection()
-        else:
-            conn = course.get_git_server_connection()
+    if staging:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
+    else:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
 
-        server_type = conn.get_server_type_name()
-        git_credentials = chisubmit_config().get_git_credentials(server_type)
+    server_type = conn.get_server_type_name()
+    git_credentials = ctx.obj['config']['git-credentials']
 
-        if git_credentials is None:
-            print "You do not have %s credentials." % server_type
-            return CHISUBMIT_FAIL
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return CHISUBMIT_FAIL
 
-        conn.connect(git_credentials)
+    conn.connect(git_credentials)
 
-        conn.delete_team_repository(team)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    conn.delete_team_repository(team)
 
     return CHISUBMIT_SUCCESS
 
@@ -336,19 +314,15 @@ def team_repo_check(ctx, course, team_id):
         print "Team %s does not have a repository." % team.id
         return CHISUBMIT_FAIL
 
-    conn = course.get_git_server_connection()
+    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
     server_type = conn.get_server_type_name()
-    git_credentials = chisubmit_config().get_git_credentials(server_type)
+    git_credentials = ctx.obj['config']['git-credentials']
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL
 
-    try:
-        conn.connect(git_credentials)
-    except ChisubmitException, ce:
-        print "Unable to connect to GitHub: %s" % ce.message
-        return CHISUBMIT_FAIL
+    conn.connect(git_credentials)
 
     if not conn.exists_team_repository(course, team):
         print "The repository '%s' does not exist or you do not have permission to access it." % team.github_repo

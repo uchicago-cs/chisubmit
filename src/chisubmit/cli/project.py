@@ -30,11 +30,11 @@
 
 import click
 
-from chisubmit.common.utils import mkdatetime,\
-    get_datetime_now_utc, convert_timezone_to_local
-from chisubmit.core.model import Project, GradeComponent
+from chisubmit.common.utils import get_datetime_now_utc,\
+    convert_timezone_to_local
+from chisubmit.client.project import Project
+from chisubmit.client.grade_component import GradeComponent
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import pass_course, DATETIME
 
 

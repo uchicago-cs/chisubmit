@@ -4,9 +4,7 @@ from __future__ import absolute_import
 from gitlab import Gitlab
 
 from chisubmit.repos import RemoteRepositoryConnectionBase
-from chisubmit.core import ChisubmitException
-import pytz
-from datetime import datetime
+from chisubmit.common import ChisubmitException
 
 class GitLabConnection(RemoteRepositoryConnectionBase):
 
@@ -265,7 +263,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         if group_id is None:
             raise ChisubmitException("Couldn't add user '%s' to group '%s'. Course group does not exist" % (username, course.id))
                 
-        rc = self.gitlab.addgroupmember(group_id, user["id"], access_level)
+        self.gitlab.addgroupmember(group_id, user["id"], access_level)
         
         # If the return code is False, we can't distinguish between
         # "failed because the user is already in the group" or

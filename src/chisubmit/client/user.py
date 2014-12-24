@@ -28,37 +28,15 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import click
-import getpass
+from chisubmit.client.base import ApiObject
+from chisubmit.client.person import Person
+from chisubmit.client import session
+import json
 
+class User(Person, ApiObject):
 
-from chisubmit.repos.github import GitHubConnection
-from chisubmit.common import CHISUBMIT_SUCCESS
-
-
-@click.group()
-@click.pass_context
-def gh(ctx):
-    pass
-
-@click.command(name="token-create")
-@click.option('--delete', is_flag=True)
-@click.pass_context
-def gh_token_create(ctx, delete):
-
-    username = raw_input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password: ")
-
-    token = GitHubConnection.get_credentials(username, password, delete = delete)
-
-    if token is None:
-        print "Unable to create token. Incorrect username/password."
-    else:
-      ctx.obj['config']['git-credentials'] = token
-
-      print "The following token has been created: %s" % token
-      print "chisubmit has been configured to use this token from now on."
-
-    return CHISUBMIT_SUCCESS
-
-gh.add_command(gh_token_create)
+    # TODO 18DEC14: handle revoking and/or replacing the token
+    @classmethod
+    def get_token(cls, username, password, reset=False):
+        data = json.dumps({'password':password, reset:reset})
+        session.post('users/%s/token' % username, data=data)

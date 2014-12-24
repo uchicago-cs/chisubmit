@@ -1,5 +1,5 @@
 import abc
-from chisubmit.core import ChisubmitException
+from chisubmit.common import ChisubmitException
 
 class ConnectionString(object):
 

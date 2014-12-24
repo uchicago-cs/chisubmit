@@ -30,7 +30,7 @@
 
 import click
 
-from chisubmit.core.model import Student
+from chisubmit.client.person import Student
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.cli.common import pass_course
 

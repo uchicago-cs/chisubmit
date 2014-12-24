@@ -35,11 +35,10 @@ import operator
 import random
 from chisubmit.repos.grading import GradingGitRepo
 import os.path
-from chisubmit.core.rubric import RubricFile, ChisubmitRubricException
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
+from chisubmit.rubric import RubricFile
 from chisubmit.cli.common import create_grading_repos, get_teams,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
-from chisubmit.core import chisubmit_config
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.cli.common import pass_course, save_changes
 
 
@@ -287,29 +286,23 @@ def admin_list_submissions(ctx, course, project_id):
     teams = [t for t in course.teams if t.has_project(project.id)]
     teams.sort(key=operator.attrgetter("id"))
 
-    conn = course.get_git_server_connection()
+    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
     server_type = conn.get_server_type_name()
-    git_credentials = chisubmit_config().get_git_credentials(server_type)
+    git_credentials = ctx.obj['config']['git-credentials']
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL
 
-    try:
-        conn.connect(git_credentials)
+    conn.connect(git_credentials)
 
-        for team in teams:
-            submission_tag = conn.get_submission_tag(course, team, project.id)
+    for team in teams:
+        submission_tag = conn.get_submission_tag(course, team, project.id)
 
-            if submission_tag is None:
-                print "%25s NOT SUBMITTED" % team.id
-            else:
-                print "%25s SUBMITTED" % team.id
-
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+        if submission_tag is None:
+            print "%25s NOT SUBMITTED" % team.id
+        else:
+            print "%25s SUBMITTED" % team.id
 
     return CHISUBMIT_SUCCESS
 
@@ -326,7 +319,7 @@ def admin_create_grading_repos(ctx, course, project_id):
 
     teams = [t for t in course.teams if t.has_project(project.id)]
 
-    repos = create_grading_repos(course, project, teams)
+    repos = create_grading_repos(ctx.obj['config']['directory'], course, project, teams)
 
     if repos == None:
         return CHISUBMIT_FAIL
@@ -352,22 +345,14 @@ def admin_create_grading_branches(ctx, course, project_id, only):
         return CHISUBMIT_FAIL
 
     for team in teams:
-        try:
-            repo = GradingGitRepo.get_grading_repo(course, team, project)
+        repo = GradingGitRepo.get_grading_repo(ctx['config']['directory'], course, team, project)
 
-            if repo is None:
-                print "%s does not have a grading repository" % team.id
-                continue
+        if repo is None:
+            print "%s does not have a grading repository" % team.id
+            continue
 
-            try:
-                repo.create_grading_branch()
-                print "Created grading branch for %s" % team.id
-            except ChisubmitException, ce:
-                print "Could not create grading branch for %s: %s" % (team.id, ce.message)
-        except ChisubmitException, ce:
-            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-        except Exception, e:
-            handle_unexpected_exception()
+        repo.create_grading_branch()
+        print "Created grading branch for %s" % team.id
 
     return CHISUBMIT_SUCCESS
 
@@ -441,16 +426,10 @@ def admin_add_rubrics(ctx, course, project_id):
     teams = [t for t in course.teams if t.has_project(project.id)]
 
     for team in teams:
-        try:
-            repo = GradingGitRepo.get_grading_repo(course, team, project)
-            rubric = RubricFile.from_project(project, team)
-            rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
-            rubric.save(rubricfile, include_blank_comments=True)
-        except ChisubmitException, ce:
-            raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-        except Exception, e:
-            handle_unexpected_exception()
-
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config']['directory'], course, team, project)
+        rubric = RubricFile.from_project(project, team)
+        rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+        rubric.save(rubricfile, include_blank_comments=True)
 
 
 @click.command(name="collect-rubrics")
@@ -469,7 +448,7 @@ def admin_collect_rubrics(ctx, course, project_id):
     teams = [t for t in course.teams if t.has_project(project.id)]
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(course, team, project)
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config']['directory'], course, team, project)
         if repo is None:
             print "Repository for %s does not exist" % (team.id)
             return CHISUBMIT_FAIL
@@ -480,11 +459,7 @@ def admin_collect_rubrics(ctx, course, project_id):
             print "Repository for %s does not have a rubric for project %s" % (team.id, project.id)
             return CHISUBMIT_FAIL
 
-        try:
-            rubric = RubricFile.from_file(open(rubricfile), project)
-        except ChisubmitRubricException, cre:
-            print "Error in rubric: %s" % cre.message
-            return CHISUBMIT_FAIL
+        rubric = RubricFile.from_file(open(rubricfile), project)
 
         points = []
         for gc in gcs:

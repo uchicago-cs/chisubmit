@@ -1,5 +1,5 @@
 from chisubmit.repos import ConnectionString
-from chisubmit.core import ChisubmitException
+from chisubmit.common import ChisubmitException
 from chisubmit.repos.github import GitHubConnection
 from chisubmit.repos.gitlab import GitLabConnection
 

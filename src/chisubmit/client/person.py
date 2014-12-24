@@ -28,37 +28,27 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import click
-import getpass
+from chisubmit.client.base import ApiObject
+from chisubmit.client import session
 
+class Person(ApiObject):
 
-from chisubmit.repos.github import GitHubConnection
-from chisubmit.common import CHISUBMIT_SUCCESS
+    _api_attrs = ('id', 'first_name', 'last_name', 'email', 'git_server_id', 'git_staging_server_id')
+    _updatable_attributes = ('git_server_id', 'git_staging_server_id')
+    _primary_key = 'id'
+    _singularize = 'person'
+    _pluralize = 'people'
 
+    def save(self):
+        if not session.exists(self):
+            super(Person, self).save()
 
-@click.group()
-@click.pass_context
-def gh(ctx):
+class Student(Person):
     pass
 
-@click.command(name="token-create")
-@click.option('--delete', is_flag=True)
-@click.pass_context
-def gh_token_create(ctx, delete):
+class Grader(Person):
+    pass
 
-    username = raw_input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password: ")
+class Instructor(Person):
+    _has_many = ('students', 'projects')   
 
-    token = GitHubConnection.get_credentials(username, password, delete = delete)
-
-    if token is None:
-        print "Unable to create token. Incorrect username/password."
-    else:
-      ctx.obj['config']['git-credentials'] = token
-
-      print "The following token has been created: %s" % token
-      print "chisubmit has been configured to use this token from now on."
-
-    return CHISUBMIT_SUCCESS
-
-gh.add_command(gh_token_create)

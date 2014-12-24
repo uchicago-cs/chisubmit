@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
 #
@@ -28,37 +27,45 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import click
-import getpass
+from requests import exceptions, Session
 
+endpoint = None
+session = None
 
-from chisubmit.repos.github import GitHubConnection
-from chisubmit.common import CHISUBMIT_SUCCESS
+def connect(url, access_token):
+    global endpoint, session
+    endpoint = url
+    session = Session()
+    session.auth = (access_token, access_token)
+    session.headers = {'content-type': 'application/json'}
 
+def get(resource, **kwargs):
+    response = session.get(endpoint + resource, **kwargs)
+    response.raise_for_status()
+    return response.json()
 
-@click.group()
-@click.pass_context
-def gh(ctx):
-    pass
-
-@click.command(name="token-create")
-@click.option('--delete', is_flag=True)
-@click.pass_context
-def gh_token_create(ctx, delete):
-
-    username = raw_input("Enter your GitHub username: ")
-    password = getpass.getpass("Enter your GitHub password: ")
-
-    token = GitHubConnection.get_credentials(username, password, delete = delete)
-
-    if token is None:
-        print "Unable to create token. Incorrect username/password."
+def post(resource, data, **kwargs):
+    response = session.post(endpoint + resource, data, **kwargs)
+    if response.status_code == 400:
+        error_result = []
+        for noun, problem in response.json()['errors'].items():
+            error_result.append((noun, problem))
+        response.raise_for_status()
     else:
-      ctx.obj['config']['git-credentials'] = token
+        response.raise_for_status()
+    return response.json()
 
-      print "The following token has been created: %s" % token
-      print "chisubmit has been configured to use this token from now on."
+def put(resource, data, **kwargs):
+    response = session.put(endpoint + resource, data, **kwargs)
+    response.raise_for_status()
+    return response.json()
 
-    return CHISUBMIT_SUCCESS
-
-gh.add_command(gh_token_create)
+def exists(obj):
+    if isinstance(obj, (str, unicode)):
+        obj_endpoint = obj
+    else:
+        obj_endpoint = obj.url()
+    response = session.get(endpoint + obj_endpoint)
+    if response.status_code == 404:
+        return False
+    return True

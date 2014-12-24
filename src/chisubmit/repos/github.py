@@ -6,7 +6,7 @@ from github import Github, InputGitAuthor
 from github.GithubException import GithubException
 
 from chisubmit.repos import RemoteRepositoryConnectionBase
-from chisubmit.core import ChisubmitException
+from chisubmit.common import ChisubmitException
 import pytz
 from datetime import datetime
 
@@ -218,7 +218,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         iu = InputGitAuthor(user_name, user_email, dt.isoformat())
 
         tag = github_repo.create_git_tag(tag_name, tag_message, commit.sha, "commit", iu)
-        ref = github_repo.create_git_ref("refs/tags/" + tag.tag, tag.sha)
+        github_repo.create_git_ref("refs/tags/" + tag.tag, tag.sha)
 
 
     def update_submission_tag(self, course, team, tag_name, tag_message, commit_sha):

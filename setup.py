@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -------------------------------------------------------------------------- #
 # Copyright (c) 2013-2014, The University of Chicago
 # All rights reserved.

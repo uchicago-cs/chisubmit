@@ -29,7 +29,6 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import yaml
-from chisubmit.core import ChisubmitException
 import textwrap
 
 def feq(a, b, eps=0.01):
@@ -110,7 +109,7 @@ class RubricFile(object):
             f.write(self.to_yaml(include_blank_comments))
             f.close()
         except IOError, ioe:
-            raise ChisubmitException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.meesage), ioe)
+            raise ChisubmitRubricException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.message), ioe)
         
     @classmethod
     def from_file(cls, rubric_file, project):
@@ -195,10 +194,8 @@ class RubricFile(object):
         points = dict([(gc.name, None) for gc in project.grade_components])
         
         if team_project is not None:
-            for gc, gc_points in team_project.grades.items():
-                points[gc.name] = gc_points
+            for grade in team_project.grades:
+                gc = grade.grade_component
+                points[gc.name] = grade.points
         
         return cls(project, points, penalties = None, comments = None)
-        
-    
-    

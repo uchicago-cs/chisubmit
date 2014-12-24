@@ -35,7 +35,7 @@ from tzlocal import get_localzone
 def create_subparser(subparsers, name, func):
     subparser = subparsers.add_parser(name)
     subparser.set_defaults(func=func)
-    
+
     return subparser
 
 def get_datetime_now_utc():
@@ -46,13 +46,10 @@ def set_datetime_timezone_utc(dt):
 
 def convert_timezone_to_local(dt):
     tz = get_localzone()
-    dt = dt.astimezone(tz)
-    return tz.normalize(dt)
-    
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.astimezone(tz)
 
 def mkdatetime(datetimestr):
     dt = datetime.datetime.strptime(datetimestr, '%Y-%m-%dT%H:%M')
     return set_datetime_timezone_utc(dt)
-
-
-

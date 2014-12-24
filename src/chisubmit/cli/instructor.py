@@ -30,13 +30,12 @@
 
 import click
 
-from chisubmit.core.model import Student, Instructor
+from chisubmit.client.person import Instructor
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
-from chisubmit.cli.common import pass_course, save_changes
-from chisubmit.core import ChisubmitException, handle_unexpected_exception,\
-    chisubmit_config
+from chisubmit.cli.common import pass_course
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
-@click.group()    
+@click.group()
 @click.pass_context
 def instructor(ctx):
     pass
@@ -49,49 +48,41 @@ def instructor(ctx):
 @click.argument('git_server_id', type=str)
 @click.argument('git_staging_server_id', type=str)
 @pass_course
-@save_changes
-@click.pass_context  
+@click.pass_context
 def instructor_create(ctx, course, id, first_name, last_name, email, git_server_id, git_staging_server_id):
-    instructor = Instructor(instructor_id = id,
+    instructor = Instructor(id = id,
                             first_name = first_name,
                             last_name = last_name,
                             email = email,
                             git_server_id = git_server_id,
                             git_staging_server_id = git_staging_server_id)
     course.add_instructor(instructor)
-    
-    try:    
-        if course.git_server_connection_string is not None:
-            conn = course.get_git_server_connection()
-            server_type = conn.get_server_type_name()
-            git_credentials = chisubmit_config().get_git_credentials(server_type)
 
-            if git_credentials is None:
-                print "You do not have %s credentials." % server_type
-                return CHISUBMIT_FAIL    
+    if course.git_server_connection_string is not None:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
+        server_type = conn.get_server_type_name()
+        git_credentials = ctx.obj['config']['git-credentials']
 
-            conn.connect(git_credentials)
-            conn.update_instructors(course)
-        
-        if course.git_staging_server_connection_string is not None:
-            conn = course.get_git_staging_server_connection()
-            server_type = conn.get_server_type_name()
-            git_credentials = chisubmit_config().get_git_credentials(server_type)
+        if git_credentials is None:
+            print "You do not have %s credentials." % server_type
+            return CHISUBMIT_FAIL
 
-            if git_credentials is None:
-                print "You do not have %s credentials." % server_type
-                return CHISUBMIT_FAIL    
+        conn.connect(git_credentials)
+        conn.update_instructors(course)
 
-            conn.connect(git_credentials)
-            conn.update_instructors(course)
-            
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
-    
-    
+    if course.git_staging_server_connection_string is not None:
+        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
+        server_type = conn.get_server_type_name()
+        git_credentials = ctx.obj['config']['git-credentials']
+
+        if git_credentials is None:
+            print "You do not have %s credentials." % server_type
+            return CHISUBMIT_FAIL
+
+        conn.connect(git_credentials)
+        conn.update_instructors(course)
+
     return CHISUBMIT_SUCCESS
-    
+
 
 instructor.add_command(instructor_create)

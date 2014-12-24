@@ -1,0 +1,12 @@
+TODO 17JULY14: write this
+pip install flask
+pip install flask-sqlalchemy
+pip install flask-restless
+pip install python-ldap
+
+To start:
+# if necessary: ./src/chisubmit/backend/webapp/db_create.py
+./src/chisubmit/backend/webapp/run.py
+
+# for the (api client)
+pip install requests

@@ -28,18 +28,13 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-import traceback
-import datetime
-import os.path
-
 import click
+config = None
 
-from chisubmit.core import init_chisubmit, chisubmit_config
 import chisubmit.common.log as log
+from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.core.model import Course, Project, Student,\
-    ChisubmitModelException
+from chisubmit.client.course import Course
 from chisubmit.cli.course import course
 from chisubmit.cli.student import student
 from chisubmit.cli.instructor import instructor
@@ -50,28 +45,34 @@ from chisubmit.cli.shell import shell
 from chisubmit.cli.grader import grader
 from chisubmit.cli.gh import gh
 from chisubmit.cli.admin import admin
-from chisubmit.cli.gradingrepo import gradingrepo
+from chisubmit.cli.user import user
+from chisubmit.client import session
 
 SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
 
-@click.group()      
-@click.option('--config', type=str, default=None)
+@click.group()
+@click.option('--conf', type=str, default=None)
 @click.option('--dir', type=str, default=None)
 @click.option('--noop', is_flag=True)
 @click.option('--course', type=str, default=None)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--debug', is_flag=True)
-@click.version_option(version=RELEASE)              
-@click.pass_context    
-def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
+@click.version_option(version=RELEASE)
+@click.pass_context
+def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
     ctx.obj = {}
-    
-    init_chisubmit(dir, config)
+
+    config = Config(dir, conf)
     log.init_logging(verbose, debug)
 
-    if course is not None:
+    if not config['api-key']:
+        raise click.BadParameter("Sorry, can't find your chisubmit api token")
+
+    session.connect(config['api-url'], config['api-key'])
+
+    if course:
         course_specified = True
         course_id = course
         course_obj = Course.from_course_id(course)
@@ -79,17 +80,18 @@ def chisubmit_cmd(ctx, config, dir, noop, course, verbose, debug):
             raise click.BadParameter("Course '%s' does not exist" % course)
     else:
         course_specified = False
-        course_id = chisubmit_config().get_default_course()
+        course_id = config['default-course']
         if course_id is None:
             course_obj = None
         else:
             course_obj = Course.from_course_id(course_id)
 
     ctx.obj["course_specified"] = course_specified
-    ctx.obj["course_id"] = course_id
     ctx.obj["course_obj"] = course_obj
+    ctx.obj["config"] = config
 
     return 0
+
 
 chisubmit_cmd.add_command(course)
 chisubmit_cmd.add_command(project)
@@ -97,9 +99,9 @@ chisubmit_cmd.add_command(student)
 chisubmit_cmd.add_command(instructor)
 chisubmit_cmd.add_command(team)
 chisubmit_cmd.add_command(grader)
-chisubmit_cmd.add_command(gradingrepo)
 chisubmit_cmd.add_command(submit)
 chisubmit_cmd.add_command(shell)
 chisubmit_cmd.add_command(gh)
 chisubmit_cmd.add_command(admin)
+chisubmit_cmd.add_command(user)
 

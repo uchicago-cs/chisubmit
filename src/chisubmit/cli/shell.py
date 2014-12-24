@@ -31,7 +31,6 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
 from chisubmit.cli.common import pass_course
 
 
@@ -45,12 +44,11 @@ def shell(ctx, course):
         if __version__ < "1.1.0":
             print "You need IPython (>= 1.1.0) to run the chisubmit shell"
             return CHISUBMIT_FAIL
-    except ImportError, ie:
+    except ImportError:
         print "You need IPython (>= 1.1.0) to run the chisubmit shell"
         
-    try:
-        cfg = Config()
-        cfg.TerminalInteractiveShell.banner1 = """
+    cfg = Config()
+    cfg.TerminalInteractiveShell.banner1 = """
                       WELCOME TO THE CHISUBMIT SHELL
     
     Course: %s
@@ -63,14 +61,10 @@ def shell(ctx, course):
     
     """ % (course.name)
     
-        prompt_config = cfg.PromptManager
-        prompt_config.in_template = 'chisubmit> '
-        prompt_config.in2_template = '   .\\D.> '
-        prompt_config.out_template = '         > '
-        embed(config = cfg)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    prompt_config = cfg.PromptManager
+    prompt_config.in_template = 'chisubmit> '
+    prompt_config.in2_template = '   .\\D.> '
+    prompt_config.out_template = '         > '
+    embed(config = cfg)
         
     return CHISUBMIT_SUCCESS

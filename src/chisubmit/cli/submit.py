@@ -32,8 +32,8 @@ import click
 
 from chisubmit.common.utils import set_datetime_timezone_utc, convert_timezone_to_local
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException, chisubmit_config
 from chisubmit.cli.common import pass_course, save_changes
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 @click.command(name="submit")
@@ -60,20 +60,15 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
     
     extensions_requested = extensions
     
-    conn = course.get_git_server_connection()
+    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
     server_type = conn.get_server_type_name()
-    git_credentials = chisubmit_config().get_git_credentials(server_type)
+    git_credentials = ctx.obj['config']['git-credentials']
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type
         return CHISUBMIT_FAIL    
     
-    try:
-        conn.connect(git_credentials)        
-    except ChisubmitException, ce:
-        print "Unable to connect to GitHub: %s" % ce.message
-        return CHISUBMIT_FAIL
-
+    conn.connect(git_credentials)        
     commit = conn.get_commit(course, team, commit)
     
     if commit is None:

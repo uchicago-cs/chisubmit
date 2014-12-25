@@ -105,3 +105,26 @@ chisubmit_cmd.add_command(gh)
 chisubmit_cmd.add_command(admin)
 chisubmit_cmd.add_command(user)
 
+
+from chisubmit.cli.server import server_start
+
+@click.group()
+@click.option('--conf', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--verbose', '-v', is_flag=True)
+@click.option('--debug', is_flag=True)
+@click.version_option(version=RELEASE)
+@click.pass_context
+def chisubmit_server_cmd(ctx, conf, dir, verbose, debug):
+    ctx.obj = {}
+
+    config = Config(dir, conf)
+    log.init_logging(verbose, debug)
+    
+    ctx.obj["config"] = config
+    
+    return 0
+
+
+chisubmit_server_cmd.add_command(server_start)
+

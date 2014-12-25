@@ -2,6 +2,7 @@ import click
 
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
+from chisubmit.client.course import Course
 
 from functools import update_wrapper
 from chisubmit.common.utils import mkdatetime
@@ -9,11 +10,21 @@ from chisubmit.common.utils import mkdatetime
 def pass_course(f):
     @click.pass_context
     def new_func(ctx, *args, **kwargs):
-        if ctx.obj["course_obj"] is None:
-            if not ctx.obj["course_specified"]:
+        course_id = ctx.obj["course_id"]
+        course_specified = ctx.obj["course_specified"]
+
+        if course_specified:
+            course_obj = Course.from_course_id(course_id)
+        else:
+            if course_id is None:
                 raise click.UsageError("No course specified with --course and there is no default course")
             else:
-                raise click.UsageError("Unexpected error. A course has been specified with --course, but not course object has been loaded.")
+                course_obj = Course.from_course_id(course_id)
+
+        if course_obj is None:
+            raise click.BadParameter("Course '%s' does not exist" % course_id)
+
+        ctx.obj["course_obj"] = course_obj
 
         return ctx.invoke(f, ctx.obj["course_obj"], *args, **kwargs)
 

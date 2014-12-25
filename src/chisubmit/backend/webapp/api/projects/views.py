@@ -1,9 +1,9 @@
-from api import db
-from api.projects.models import Project
-from api.grades.models import GradeComponent
-from api.blueprints import api_endpoint
+from chisubmit.backend.webapp.api import db
+from chisubmit.backend.webapp.api.projects.models import Project
+from chisubmit.backend.webapp.api.grades.models import GradeComponent
+from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
-from api.projects.forms import UpdateProjectInput
+from chisubmit.backend.webapp.api.projects.forms import UpdateProjectInput
 
 
 @api_endpoint.route('/projects', methods=['GET', 'POST'])

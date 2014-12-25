@@ -5,6 +5,6 @@ import readline
 from pprint import pprint
 
 from flask import *
-from api import *
+from chisubmit.backend.webapp.api import *
 
 os.environ['PYTHONINSPECT'] = 'True'

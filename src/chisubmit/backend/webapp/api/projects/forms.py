@@ -1,7 +1,7 @@
 from wtforms import Form
 from wtforms.validators import InputRequired, Optional, Length
 from wtforms.fields import StringField, IntegerField, FormField, FieldList
-from api.forms import ISODateTimeField
+from chisubmit.backend.webapp.api.forms import ISODateTimeField
 
 
 class CreateGradeComponentInput(Form):

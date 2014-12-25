@@ -1,5 +1,5 @@
-from api.blueprints import api_endpoint
-from api.grades.models import Grade
+from chisubmit.backend.webapp.api.blueprints import api_endpoint
+from chisubmit.backend.webapp.api.grades.models import Grade
 from flask import jsonify, abort
 
 

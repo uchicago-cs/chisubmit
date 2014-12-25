@@ -1,8 +1,8 @@
 from wtforms import Form, StringField, IntegerField
 from wtforms.fields import FormField, FieldList
 from wtforms.validators import Length, InputRequired, NumberRange, Optional
-from api.projects.forms import CreateProjectInput
-from api.teams.forms import CreateTeamInput
+from chisubmit.backend.webapp.api.projects.forms import CreateProjectInput
+from chisubmit.backend.webapp.api.teams.forms import CreateTeamInput
 
 
 class AddTeamsInput(Form):

@@ -1,5 +1,5 @@
 import ldap
-from api import app
+from chisubmit.backend.webapp.api import app
 from ldap.filter import filter_format
 
 global conn

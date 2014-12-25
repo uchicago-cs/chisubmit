@@ -1,6 +1,6 @@
-from api import db
-from api.models.mixins import ExposedModel
-from api.models.json import Serializable
+from chisubmit.backend.webapp.api import db
+from chisubmit.backend.webapp.api.models.mixins import ExposedModel
+from chisubmit.backend.webapp.api.models.json import Serializable
 from sqlalchemy.ext.associationproxy import association_proxy
 
 

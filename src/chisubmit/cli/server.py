@@ -31,11 +31,13 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS
-
+from chisubmit.backend.webapp.api import app
 
 @click.command(name="start")
 @click.pass_context
 def server_start(ctx):
 
-    pass
+    app.run(debug=True)
+    
+    return CHISUBMIT_SUCCESS
 

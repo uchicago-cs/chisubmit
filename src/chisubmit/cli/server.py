@@ -28,6 +28,7 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+import sys
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS
@@ -39,6 +40,22 @@ def server_start(ctx):
     server = ChisubmitServer()
 
     server.start()
+    
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="initdb")
+@click.pass_context
+def server_initdb(ctx):
+    server = ChisubmitServer()
+
+    server.init_db()
+    admin_key = server.create_admin()
+    
+    if admin_key is not None:
+        print "Chisubmit database has been created."
+        print "The administrator's API key is %s" % admin_key
+    else:
+        print "The Chisubmit database already exists and it contains an 'admin' user"
     
     return CHISUBMIT_SUCCESS
 

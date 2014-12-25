@@ -30,6 +30,10 @@
 
 import datetime
 import pytz
+import random
+import hashlib
+import base64
+import string
 from tzlocal import get_localzone
 
 def create_subparser(subparsers, name, func):
@@ -53,3 +57,15 @@ def convert_timezone_to_local(dt):
 def mkdatetime(datetimestr):
     dt = datetime.datetime.strptime(datetimestr, '%Y-%m-%dT%H:%M')
     return set_datetime_timezone_utc(dt)
+
+# Based on http://jetfar.com/simple-api-key-generation-in-python/
+def gen_api_key():
+    s = str(random.getrandbits(256))
+    h = hashlib.sha256(s)
+    altchars = random.choice(string.ascii_letters) + random.choice(string.ascii_letters)
+    b = base64.b64encode(h.digest(), altchars).rstrip("==")
+    return b
+    
+
+    
+    

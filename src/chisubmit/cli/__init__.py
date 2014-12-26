@@ -34,7 +34,6 @@ config = None
 import chisubmit.common.log as log
 from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.client.course import Course
 from chisubmit.cli.course import course
 from chisubmit.cli.student import student
 from chisubmit.cli.instructor import instructor
@@ -48,7 +47,7 @@ from chisubmit.cli.admin import admin
 from chisubmit.cli.user import user
 from chisubmit.client import session
 
-SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
+SUBCOMMANDS_NO_COURSE = [('course','create')]
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
 
@@ -75,19 +74,12 @@ def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
     if course:
         course_specified = True
         course_id = course
-        course_obj = Course.from_course_id(course)
-        if course_obj is None:
-            raise click.BadParameter("Course '%s' does not exist" % course)
     else:
         course_specified = False
         course_id = config['default-course']
-        if course_id is None:
-            course_obj = None
-        else:
-            course_obj = Course.from_course_id(course_id)
 
     ctx.obj["course_specified"] = course_specified
-    ctx.obj["course_obj"] = course_obj
+    ctx.obj["course_id"] = course_id
     ctx.obj["config"] = config
 
     return 0
@@ -104,4 +96,28 @@ chisubmit_cmd.add_command(shell)
 chisubmit_cmd.add_command(gh)
 chisubmit_cmd.add_command(admin)
 chisubmit_cmd.add_command(user)
+
+
+from chisubmit.cli.server import server_start, server_initdb
+
+@click.group()
+@click.option('--conf', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--verbose', '-v', is_flag=True)
+@click.option('--debug', is_flag=True)
+@click.version_option(version=RELEASE)
+@click.pass_context
+def chisubmit_server_cmd(ctx, conf, dir, verbose, debug):
+    ctx.obj = {}
+
+    config = Config(dir, conf)
+    log.init_logging(verbose, debug)
+    
+    ctx.obj["config"] = config
+    
+    return 0
+
+
+chisubmit_server_cmd.add_command(server_start)
+chisubmit_server_cmd.add_command(server_initdb)
 

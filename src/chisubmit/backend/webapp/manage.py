@@ -2,7 +2,7 @@
 
 from flask.ext.script import Manager
 from flask import url_for
-from api import app
+from chisubmit.backend.webapp.api import app
 
 manager = Manager(app)
 

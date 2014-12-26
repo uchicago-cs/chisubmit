@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-from api import app
+from chisubmit.backend.webapp.api import app
 app.run(debug=True)

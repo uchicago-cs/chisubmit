@@ -1,10 +1,10 @@
 from flask import jsonify, request, abort
-from api import db
-from api.blueprints import api_endpoint
-from api.courses.models import Course, CoursesInstructors,\
+from chisubmit.backend.webapp.api import db
+from chisubmit.backend.webapp.api.blueprints import api_endpoint
+from chisubmit.backend.webapp.api.courses.models import Course, CoursesInstructors,\
     CoursesStudents, CoursesGraders
-from api.projects.models import Project
-from api.courses.forms import UpdateCourseInput, CreateCourseInput
+from chisubmit.backend.webapp.api.projects.models import Project
+from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput
 
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])

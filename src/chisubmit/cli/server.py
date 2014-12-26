@@ -28,44 +28,34 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import datetime
-import pytz
-import random
-import hashlib
-import base64
-import string
-from tzlocal import get_localzone
+import sys
+import click
 
-def create_subparser(subparsers, name, func):
-    subparser = subparsers.add_parser(name)
-    subparser.set_defaults(func=func)
+from chisubmit.common import CHISUBMIT_SUCCESS
+from chisubmit.backend.server import ChisubmitServer
 
-    return subparser
+@click.command(name="start")
+@click.pass_context
+def server_start(ctx):
+    server = ChisubmitServer()
 
-def get_datetime_now_utc():
-    return datetime.datetime.now(pytz.utc).replace(microsecond=0)
-
-def set_datetime_timezone_utc(dt):
-    return pytz.utc.localize(dt)
-
-def convert_timezone_to_local(dt):
-    tz = get_localzone()
-    if dt.tzinfo is None:
-        dt = pytz.utc.localize(dt)
-    return dt.astimezone(tz)
-
-def mkdatetime(datetimestr):
-    dt = datetime.datetime.strptime(datetimestr, '%Y-%m-%dT%H:%M')
-    return set_datetime_timezone_utc(dt)
-
-# Based on http://jetfar.com/simple-api-key-generation-in-python/
-def gen_api_key():
-    s = str(random.getrandbits(256))
-    h = hashlib.sha256(s)
-    altchars = random.choice(string.ascii_letters) + random.choice(string.ascii_letters)
-    b = base64.b64encode(h.digest(), altchars).rstrip("==")
-    return b
+    server.start()
     
+    return CHISUBMIT_SUCCESS
 
+@click.command(name="initdb")
+@click.pass_context
+def server_initdb(ctx):
+    server = ChisubmitServer()
+
+    server.init_db()
+    admin_key = server.create_admin()
     
+    if admin_key is not None:
+        print "Chisubmit database has been created."
+        print "The administrator's API key is %s" % admin_key
+    else:
+        print "The Chisubmit database already exists and it contains an 'admin' user"
     
+    return CHISUBMIT_SUCCESS
+

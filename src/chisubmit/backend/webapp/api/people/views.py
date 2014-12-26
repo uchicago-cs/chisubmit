@@ -1,10 +1,10 @@
 from flask import jsonify, request, abort
-from api import db, app
-from api.blueprints import api_endpoint
-from api.people.models import Person
-from api.people.forms import CreatePersonInput, UpdatePersonInput,\
+from chisubmit.backend.webapp.api import db, app
+from chisubmit.backend.webapp.api.blueprints import api_endpoint
+from chisubmit.backend.webapp.api.people.models import Person
+from chisubmit.backend.webapp.api.people.forms import CreatePersonInput, UpdatePersonInput,\
     GenerateAccessTokenInput
-from auth import ldapclient
+from chisubmit.backend.webapp.auth import ldapclient
 
 
 @api_endpoint.route('/people', methods=['POST'])

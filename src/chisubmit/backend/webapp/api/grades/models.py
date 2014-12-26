@@ -1,5 +1,5 @@
-from api import db
-from api.models.json import Serializable
+from chisubmit.backend.webapp.api import db
+from chisubmit.backend.webapp.api.models.json import Serializable
 
 
 class GradeComponent(Serializable, db.Model):

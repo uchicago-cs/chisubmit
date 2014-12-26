@@ -40,7 +40,8 @@ sys.path.insert(0, './src')
 from chisubmit import RELEASE
 
 
-eps = ['chisubmit = chisubmit.cli:chisubmit_cmd']
+eps = ['chisubmit = chisubmit.cli:chisubmit_cmd',
+       'chisubmit-server = chisubmit.cli:chisubmit_server_cmd [server]']
 
 setup(name='chisubmit',
       version=RELEASE,
@@ -57,8 +58,8 @@ setup(name='chisubmit',
                            "click >= 3.3", "requests >= 2.5.1" ],
       extras_require = {
                          "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
-                                     "flask-restless >= 0.15", "python-ldap >= 2.4.18",
-                                     "WTForms-JSON >= 0.2.8"] 
+                                     "flask-restless >= 0.15", "Flask-Script >= 2.0.5", 
+                                     "python-ldap >= 2.4.18", "WTForms-JSON >= 0.2.8"] 
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,

@@ -1,9 +1,9 @@
-from api import db
-from api.teams.models import Team, StudentsTeams, ProjectsTeams
-from api.grades.models import Grade
-from api.blueprints import api_endpoint
+from chisubmit.backend.webapp.api import db
+from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams, ProjectsTeams
+from chisubmit.backend.webapp.api.grades.models import Grade
+from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
-from api.teams.forms import UpdateTeamInput,\
+from chisubmit.backend.webapp.api.teams.forms import UpdateTeamInput,\
     CreateTeamInput, UpdateProjectTeamInput
 
 

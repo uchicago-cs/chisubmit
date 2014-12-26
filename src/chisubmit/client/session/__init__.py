@@ -28,44 +28,71 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from requests import exceptions, Session
+from urlparse import urlparse
+import json
 
 endpoint = None
 session = None
+test_client = None
+testing = False
 
 def connect(url, access_token):
-    global endpoint, session
+    global endpoint, session, testing
+    testing = False
     endpoint = url
     session = Session()
     session.auth = (access_token, access_token)
     session.headers = {'content-type': 'application/json'}
+    
+def connect_test(app):
+    global endpoint, test_client, testing
+    endpoint = "/api/v0/"
+    test_client = app.test_client()
+    testing = True
+    return test_client
 
 def get(resource, **kwargs):
-    response = session.get(endpoint + resource, **kwargs)
-    response.raise_for_status()
-    return response.json()
+    if testing:
+        response = test_client.get(endpoint + resource, **kwargs)
+        return json.loads(response.get_data())
+    else:    
+        response = session.get(endpoint + resource, **kwargs)
+        response.raise_for_status()
+        return response.json()
 
 def post(resource, data, **kwargs):
-    response = session.post(endpoint + resource, data, **kwargs)
-    if response.status_code == 400:
-        error_result = []
-        for noun, problem in response.json()['errors'].items():
-            error_result.append((noun, problem))
-        response.raise_for_status()
+    if testing:
+        response = test_client.post(endpoint + resource, data, **kwargs)
+        return json.loads(response.get_data())
     else:
-        response.raise_for_status()
-    return response.json()
+        response = session.post(endpoint + resource, data, **kwargs)
+        if response.status_code == 400:
+            error_result = []
+            for noun, problem in response.json()['errors'].items():
+                error_result.append((noun, problem))
+            response.raise_for_status()
+        else:
+            response.raise_for_status()
+        return response.json()
 
 def put(resource, data, **kwargs):
-    response = session.put(endpoint + resource, data, **kwargs)
-    response.raise_for_status()
-    return response.json()
+    if testing:
+        response = test_client.put(endpoint + resource, **kwargs)
+        return json.loads(response.get_data())
+    else:
+        response = session.put(endpoint + resource, data, **kwargs)
+        response.raise_for_status()
+        return response.json()
 
 def exists(obj):
     if isinstance(obj, (str, unicode)):
         obj_endpoint = obj
     else:
         obj_endpoint = obj.url()
-    response = session.get(endpoint + obj_endpoint)
+    if testing:
+        response = test_client.get(endpoint + obj_endpoint)
+    else:
+        response = session.get(endpoint + obj_endpoint)
     if response.status_code == 404:
         return False
     return True

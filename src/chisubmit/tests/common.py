@@ -12,6 +12,7 @@ def setUp(obj):
     obj.server.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///' + obj.db_filename
     obj.server.app.config["TESTING"] = True
     obj.server.init_db()
+    obj.server.create_admin(api_key="admin")
     obj.test_client = session.connect_test(obj.server.app)        
     
 def tearDown(obj):
@@ -26,7 +27,7 @@ class BaseChisubmitTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
         
     def get(self, resource):
-        return self.test_client.get(self.API_PREFIX + resource)
+        return self.test_client.get(self.API_PREFIX + resource, headers = {"CHISUBMIT-API-KEY":"admin"})
     
 class ChisubmitTestCase(BaseChisubmitTestCase):
         
@@ -48,12 +49,6 @@ class ChisubmitMultiTestCase(BaseChisubmitTestCase):
         tearDown(cls)      
     
 def example_fixture_1(db):
-    admin = Person(first_name="Administrator", 
-                   last_name="Administrator", 
-                   id="admin",
-                   api_key="admin", 
-                   admin=1)    
-    
     instructor = Person(first_name="Joe", 
                         last_name="Instructor", 
                         id="jinstr",
@@ -63,7 +58,6 @@ def example_fixture_1(db):
                     name = "Introduction to Software Testing",
                     extensions = 0)
     
-    db.session.add(admin)
     db.session.add(instructor)
     db.session.add(course)
     db.session.commit()

@@ -6,19 +6,9 @@ import os
 from chisubmit.backend.webapp.api.people.models import Person
 from chisubmit.backend.webapp.api.courses.models import Course,\
     CoursesInstructors
+from sqlalchemy.orm.scoping import scoped_session
+from sqlalchemy.orm.session import sessionmaker
 
-def setUp(obj):
-    obj.server = ChisubmitServer()
-    obj.db_fd, obj.db_filename = tempfile.mkstemp()
-    obj.server.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///' + obj.db_filename
-    obj.server.app.config["TESTING"] = True
-    obj.server.init_db()
-    obj.server.create_admin(api_key="admin")
-            
-    
-def tearDown(obj):
-    os.close(obj.db_fd)
-    os.unlink(obj.db_filename)
 
 class ChisubmitTestClient(object):
     
@@ -41,6 +31,18 @@ class ChisubmitTestClient(object):
 
 class BaseChisubmitTestCase(unittest.TestCase):
     
+    @classmethod
+    def setUpClass(cls):
+        cls.server = ChisubmitServer()
+        cls.db_fd, cls.db_filename = tempfile.mkstemp()
+        cls.server.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///' + cls.db_filename
+        cls.server.app.config["TESTING"] = True
+
+    @classmethod
+    def tearDownClass(cls):
+        os.close(cls.db_fd)
+        os.unlink(cls.db_filename)
+    
     def get_admin_test_client(self):
         return ChisubmitTestClient(self.server.app, "admin", "admin")
     
@@ -57,21 +59,27 @@ class BaseChisubmitTestCase(unittest.TestCase):
 class ChisubmitTestCase(BaseChisubmitTestCase):
         
     def setUp(self):
-        setUp(self)
+        self.server.init_db()
+        self.server.create_admin(api_key="admin")
         
     def tearDown(self):
-        tearDown(self)        
+        self.server.db.session.remove()
+        self.server.db.drop_all()
     
 
 class ChisubmitMultiTestCase(BaseChisubmitTestCase):
         
     @classmethod
     def setUpClass(cls):
-        setUp(cls)
+        super(ChisubmitMultiTestCase, cls).setUpClass()
+        cls.server.init_db()
+        cls.server.create_admin(api_key="admin")
 
     @classmethod
     def tearDownClass(cls):
-        tearDown(cls)      
+        cls.server.db.session.remove()
+        cls.server.db.drop_all()
+        super(ChisubmitMultiTestCase, cls).tearDownClass()
     
 def example_fixture_1(db):
     instructor1 = Person(first_name="Joe", 
@@ -100,10 +108,11 @@ def example_fixture_1(db):
     
     db.session.add(CoursesInstructors(instructor_id = instructor1.id, course_id=course1.id))
     db.session.add(CoursesInstructors(instructor_id = instructor2.id, course_id=course2.id))
-    
+
+    db.session.expunge_all()
     db.session.commit()
     
-    return [instructor1, instructor2], [course1, course2]
+    return [course1, course2]
     
     
     

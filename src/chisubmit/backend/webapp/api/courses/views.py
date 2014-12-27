@@ -6,16 +6,22 @@ from chisubmit.backend.webapp.api.courses.models import Course, CoursesInstructo
 from chisubmit.backend.webapp.api.projects.models import Project
 from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput
 from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
+from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
+    check_admin_access_or_abort
 
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
 @require_apikey
 def courses():
     if request.method == 'GET':
+        # TODO: SQLAlchemy-fy this
+        courses = Course.query.all()
+        courses = [c for c in courses if g.user.is_in_course(c)]
         return jsonify(
             courses=[course.to_dict()
-                     for course in Course.query.all()])
+                     for course in courses])
+
+    check_admin_access_or_abort(g.user)
 
     input_data = request.get_json(force=True)
     if not isinstance(input_data, dict):
@@ -37,7 +43,6 @@ def courses():
 @require_apikey
 def course(course_id):
     course = Course.query.filter_by(id=course_id).first()
-    # TODO 11DEC14: check permissions *before* 404
     if course is None:
         abort(404)
 
@@ -91,6 +96,12 @@ def course(course_id):
                     methods=['GET'])
 @require_apikey
 def course_student(course_id, student_id):
+    course = Course.query.filter_by(id=course_id).first()
+    if course is None:
+        abort(404)
+
+    check_course_access_or_abort(g.user, course, 404, roles=["instructor","grader"])    
+    
     course_student = CoursesStudents.query.filter_by(
         course_id=course_id).filter_by(
         student_id=student_id).first()

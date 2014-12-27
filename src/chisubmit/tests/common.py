@@ -50,7 +50,7 @@ class BaseChisubmitTestCase(unittest.TestCase):
         if person is None:
             return ChisubmitTestClient(self.server.app, "anonymous", None)
         else:
-            return ChisubmitTestClient(self.server.app, person.id, person.api_key)
+            return ChisubmitTestClient(self.server.app, person["id"], person["api_key"])
         
     def assert_http_code(self, response, expected):
         self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
@@ -81,38 +81,54 @@ class ChisubmitMultiTestCase(BaseChisubmitTestCase):
         cls.server.db.drop_all()
         super(ChisubmitMultiTestCase, cls).tearDownClass()
     
-def example_fixture_1(db):
-    instructor1 = Person(first_name="Joe", 
-                         last_name="Instructor", 
-                         id="jinstr",
-                         api_key="jinstr")
-
-    instructor2 = Person(first_name="Sam", 
-                         last_name="Instructor", 
-                         id="sinstr",
-                         api_key="sinstr")
+fixture1 = { "persons": { "jinstr": {"first_name": "Joe",
+                                     "last_name": "Instructor",
+                                     "id": "jinstr",
+                                     "api_key": "jinstr"},
+                         
+                          "sinstr": {"first_name": "Sam",
+                                     "last_name": "Instructor",
+                                     "id": "sinstr",
+                                     "api_key": "sinstr"},
+                        },
+             "courses": { "cmsc40100": {"id": "cmsc40100",
+                                        "name": "Introduction to Software Testing",
+                                        "extensions": 0,
+                                        "instructors": ["jinstr"]},
+                          "cmsc40110": {"id": "cmsc40110",
+                                        "name": "Advanced Software Testing",
+                                        "extensions": 0,
+                                        "instructors": ["sinstr"]}
+                        }
+            }
+ 
     
-    course1 = Course(id = "cmsc40100",
-                     name = "Introduction to Software Testing",
-                     extensions = 0)
-
-    course2 = Course(id = "cmsc40110",
-                     name = "Advanced Software Testing",
-                     extensions = 0)
-
+def load_fixture(db, fixture):
     
-    db.session.add(instructor1)
-    db.session.add(instructor2)
-    db.session.add(course1)
-    db.session.add(course2)
+    person_objs = {}
     
-    db.session.add(CoursesInstructors(instructor_id = instructor1.id, course_id=course1.id))
-    db.session.add(CoursesInstructors(instructor_id = instructor2.id, course_id=course2.id))
+    for p_id, person in fixture["persons"].items():
+        p = Person(first_name=person["first_name"], 
+                   last_name=person["last_name"], 
+                   id=person["id"],
+                   api_key=person["api_key"])
+        
+        person_objs[p_id] = p
+        db.session.add(p)
 
-    db.session.expunge_all()
+    for c_id, course in fixture["courses"].items():
+        c = Course(id = course["id"],
+                   name = course["name"],
+                   extensions = course["extensions"])
+        
+        db.session.add(c)
+        
+        for instructor in course["instructors"]:
+            o = person_objs[instructor]
+            db.session.add(CoursesInstructors(instructor_id = o.id, 
+                                              course_id     = c.id))
+    
     db.session.commit()
-    
-    return [course1, course2]
-    
+        
     
     

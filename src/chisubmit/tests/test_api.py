@@ -5,7 +5,9 @@ import json
 class Courses(ChisubmitTestCase):
     
     def test_get_courses(self):
-        response = self.get("courses")
+        c = self.get_admin_test_client()
+        
+        response = c.get("courses")
         self.assert_http_code(response, 200)
         
         data = json.loads(response.get_data())        
@@ -18,14 +20,27 @@ class CompleteCourse(ChisubmitMultiTestCase):
     @classmethod
     def setUpClass(cls):
         super(CompleteCourse, cls).setUpClass()
-        example_fixture_1(cls.server.db)
+        instructors, courses = example_fixture_1(cls.server.db)
         
-    def test_get_course(self):
-        response = self.get("courses")
+        cls.instructors = instructors
+        cls.courses = courses
+        
+    def test_get_courses(self):
+        ci1 = self.get_test_client(self.instructors[0])
+        response = ci1.get("courses")
         self.assert_http_code(response, 200)
         
         data = json.loads(response.get_data())        
         self.assertIn("courses", data)
-        self.assertEquals(len(data["courses"]), 1)
+        self.assertEquals(len(data["courses"]), 2)
+                
+    def test_get_course(self):
+        ci1 = self.get_test_client(self.instructors[0])
+        response = ci1.get("courses/" + self.courses[0].id)
+        self.assert_http_code(response, 200)
         
+        data = json.loads(response.get_data())        
+        self.assertIn("course", data)
+        self.assertEquals(data["course"]["name"], self.courses[0].name)
+    
                 

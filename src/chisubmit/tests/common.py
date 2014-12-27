@@ -23,7 +23,7 @@ class ChisubmitTestClient(object):
         else:
             self.headers = None
             
-        self.test_client = session.connect_test(app)
+        self.test_client = session.connect_test(app, api_key)
 
     def get(self, resource):
         return self.test_client.get(self.API_PREFIX + resource, headers = self.headers)

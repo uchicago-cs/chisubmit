@@ -35,25 +35,29 @@ endpoint = None
 session = None
 test_client = None
 testing = False
+headers = None
 
 def connect(url, access_token):
     global endpoint, session, testing
     testing = False
     endpoint = url
     session = Session()
-    session.auth = (access_token, access_token)
-    session.headers = {'content-type': 'application/json'}
+    session.headers = {'content-type': 'application/json',
+                       "CHISUBMIT-API-KEY": access_token}
     
-def connect_test(app):
-    global endpoint, test_client, testing
+def connect_test(app, access_token = None):
+    global endpoint, test_client, testing, headers
     endpoint = "/api/v0/"
     test_client = app.test_client()
     testing = True
+    headers = {'content-type': 'application/json'}
+    if access_token is not None:
+        headers["CHISUBMIT-API-KEY"] = access_token
     return test_client
 
 def get(resource, **kwargs):
     if testing:
-        response = test_client.get(endpoint + resource, **kwargs)
+        response = test_client.get(endpoint + resource, headers=headers, **kwargs)
         return json.loads(response.get_data())
     else:    
         response = session.get(endpoint + resource, **kwargs)
@@ -62,7 +66,7 @@ def get(resource, **kwargs):
 
 def post(resource, data, **kwargs):
     if testing:
-        response = test_client.post(endpoint + resource, data, **kwargs)
+        response = test_client.post(endpoint + resource, data, headers=headers, **kwargs)
         return json.loads(response.get_data())
     else:
         response = session.post(endpoint + resource, data, **kwargs)
@@ -77,7 +81,7 @@ def post(resource, data, **kwargs):
 
 def put(resource, data, **kwargs):
     if testing:
-        response = test_client.put(endpoint + resource, **kwargs)
+        response = test_client.put(endpoint + resource, headers=headers, **kwargs)
         return json.loads(response.get_data())
     else:
         response = session.put(endpoint + resource, data, **kwargs)
@@ -90,7 +94,7 @@ def exists(obj):
     else:
         obj_endpoint = obj.url()
     if testing:
-        response = test_client.get(endpoint + obj_endpoint)
+        response = test_client.get(endpoint + obj_endpoint,  headers=headers)
     else:
         response = session.get(endpoint + obj_endpoint)
     if response.status_code == 404:

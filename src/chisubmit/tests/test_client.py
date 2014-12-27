@@ -11,8 +11,10 @@ class CompleteCourse(ChisubmitMultiTestCase):
         load_fixture(cls.server.db, fixture1)
         
     def test_get_course(self):
-        pass
-        #c = Course.from_course_id("cmsc40100")
-        #self.assertEquals(c.name, "Introduction to Software Testing")
+        
+        self.get_test_client({"id":"admin", "api_key":"admin"})
+        
+        course = Course.from_course_id("cmsc40100")
+        self.assertEquals(course.name, "Introduction to Software Testing")
         
                 

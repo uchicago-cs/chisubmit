@@ -23,3 +23,15 @@ class Person(UniqueModel, Serializable, db.Model):
     @classmethod
     def unique_filter(cls, query, **kws):
         return query.filter(Person.id == kws['id'])
+    
+    def is_instructor_in(self, course):
+        return self in course.instructors        
+
+    def is_student_in(self, course):
+        return self in course.students        
+
+    def is_grader_in(self, course):
+        return self in course.graders        
+
+    def is_in_course(self, course):
+        return self.is_instructor_in(course) or self.is_student_in(course) or self.is_grader_in(course)

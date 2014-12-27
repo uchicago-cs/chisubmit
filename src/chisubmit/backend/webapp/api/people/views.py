@@ -5,12 +5,14 @@ from chisubmit.backend.webapp.api.people.models import Person
 from chisubmit.backend.webapp.api.people.forms import CreatePersonInput, UpdatePersonInput,\
     GenerateAccessTokenInput
 from chisubmit.backend.webapp.auth import ldapclient
+from chisubmit.backend.webapp.auth.token import require_apikey
 
 
 @api_endpoint.route('/people', methods=['POST'])
 @api_endpoint.route('/instructors', methods=['POST'])
 @api_endpoint.route('/students', methods=['POST'])
 @api_endpoint.route('/graders', methods=['POST'])
+@require_apikey
 def people():
     input_data = request.get_json(force=True)
     if not isinstance(input_data, dict):
@@ -29,6 +31,7 @@ def people():
 
 
 @api_endpoint.route('/graders/<person_id>', methods=['GET'])
+@require_apikey
 def grader(person_id):
     person = Person.query.filter_by(id=person_id).first()
     # TODO 11DEC14: check permissions *before* 404
@@ -39,6 +42,7 @@ def grader(person_id):
 
 
 @api_endpoint.route('/people/<person_id>', methods=['PUT', 'GET'])
+@require_apikey
 def person(person_id):
     person = Person.query.filter_by(id=person_id).first()
     # TODO 11DEC14: check permissions *before* 404

@@ -6,6 +6,7 @@ from chisubmit.backend.webapp.api.courses.models import Course, CoursesInstructo
 from chisubmit.backend.webapp.api.projects.models import Project
 from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput
 from chisubmit.backend.webapp.auth.token import require_apikey
+from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
 
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
@@ -33,11 +34,14 @@ def courses():
 
 
 @api_endpoint.route('/courses/<course_id>', methods=['PUT', 'GET'])
+@require_apikey
 def course(course_id):
     course = Course.query.filter_by(id=course_id).first()
     # TODO 11DEC14: check permissions *before* 404
     if course is None:
         abort(404)
+
+    check_course_access_or_abort(g.user, course, 404)
 
     if request.method == 'PUT':
         input_data = request.get_json(force=True)
@@ -85,6 +89,7 @@ def course(course_id):
 
 @api_endpoint.route('/courses/<course_id>/students/<student_id>',
                     methods=['GET'])
+@require_apikey
 def course_student(course_id, student_id):
     course_student = CoursesStudents.query.filter_by(
         course_id=course_id).filter_by(

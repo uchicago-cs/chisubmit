@@ -5,9 +5,11 @@ from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.teams.forms import UpdateTeamInput,\
     CreateTeamInput, UpdateProjectTeamInput
+from chisubmit.backend.webapp.auth.token import require_apikey
 
 
 @api_endpoint.route('/teams', methods=['GET', 'POST'])
+@require_apikey
 def teams():
     if request.method == 'GET':
         return jsonify(teams=[team.to_dict() for team in Team.query.all()])
@@ -29,6 +31,7 @@ def teams():
 
 
 @api_endpoint.route('/teams/<team_id>', methods=['GET', 'PUT'])
+@require_apikey
 def team(team_id):
     team = Team.query.filter_by(id=team_id).first()
     if team is None:
@@ -72,6 +75,7 @@ def team(team_id):
 
 @api_endpoint.route('/teams/<team_id>/projects/<project_id>',
                     methods=['GET', 'PUT'])
+@require_apikey
 def projects_teams(team_id, project_id):
         project_team = ProjectsTeams.query.filter_by(
             team_id=team_id).filter_by(
@@ -103,6 +107,7 @@ def projects_teams(team_id, project_id):
 
 
 @api_endpoint.route('/project_teams/<project_team_id>', methods=['GET', 'PUT'])
+@require_apikey
 def direct_projects_teams(project_team_id):
         project_team = ProjectsTeams.query.filter_by(
             id=project_team_id).first()

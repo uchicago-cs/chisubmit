@@ -4,9 +4,11 @@ from chisubmit.backend.webapp.api.grades.models import GradeComponent
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.projects.forms import UpdateProjectInput
+from chisubmit.backend.webapp.auth.token import require_apikey
 
 
 @api_endpoint.route('/projects', methods=['GET', 'POST'])
+@require_apikey
 def projects_index():
     if request.method == 'GET':
         return jsonify(projects=[project.to_dict()
@@ -21,6 +23,7 @@ def projects_index():
 
 
 @api_endpoint.route('/projects/<project_id>', methods=['PUT', 'GET'])
+@require_apikey
 def project(project_id):
     project = Project.query.filter_by(id=project_id).first()
     # TODO 12DEC14: check permissions *before* 404
@@ -50,6 +53,7 @@ def project(project_id):
 
 @api_endpoint.route('/projects/<project_id>/'
                     'grade_components/<grade_component_id>', methods=['GET'])
+@require_apikey
 def grade_component_project(project_id, grade_component_id):
         grade_component = GradeComponent.query.filter_by(
             project_id=project_id).filter_by(

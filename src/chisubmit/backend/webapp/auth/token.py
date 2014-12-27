@@ -9,7 +9,7 @@ def require_apikey(view_function):
     # the new, post-decoration function. Note *args and **kwargs here.
     def decorated_function(*args, **kwargs):
         api_key_param = request.args.get('api-key')
-        api_key_header = request.headers["CHISUBMIT-API-KEY"]
+        api_key_header = request.headers.get("CHISUBMIT-API-KEY")
         
         if api_key_param is None and api_key_header is None:
             api_key = None

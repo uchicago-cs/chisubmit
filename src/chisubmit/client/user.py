@@ -29,14 +29,34 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.client.base import ApiObject
-from chisubmit.client.person import Person
 from chisubmit.client import session
 import json
 
-class User(Person, ApiObject):
+class User(ApiObject):
 
+    _api_attrs = ('id', 'first_name', 'last_name', 'email')
+    _primary_key = 'id'
+    _singularize = 'user'
+    _pluralize = 'users'
+    _course_qualified = False
+
+    def save(self):
+        if not session.exists(self):
+            super(User, self).save()
+            
     # TODO 18DEC14: handle revoking and/or replacing the token
     @classmethod
     def get_token(cls, username, password, reset=False):
         data = json.dumps({'password':password, reset:reset})
-        session.post('users/%s/token' % username, data=data)
+        session.post('users/%s/token' % username, data=data)            
+
+class Student(User):
+    _course_qualified = True
+
+class Grader(User):
+    _course_qualified = True
+
+class Instructor(User):
+    _course_qualified = True
+
+    _has_many = ('students', 'projects')   

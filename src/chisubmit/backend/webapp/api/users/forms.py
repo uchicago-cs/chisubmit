@@ -4,7 +4,7 @@ from wtforms.validators import InputRequired, Optional,\
 from wtforms.fields import StringField, BooleanField
 
 
-class CreatePersonInput(Form):
+class CreateUserInput(Form):
     id = StringField(validators=[Length(max=36), InputRequired()])
     first_name = StringField(validators=[Length(max=36), InputRequired()])
     last_name = StringField('last_name',
@@ -20,7 +20,7 @@ class CreatePersonInput(Form):
                                                     Optional()])
 
 
-class UpdatePersonInput(Form):
+class UpdateUserInput(Form):
     first_name = StringField(validators=[Length(max=36), InputRequired()])
     last_name = StringField('last_name',
                             validators=[Length(max=36, min=5),

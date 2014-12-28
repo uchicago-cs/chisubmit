@@ -3,17 +3,15 @@ from chisubmit.backend.webapp.api.models.mixins import UniqueModel
 from chisubmit.backend.webapp.api.models.json import Serializable
 
 
-class Person(UniqueModel, Serializable, db.Model):
-    __tablename__ = 'people'
+class User(UniqueModel, Serializable, db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Unicode, primary_key=True)
     first_name = db.Column(db.Unicode)
     last_name = db.Column(db.Unicode)
     email = db.Column(db.Unicode)
     api_key = db.Column(db.Unicode)
     admin = db.Column('admin', db.Boolean, server_default='0', nullable=False)
-    git_server_id = db.Column(db.Unicode)
-    default_fields = ['id', 'first_name', 'last_name',
-                      'email', 'git_server_id', 'git_staging_server_id']
+    default_fields = ['id', 'first_name', 'last_name', 'email']
     readonly_fields = ['id']
 
     @classmethod
@@ -22,7 +20,7 @@ class Person(UniqueModel, Serializable, db.Model):
 
     @classmethod
     def unique_filter(cls, query, **kws):
-        return query.filter(Person.id == kws['id'])
+        return query.filter(User.id == kws['id'])
     
     def is_instructor_in(self, course):
         return self in course.instructors        

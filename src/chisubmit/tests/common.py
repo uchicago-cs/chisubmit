@@ -3,7 +3,7 @@ from chisubmit.backend.server import ChisubmitServer
 import chisubmit.client.session as session
 import tempfile
 import os
-from chisubmit.backend.webapp.api.people.models import Person
+from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.courses.models import Course,\
     CoursesInstructors
 from sqlalchemy.orm.scoping import scoped_session
@@ -46,11 +46,11 @@ class BaseChisubmitTestCase(unittest.TestCase):
     def get_admin_test_client(self):
         return ChisubmitTestClient(self.server.app, "admin", "admin")
     
-    def get_test_client(self, person = None):
-        if person is None:
+    def get_test_client(self, user = None):
+        if user is None:
             return ChisubmitTestClient(self.server.app, "anonymous", None)
         else:
-            return ChisubmitTestClient(self.server.app, person["id"], person["api_key"])
+            return ChisubmitTestClient(self.server.app, user["id"], user["api_key"])
         
     def assert_http_code(self, response, expected):
         self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
@@ -81,15 +81,15 @@ class ChisubmitMultiTestCase(BaseChisubmitTestCase):
         cls.server.db.drop_all()
         super(ChisubmitMultiTestCase, cls).tearDownClass()
     
-fixture1 = { "persons": { "jinstr": {"first_name": "Joe",
-                                     "last_name": "Instructor",
-                                     "id": "jinstr",
-                                     "api_key": "jinstr"},
+fixture1 = { "users": { "jinstr": {"first_name": "Joe",
+                                    "last_name": "Instructor",
+                                    "id": "jinstr",
+                                    "api_key": "jinstr"},
                          
-                          "sinstr": {"first_name": "Sam",
-                                     "last_name": "Instructor",
-                                     "id": "sinstr",
-                                     "api_key": "sinstr"},
+                         "sinstr": {"first_name": "Sam",
+                                    "last_name": "Instructor",
+                                    "id": "sinstr",
+                                    "api_key": "sinstr"},
                         },
              "courses": { "cmsc40100": {"id": "cmsc40100",
                                         "name": "Introduction to Software Testing",
@@ -105,16 +105,16 @@ fixture1 = { "persons": { "jinstr": {"first_name": "Joe",
     
 def load_fixture(db, fixture):
     
-    person_objs = {}
+    user_objs = {}
     
-    for p_id, person in fixture["persons"].items():
-        p = Person(first_name=person["first_name"], 
-                   last_name=person["last_name"], 
-                   id=person["id"],
-                   api_key=person["api_key"])
+    for u_id, user in fixture["users"].items():
+        u = User(first_name=user["first_name"], 
+                   last_name=user["last_name"], 
+                   id=user["id"],
+                   api_key=user["api_key"])
         
-        person_objs[p_id] = p
-        db.session.add(p)
+        user_objs[u_id] = u
+        db.session.add(u)
 
     for c_id, course in fixture["courses"].items():
         c = Course(id = course["id"],
@@ -124,7 +124,7 @@ def load_fixture(db, fixture):
         db.session.add(c)
         
         for instructor in course["instructors"]:
-            o = person_objs[instructor]
+            o = user_objs[instructor]
             db.session.add(CoursesInstructors(instructor_id = o.id, 
                                               course_id     = c.id))
     

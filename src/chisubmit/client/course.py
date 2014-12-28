@@ -31,9 +31,9 @@
 
 import re
 import json
-from chisubmit.client.person import Grader
-from chisubmit.client.person import Instructor
-from chisubmit.client.person import Student
+from chisubmit.client.user import Grader
+from chisubmit.client.user import Instructor
+from chisubmit.client.user import Student
 from chisubmit.client.project import Project
 from chisubmit.client.team import Team
 from chisubmit.client import session

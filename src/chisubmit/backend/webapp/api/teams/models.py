@@ -31,7 +31,7 @@ class StudentsTeams(Serializable, db.Model):
     status = db.Column(db.Integer, nullable=False, server_default='0')
     student_id = db.Column('student_id',
                            db.Unicode,
-                           db.ForeignKey('people.id'),
+                           db.ForeignKey('users.id'),
                            primary_key=True)
     team_id = db.Column('team_id',
                         db.Integer,
@@ -39,7 +39,7 @@ class StudentsTeams(Serializable, db.Model):
     course_id = db.Column('course_id', 
                           db.Integer, 
                           primary_key=True)
-    student = db.relationship("Person")
+    student = db.relationship("User")
     default_fields = ['status', 'student']
     readonly_fields = ['student', 'team']
     team = db.relationship("Team",
@@ -60,7 +60,7 @@ class ProjectsTeams(Serializable, db.Model):
                            db.Integer)
     grader_id = db.Column('grader_id',
                           db.Integer,
-                          db.ForeignKey('people.id'))
+                          db.ForeignKey('users.id'))
     team_id = db.Column('team_id',
                         db.Unicode)
     course_id = db.Column('course_id', 
@@ -69,7 +69,7 @@ class ProjectsTeams(Serializable, db.Model):
                            backref=db.backref("projects_teams",
                                               cascade="all, delete-orphan"))
     project = db.relationship("Project")
-    grader = db.relationship("Person")
+    grader = db.relationship("User")
     default_fields = ['id', 'extensions_used', 'project_id',
                       'grader_id', 'team_id', 'grades']
     readonly_fields = ['team', 'grader', 'grades']

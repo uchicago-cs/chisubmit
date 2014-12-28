@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import request, abort, g
-from chisubmit.backend.webapp.api.people.models import Person
+from chisubmit.backend.webapp.api.users.models import User
 
 
 def require_admin_access(view_function):
@@ -15,51 +15,51 @@ def require_admin_access(view_function):
 
     return decorated_function
 
-def check_roles(person, course, roles):
+def check_roles(user, course, roles):
     if roles is None:
         return True
     else:
-        if "student" in roles and person.is_student_in(course):
+        if "student" in roles and user.is_student_in(course):
             return True
-        elif "instructor" in roles and person.is_instructor_in(course):
+        elif "instructor" in roles and user.is_instructor_in(course):
             return True
-        elif "grader" in roles and person.is_grader_in(course):
+        elif "grader" in roles and user.is_grader_in(course):
             return True
         else:
             return False
         
 
-def check_admin_access_or_abort(person, status_code):
-    if person.admin:
+def check_admin_access_or_abort(user, status_code):
+    if user.admin:
         return
     else:
         abort(status_code)
 
-def check_course_access_or_abort(person, course, status_code, roles = None):
-    if person.admin:
+def check_course_access_or_abort(user, course, status_code, roles = None):
+    if user.admin:
         return
     
-    if not check_roles(person, course, roles):
+    if not check_roles(user, course, roles):
         abort(status_code)
     
-    if person.is_in_course(course):
+    if user.is_in_course(course):
         return
     else:
         abort(status_code)
         
-def check_team_access_or_abort(person, team, status_code, roles = None):
-    if person.admin:
+def check_team_access_or_abort(user, team, status_code, roles = None):
+    if user.admin:
         return
     
     course = team.course
 
-    if not check_roles(person, course, roles):
+    if not check_roles(user, course, roles):
         abort(status_code)
     
-    if person.is_in_course(course):
-        if person.is_instructor_in(course) or person.is_grader_in(course):
+    if user.is_in_course(course):
+        if user.is_instructor_in(course) or user.is_grader_in(course):
             return
-        elif person.is_student_in(course) and person in team.students:
+        elif user.is_student_in(course) and user in team.students:
             return
         else:
             abort(status_code)

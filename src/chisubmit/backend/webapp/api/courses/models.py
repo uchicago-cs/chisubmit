@@ -10,11 +10,11 @@ class CoursesGraders(Serializable, db.Model):
     git_staging_server_id = db.Column(db.Unicode)
     grader_id = db.Column('grader_id',
                           db.Unicode,
-                          db.ForeignKey('people.id'), primary_key=True)
+                          db.ForeignKey('users.id'), primary_key=True)
     course_id = db.Column('course_id',
                           db.Integer,
                           db.ForeignKey('courses.id'), primary_key=True)
-    grader = db.relationship("Person")
+    grader = db.relationship("User")
     default_fields = ['course_id', 'grader_id']
     course = db.relationship("Course",
                              backref=db.backref("courses_graders",
@@ -28,13 +28,13 @@ class CoursesStudents(Serializable, db.Model):
                         nullable=False)
     student_id = db.Column('student_id',
                            db.Unicode,
-                           db.ForeignKey('people.id'),
+                           db.ForeignKey('users.id'),
                            primary_key=True)
     course_id = db.Column('course_id',
                           db.Integer,
                           db.ForeignKey('courses.id'),
                           primary_key=True)
-    student = db.relationship("Person")
+    student = db.relationship("User")
     default_fields = ['course_id', 'student_id']
     course = db.relationship("Course",
                              backref=db.backref("courses_students",
@@ -47,13 +47,13 @@ class CoursesInstructors(Serializable, db.Model):
     git_staging_server_id = db.Column(db.Unicode)
     instructor_id = db.Column('instructor_id',
                               db.Unicode,
-                              db.ForeignKey('people.id'),
+                              db.ForeignKey('users.id'),
                               primary_key=True)
     course_id = db.Column('course_id',
                           db.Integer,
                           db.ForeignKey('courses.id'),
                           primary_key=True)
-    instructor = db.relationship("Person")
+    instructor = db.relationship("User")
     default_fields = ['instructor']
     course = db.relationship("Course",
                              backref=db.backref("courses_instructors",

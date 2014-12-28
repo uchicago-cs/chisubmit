@@ -1,6 +1,6 @@
 from chisubmit.backend.webapp.api import app, db
 from chisubmit.backend.webapp.manage import manager
-from chisubmit.backend.webapp.api.people.models import Person
+from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.common import ChisubmitException
 from chisubmit.common.utils import gen_api_key
 
@@ -18,7 +18,7 @@ class ChisubmitServer(object):
         self.db.create_all()
 
     def create_admin(self, api_key=None):
-        admin = Person.query.filter_by(id="admin").first()
+        admin = User.query.filter_by(id="admin").first()
         
         if admin is not None:
             return None
@@ -26,7 +26,7 @@ class ChisubmitServer(object):
         if api_key is None:
             api_key = gen_api_key()
             
-        admin = Person(first_name="Administrator", 
+        admin = User(first_name="Administrator", 
                        last_name="Administrator", 
                        id="admin",
                        api_key=api_key, 

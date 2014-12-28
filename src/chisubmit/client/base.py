@@ -58,18 +58,21 @@ class ApiObject(object):
 
     def __getattr__(self, name):
         class_attrs = self.__class__.__dict__
+
         if name == 'singularize':
             if '_singularize' in class_attrs:
-              return class_attrs['_singularize']
+                return class_attrs['_singularize']
             return re.sub('(?!^)([A-Z]+)', r'_\1', self.__class__.__name__).lower()
         if name == 'pluralize':
             if '_pluralize' in class_attrs:
-              return class_attrs['_pluralize']
+                return class_attrs['_pluralize']
             return self.singularize() + 's'
         elif name == 'identifier':
             if '_primary_key' in class_attrs:
-                return class_attrs['_primary_key']
-            return self.singularize() + '_id'
+                id_field = class_attrs['_primary_key']
+            else:
+                id_field = self.singularize() + '_id'
+            return getattr(self, id_field, None)
         elif '_updatable_attributes' in class_attrs and name in class_attrs['_updatable_attributes']:
             if name in self._json_response:
                 return self._json_response[name]
@@ -93,7 +96,7 @@ class ApiObject(object):
                     if cls == subclass.__name__:
                         c = subclass
                 if not c:
-                  raise NameError
+                    raise NameError
                 item_from_uri = \
                     c.from_json(item)
                 results.append(item_from_uri)
@@ -105,9 +108,9 @@ class ApiObject(object):
     def register_subclass(klass, cls):
         klass._subclasses.append(cls)
 
-    def url(cls):
-      i = cls.identifier
-      return '%s/%s' % (cls.pluralize(), cls.singularize())
+    def url(self):
+        i = self.identifier
+        return '%s/%s' % (self.pluralize(), i)
 
     @classmethod
     def pluralize(cls):

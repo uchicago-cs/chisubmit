@@ -27,7 +27,7 @@ class CompleteCourse(ChisubmitMultiTestCase):
     def test_get_courses(self):        
         for course in fixture1["courses"].values():
             for instructor in course["instructors"]:
-                c = self.get_test_client(fixture1["persons"][instructor])
+                c = self.get_test_client(fixture1["users"][instructor])
                 response = c.get("courses")
                 self.assert_http_code(response, 200)
          
@@ -41,7 +41,7 @@ class CompleteCourse(ChisubmitMultiTestCase):
     def test_get_course(self):
         for course in fixture1["courses"].values():
             for instructor in course["instructors"]:
-                c = self.get_test_client(fixture1["persons"][instructor])
+                c = self.get_test_client(fixture1["users"][instructor])
                 response = c.get("courses/" + course["id"])
                 self.assert_http_code(response, 200)
                 data = json.loads(response.get_data())        
@@ -52,7 +52,7 @@ class CompleteCourse(ChisubmitMultiTestCase):
             for course2 in fixture1["courses"].values():
                 if course1 != course2:
                     for instructor in course1["instructors"]:    
-                        c = self.get_test_client(fixture1["persons"][instructor])
+                        c = self.get_test_client(fixture1["users"][instructor])
                         response = c.get("courses/" + course2["id"])
                         self.assert_http_code(response, 404)
         

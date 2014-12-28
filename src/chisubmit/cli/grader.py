@@ -32,7 +32,7 @@ import click
 
 import os.path
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.client.person import Grader
+from chisubmit.client.user import Grader
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams
 from chisubmit.repos.grading import GradingGitRepo

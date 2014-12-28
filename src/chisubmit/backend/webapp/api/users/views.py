@@ -1,62 +1,62 @@
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api import db, app
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
-from chisubmit.backend.webapp.api.people.models import Person
-from chisubmit.backend.webapp.api.people.forms import CreatePersonInput, UpdatePersonInput,\
+from chisubmit.backend.webapp.api.users.models import User
+from chisubmit.backend.webapp.api.users.forms import CreateUserInput, UpdateUserInput,\
     GenerateAccessTokenInput
 from chisubmit.backend.webapp.auth import ldapclient
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import require_admin_access
 
 
-@api_endpoint.route('/people', methods=['POST'])
+@api_endpoint.route('/users', methods=['POST'])
 @require_apikey
 @require_admin_access
-def people():
+def users():
     input_data = request.get_json(force=True)
     if not isinstance(input_data, dict):
         return jsonify(error='Request data must be a JSON Object'), 400
 
-    form = CreatePersonInput.from_json(input_data)
+    form = CreateUserInput.from_json(input_data)
     if not form.validate():
         return jsonify(errors=form.errors), 400
 
-    person = Person()
-    form.populate_obj(person)
-    db.session.add(person)
+    user = User()
+    form.populate_obj(user)
+    db.session.add(user)
     db.session.commit()
 
-    return jsonify({'person': person.to_dict()}), 201
+    return jsonify({'user': user.to_dict()}), 201
 
 
-@api_endpoint.route('/people/<person_id>', methods=['PUT', 'GET'])
+@api_endpoint.route('/users/<user_id>', methods=['PUT', 'GET'])
 @require_apikey
 @require_admin_access
-def person(person_id):
-    person = Person.query.filter_by(id=person_id).first()
+def user(user_id):
+    user = User.query.filter_by(id=user_id).first()
     # TODO 11DEC14: check permissions *before* 404
-    if person is None:
+    if user is None:
         abort(404)
 
     if request.method == 'PUT':
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400
-        form = UpdatePersonInput.from_json(input_data)
+        form = UpdateUserInput.from_json(input_data)
         if not form.validate():
             return jsonify(errors=form.errors), 400
 
-        person.set_columns(**form.patch_data)
+        user.set_columns(**form.patch_data)
         db.session.commit()
 
-    return jsonify({'person': person.to_dict()})
+    return jsonify({'user': user.to_dict()})
 
 
-@api_endpoint.route('/users/<person_id>/token', methods=['POST'])
-def get_token(person_id):
-    person = Person.query.filter_by(id=person_id).first()
+@api_endpoint.route('/users/<user_id>/token', methods=['POST'])
+def get_token(user_id):
+    user = User.query.filter_by(id=user_id).first()
     # TODO 11DEC14: check permissions *before* 404
-    if person is None:
+    if user is None:
         abort(404)
 
     input_data = request.get_json(force=True)
@@ -68,13 +68,13 @@ def get_token(person_id):
     if not form.validate():
         return jsonify(errors=form.errors), 400
 
-    if ldapclient.authenticate(person.id, form.password.data):
+    if ldapclient.authenticate(user.id, form.password.data):
         if form.reset:
             pass
-            # Person.new_token
+            # User.new_token
         else:
             pass
-            # Person.api_key
+            # User.api_key
         return jsonify({'key': 'asdfasdf'})
     else:
         return jsonify(errors={'credentials':['Not valid'] }), 400

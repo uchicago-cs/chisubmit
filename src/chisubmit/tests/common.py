@@ -1,13 +1,11 @@
 import unittest
-from chisubmit.backend.server import ChisubmitServer
 import chisubmit.client.session as session
 import tempfile
 import os
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.courses.models import Course,\
     CoursesInstructors
-from sqlalchemy.orm.scoping import scoped_session
-from sqlalchemy.orm.session import sessionmaker
+from chisubmit.backend.webapp.api import ChisubmitAPIServer
 
 
 class ChisubmitTestClient(object):
@@ -33,10 +31,10 @@ class BaseChisubmitTestCase(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        cls.server = ChisubmitServer()
+        cls.server = ChisubmitAPIServer(debug = True)
         cls.db_fd, cls.db_filename = tempfile.mkstemp()
-        cls.server.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///' + cls.db_filename
-        cls.server.app.config["TESTING"] = True
+        cls.server.connect_sqlite(cls.db_filename)
+        
 
     @classmethod
     def tearDownClass(cls):

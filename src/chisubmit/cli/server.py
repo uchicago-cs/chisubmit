@@ -28,27 +28,51 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import sys
+import os.path
+
 import click
 
-from chisubmit.common import CHISUBMIT_SUCCESS
-from chisubmit.backend.server import ChisubmitServer
+from chisubmit.common import CHISUBMIT_SUCCESS, ChisubmitException
+from chisubmit.backend.webapp.api import ChisubmitAPIServer
+
+def get_server(config, profile):
+    p = config.get_server_profile(profile)
+
+    if p is None:
+        raise ChisubmitException("Specified server profile '%s' does not exist" % profile)
+    
+    server = ChisubmitAPIServer(p.get("debug", False))
+    
+    if p["db"] == "sqlite":
+        dbfile = os.path.expanduser(p["db-sqlite-file"])
+        server.connect_sqlite(dbfile)
+    elif p["db"]  == "postgres":
+        server.connect_postgres()
+        
+    return server
+
 
 @click.command(name="start")
+@click.option('--profile', type=str)
 @click.pass_context
-def server_start(ctx):
-    server = ChisubmitServer()
+def server_start(ctx, profile):
+    config = ctx.obj["config"]
+    
+    server = get_server(config, profile)
 
     server.start()
     
     return CHISUBMIT_SUCCESS
 
 @click.command(name="initdb")
+@click.option('--profile', type=str)
 @click.option('--admin-api-key', type=str)
 @click.option('--force', is_flag=True)
 @click.pass_context
-def server_initdb(ctx, admin_api_key, force):
-    server = ChisubmitServer()
+def server_initdb(ctx, profile, admin_api_key, force):
+    config = ctx.obj["config"]
+    
+    server = get_server(config, profile)
 
     server.init_db(drop_all = force)
     admin_key = server.create_admin(admin_api_key)

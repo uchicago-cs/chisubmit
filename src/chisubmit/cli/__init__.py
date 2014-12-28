@@ -30,7 +30,7 @@
 
 import click
 from chisubmit.common import ChisubmitException, CHISUBMIT_FAIL,\
-    handle_unexpected_exception
+    handle_unexpected_exception, CHISUBMIT_SUCCESS
 import sys
 from pprint import pprint
 from requests.exceptions import HTTPError, ConnectionError
@@ -155,8 +155,8 @@ def chisubmit_server_cmd(ctx, conf, dir, verbose, debug):
     log.init_logging(verbose, debug)
     
     ctx.obj["config"] = config
-    
-    return 0
+        
+    return CHISUBMIT_SUCCESS
 
 
 chisubmit_server_cmd.add_command(server_start)

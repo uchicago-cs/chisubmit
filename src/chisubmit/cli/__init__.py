@@ -29,6 +29,11 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import click
+from chisubmit.common import ChisubmitException, CHISUBMIT_FAIL,\
+    handle_unexpected_exception
+import sys
+from pprint import pprint
+from requests.exceptions import HTTPError, ConnectionError
 config = None
 
 import chisubmit.common.log as log
@@ -50,6 +55,8 @@ from chisubmit.client import session
 SUBCOMMANDS_NO_COURSE = [('course','create')]
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
+VERBOSE = False
+DEBUG = False 
 
 @click.group()
 @click.option('--conf', type=str, default=None)
@@ -61,6 +68,11 @@ SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-dis
 @click.version_option(version=RELEASE)
 @click.pass_context
 def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
+    global VERBOSE, DEBUG
+    
+    VERBOSE = verbose
+    DEBUG = debug
+    
     ctx.obj = {}
 
     config = Config(dir, conf)
@@ -84,6 +96,45 @@ def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
 
     return 0
 
+
+def chisubmit_cmd_wrapper():
+    try:
+        chisubmit_cmd.main()
+    except HTTPError, he:
+        print "ERROR: chisubmit server returned an HTTP error"
+        print
+        print "URL: %s" % he.request.url
+        print "HTTP method: %s" % he.request.method
+        print "Status code: %i" % he.response.status_code
+        print "Message: %s" % he.response.reason
+        if DEBUG:
+            print
+            print "HTTP REQUEST"
+            print "------------"
+            print "%s %s" % (he.request.method, he.request.url)
+            print
+            for hname, hvalue in he.request.headers.items():
+                print "%s: %s" % (hname, hvalue) 
+            print
+            if he.request.body is not None:
+                print he.request.body
+            print
+            print "HTTP RESPONSE"
+            print "-------------"
+            for hname, hvalue in he.response.headers.items():
+                print "%s: %s" % (hname, hvalue) 
+            print
+            print he.response._content
+    except ConnectionError, ce:
+        print "ERROR: Could not connect to chisubmit server"
+        print "URL: %s" % ce.request.url
+    except ChisubmitException, ce:
+        print "ERROR: %s" % ce.message
+        if DEBUG:
+            ce.print_exception()
+        sys.exit(CHISUBMIT_FAIL)
+    except Exception, e:
+        handle_unexpected_exception()
 
 chisubmit_cmd.add_command(admin)
 

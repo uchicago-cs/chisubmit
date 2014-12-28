@@ -4,30 +4,55 @@ from chisubmit.backend.webapp.api.grades.models import GradeComponent
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.projects.forms import UpdateProjectInput
+from chisubmit.backend.webapp.auth.token import require_apikey
+from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
+from chisubmit.backend.webapp.api.courses.models import Course
+from flask import g
 
 
-@api_endpoint.route('/projects', methods=['GET', 'POST'])
-def projects_index():
+@api_endpoint.route('/courses/<course_id>/projects', methods=['GET', 'POST'])
+@require_apikey
+def projects(course_id):
+    course = Course.query.filter_by(id=course_id).first()
+    
+    if course is None:
+        abort(404)
+        
+    check_course_access_or_abort(g.user, course, 404)
+    
     if request.method == 'GET':
         return jsonify(projects=[project.to_dict()
-                       for project in Project.query.all()])
+                       for project in Project.query.filter_by(course_id=course_id).all()])
+
+    check_course_access_or_abort(g.user, course, 404, roles=["instructor"])
 
     new_project = Project(name=request.json.get('name'),
                           id=request.json.get('id'),
-                          deadline=request.json.get('deadline'))
+                          deadline=request.json.get('deadline'),
+                          course_id = course_id)
     db.session.add(new_project)
     db.session.commit()
     return jsonify({'project': new_project.to_dict()}), 201
 
 
-@api_endpoint.route('/projects/<project_id>', methods=['PUT', 'GET'])
-def project(project_id):
+@api_endpoint.route('/courses/<course_id>/projects/<project_id>', methods=['PUT', 'GET'])
+@require_apikey
+def project(course_id, project_id):
+    course = Course.query.filter_by(id=course_id).first()
+    
+    if course is None:
+        abort(404)
+        
+    check_course_access_or_abort(g.user, course, 404)    
+    
     project = Project.query.filter_by(id=project_id).first()
     # TODO 12DEC14: check permissions *before* 404
     if project is None:
         abort(404)
 
     if request.method == 'PUT':
+        check_course_access_or_abort(g.user, course, 404, roles=["instructor"])
+        
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400
@@ -48,9 +73,17 @@ def project(project_id):
     return jsonify({'project': project.to_dict()})
 
 
-@api_endpoint.route('/projects/<project_id>/'
+@api_endpoint.route('/courses/<course_id>/projects/<project_id>/'
                     'grade_components/<grade_component_id>', methods=['GET'])
-def grade_component_project(project_id, grade_component_id):
+@require_apikey
+def grade_component_project(course_id, project_id, grade_component_id):
+        course = Course.query.filter_by(id=course_id).first()
+        
+        if course is None:
+            abort(404)
+            
+        check_course_access_or_abort(g.user, course, 404)   
+        
         grade_component = GradeComponent.query.filter_by(
             project_id=project_id).filter_by(
                 name=grade_component_id).first()

@@ -5,12 +5,13 @@ from chisubmit.backend.webapp.api.people.models import Person
 from chisubmit.backend.webapp.api.people.forms import CreatePersonInput, UpdatePersonInput,\
     GenerateAccessTokenInput
 from chisubmit.backend.webapp.auth import ldapclient
+from chisubmit.backend.webapp.auth.token import require_apikey
+from chisubmit.backend.webapp.auth.authz import require_admin_access
 
 
 @api_endpoint.route('/people', methods=['POST'])
-@api_endpoint.route('/instructors', methods=['POST'])
-@api_endpoint.route('/students', methods=['POST'])
-@api_endpoint.route('/graders', methods=['POST'])
+@require_apikey
+@require_admin_access
 def people():
     input_data = request.get_json(force=True)
     if not isinstance(input_data, dict):
@@ -28,17 +29,9 @@ def people():
     return jsonify({'person': person.to_dict()}), 201
 
 
-@api_endpoint.route('/graders/<person_id>', methods=['GET'])
-def grader(person_id):
-    person = Person.query.filter_by(id=person_id).first()
-    # TODO 11DEC14: check permissions *before* 404
-    if person is None:
-        abort(404)
-
-    return jsonify({'grader': person.to_dict()})
-
-
 @api_endpoint.route('/people/<person_id>', methods=['PUT', 'GET'])
+@require_apikey
+@require_admin_access
 def person(person_id):
     person = Person.query.filter_by(id=person_id).first()
     # TODO 11DEC14: check permissions *before* 404

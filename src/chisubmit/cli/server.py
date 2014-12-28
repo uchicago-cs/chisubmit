@@ -44,18 +44,21 @@ def server_start(ctx):
     return CHISUBMIT_SUCCESS
 
 @click.command(name="initdb")
+@click.option('--admin-api-key', type=str)
+@click.option('--force', is_flag=True)
 @click.pass_context
-def server_initdb(ctx):
+def server_initdb(ctx, admin_api_key, force):
     server = ChisubmitServer()
 
-    server.init_db()
-    admin_key = server.create_admin()
+    server.init_db(drop_all = force)
+    admin_key = server.create_admin(admin_api_key)
     
     if admin_key is not None:
         print "Chisubmit database has been created."
         print "The administrator's API key is %s" % admin_key
     else:
         print "The Chisubmit database already exists and it contains an 'admin' user"
+        print "Use --force to re-create the database from scratch."
     
     return CHISUBMIT_SUCCESS
 

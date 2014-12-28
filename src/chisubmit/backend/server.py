@@ -14,7 +14,9 @@ class ChisubmitServer(object):
     def start(self):
         self.app.run(debug=True)
         
-    def init_db(self):
+    def init_db(self, drop_all=False):
+        if drop_all:
+            self.db.drop_all()
         self.db.create_all()
 
     def create_admin(self, api_key=None):

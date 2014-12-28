@@ -16,12 +16,13 @@ def courses():
     if request.method == 'GET':
         # TODO: SQLAlchemy-fy this
         courses = Course.query.all()
-        courses = [c for c in courses if g.user.is_in_course(c)]
+        if not g.user.admin:
+            courses = [c for c in courses if g.user.is_in_course(c)]
         return jsonify(
             courses=[course.to_dict()
                      for course in courses])
 
-    check_admin_access_or_abort(g.user)
+    check_admin_access_or_abort(g.user, 404)
 
     input_data = request.get_json(force=True)
     if not isinstance(input_data, dict):

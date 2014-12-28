@@ -85,17 +85,7 @@ def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
     return 0
 
 
-chisubmit_cmd.add_command(course)
-chisubmit_cmd.add_command(project)
-chisubmit_cmd.add_command(student)
-chisubmit_cmd.add_command(instructor)
-chisubmit_cmd.add_command(team)
-chisubmit_cmd.add_command(grader)
-chisubmit_cmd.add_command(submit)
-chisubmit_cmd.add_command(shell)
-chisubmit_cmd.add_command(gh)
 chisubmit_cmd.add_command(admin)
-chisubmit_cmd.add_command(user)
 
 
 from chisubmit.cli.server import server_start, server_initdb

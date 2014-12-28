@@ -64,7 +64,7 @@ class Course(ExposedModel, Serializable):
     __tablename__ = 'courses'
     id = db.Column(db.Unicode, primary_key=True, unique=True)
     name = db.Column(db.Unicode)
-    extensions = db.Column(db.Integer)
+    options = db.Column(db.Unicode)
     git_server_connection_string = db.Column(db.Unicode)
     git_staging_server_connection_string = db.Column(db.Unicode)
     graders = association_proxy('courses_graders', 'grader')
@@ -72,7 +72,7 @@ class Course(ExposedModel, Serializable):
     instructors = association_proxy('courses_instructors', 'instructor')
     projects = db.relationship("Project", backref="course")
     teams = db.relationship("Team", backref="course")
-    default_fields = ['name', 'extensions', 'students', 'instructors',
+    default_fields = ['name', 'options', 'students', 'instructors',
                       'projects', 'teams', 'graders',
                       'git_server_connection_string',
                       'git_staging_server_connection_string']

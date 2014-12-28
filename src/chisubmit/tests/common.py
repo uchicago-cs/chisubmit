@@ -93,11 +93,9 @@ fixture1 = { "users": { "jinstr": {"first_name": "Joe",
                         },
              "courses": { "cmsc40100": {"id": "cmsc40100",
                                         "name": "Introduction to Software Testing",
-                                        "extensions": 0,
                                         "instructors": ["jinstr"]},
                           "cmsc40110": {"id": "cmsc40110",
                                         "name": "Advanced Software Testing",
-                                        "extensions": 0,
                                         "instructors": ["sinstr"]}
                         }
             }
@@ -118,8 +116,7 @@ def load_fixture(db, fixture):
 
     for c_id, course in fixture["courses"].items():
         c = Course(id = course["id"],
-                   name = course["name"],
-                   extensions = course["extensions"])
+                   name = course["name"])
         
         db.session.add(c)
         

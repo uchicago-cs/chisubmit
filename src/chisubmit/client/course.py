@@ -42,8 +42,7 @@ from chisubmit.client import session
 # TODO 18DEC14: integrate with the base ApiObject class
 class Course(object):
 
-    _updatable_attributes = ('github_organization', 'github_admins_team',
-                            'git_server_connection_string', 'git_server_connection_string', 'git_staging_server_connection_string')
+    _updatable_attributes = ('git_server_connection_string', 'git_staging_server_connection_string')
     _has_many = ('students', 'projects', 'teams', 'graders', 'instructors')
 
     def __getattr__(self, name):
@@ -74,15 +73,21 @@ class Course(object):
         else:
             super(Course, self).__setattr__(name, value)
 
-    def __init__(self, course_id, name, extensions):
+    def __init__(self, course_id, name, options = ""):
         self.course_id = course_id
         self.name = name
-        self.extensions = extensions
+        self.options = options
 
     def save(self):
         data = json.dumps({'id': self.course_id,
-                           'name': self.name, 'extensions': self.extensions})
+                           'name': self.name,
+                           'options': self.options})
         session.post('courses', data)
+
+    @staticmethod
+    def all():
+        json = session.get("courses")
+        return [Course.from_json(c, obj_only = True) for c in json["courses"]]
 
     @staticmethod
     def from_uri(course_uri):
@@ -90,11 +95,14 @@ class Course(object):
         return Course.from_json(json)
 
     @staticmethod
-    def from_json(data, course=None):
-        course_data = data['course']
+    def from_json(data, course=None, obj_only = False):
+        if obj_only:
+            course_data = data
+        else:
+            course_data = data['course']
         if not course:
             course = \
-                Course(course_data['id'], course_data['name'], course_data['extensions'])
+                Course(course_data['id'], course_data['name'])
         course.id = course_data['id']
         course._json_response = course_data
         return course

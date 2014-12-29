@@ -44,23 +44,12 @@ class CreateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
     id = StringField(validators=[Length(max=36, min=5), InputRequired()])
     name = StringField(validators=[Length(max=36, min=5), InputRequired()])
-    options = StringField(validators=[Length(max=256, min=5), Optional()])
-    git_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
-    git_staging_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
 
 
 class UpdateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
     id = StringField(validators=[Length(max=36, min=10), Optional()])
     name = StringField(validators=[Length(max=36, min=10), Optional()])
-    options = StringField(
-        validators=[Length(max=256, min=5), Optional()])
-    git_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
-    git_staging_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
     projects = FormField(AddProjectsInput)
     instructors = FormField(AddInstructorsInput)
     students = FormField(AddStudentsInput)

@@ -2,6 +2,7 @@ from chisubmit.backend.webapp.api import db
 from chisubmit.backend.webapp.api.models.mixins import ExposedModel
 from chisubmit.backend.webapp.api.models.json import Serializable
 from sqlalchemy.ext.associationproxy import association_proxy
+from chisubmit.backend.webapp.api.types import JSONEncodedDict
 
 
 class CoursesGraders(Serializable, db.Model):
@@ -64,7 +65,7 @@ class Course(ExposedModel, Serializable):
     __tablename__ = 'courses'
     id = db.Column(db.Unicode, primary_key=True, unique=True)
     name = db.Column(db.Unicode)
-    options = db.Column(db.Unicode)
+    options = db.Column(JSONEncodedDict)
     git_server_connection_string = db.Column(db.Unicode)
     git_staging_server_connection_string = db.Column(db.Unicode)
     graders = association_proxy('courses_graders', 'grader')

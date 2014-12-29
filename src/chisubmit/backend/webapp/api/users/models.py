@@ -22,6 +22,10 @@ class User(UniqueModel, Serializable, db.Model):
     def unique_filter(cls, query, **kws):
         return query.filter(User.id == kws['id'])
     
+    @staticmethod
+    def from_id(course_id):
+        return User.query.filter_by(id=course_id).first()    
+    
     def is_instructor_in(self, course):
         return self in course.instructors        
 

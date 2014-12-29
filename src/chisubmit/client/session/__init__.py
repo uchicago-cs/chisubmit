@@ -30,6 +30,7 @@
 from requests import exceptions, Session
 from urlparse import urlparse
 import json
+import sys
 
 endpoint = None
 session = None
@@ -66,7 +67,7 @@ def get(resource, **kwargs):
 
 def post(resource, data, **kwargs):
     if testing:
-        response = test_client.post(endpoint + resource, data, headers=headers, **kwargs)
+        response = test_client.post(endpoint + resource, data=data, headers=headers, **kwargs)
         return json.loads(response.get_data())
     else:
         response = session.post(endpoint + resource, data, **kwargs)

@@ -17,16 +17,22 @@ class ChisubmitTestClient(object):
         self.user_id = user_id
         self.api_key = api_key
         
+        self.headers = {'content-type': 'application/json'}
+        
         if self.api_key is not None:
-            self.headers = {"CHISUBMIT-API-KEY":self.api_key}
-        else:
-            self.headers = None
+            self.headers["CHISUBMIT-API-KEY"] = self.api_key
             
         self.test_client = session.connect_test(app, api_key)
 
     def get(self, resource):
         return self.test_client.get(self.API_PREFIX + resource, headers = self.headers)
 
+    def post(self, resource, data):
+        if isinstance(data, dict):
+            datastr = json.dumps(data)
+        elif isinstance(data, basestring):
+            datastr = data
+        return self.test_client.post(self.API_PREFIX + resource, data = datastr, headers = self.headers)
 
 class BaseChisubmitTestCase(object):
     

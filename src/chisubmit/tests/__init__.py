@@ -1,10 +1,13 @@
 import unittest
-from chisubmit.tests import test_api, test_client
+from . import api
+from . import client
+ 
 
-alltests = unittest.TestSuite([
-                               unittest.TestLoader().loadTestsFromModule(test_api),
-                               unittest.TestLoader().loadTestsFromModule(test_client),
-                               ])
+api_tests = unittest.TestLoader().loadTestsFromModule(api)
+client_tests = unittest.TestLoader().loadTestsFromModule(client)
+
+short_tests = unittest.TestSuite([api_tests, client_tests])#, cli_tests]
+
 
 if __name__ == "__main__":
-    unittest.main(defaultTest="alltests")
+    unittest.main(defaultTest="short_tests")

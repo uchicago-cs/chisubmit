@@ -2,6 +2,7 @@ import unittest
 import chisubmit.client.session as session
 import tempfile
 import os
+import json
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.courses.models import Course,\
     CoursesInstructors
@@ -27,15 +28,14 @@ class ChisubmitTestClient(object):
         return self.test_client.get(self.API_PREFIX + resource, headers = self.headers)
 
 
-class BaseChisubmitTestCase(unittest.TestCase):
+class BaseChisubmitTestCase(object):
     
     @classmethod
     def setUpClass(cls):
         cls.server = ChisubmitAPIServer(debug = True)
         cls.db_fd, cls.db_filename = tempfile.mkstemp()
         cls.server.connect_sqlite(cls.db_filename)
-        
-
+            
     @classmethod
     def tearDownClass(cls):
         os.close(cls.db_fd)
@@ -60,6 +60,10 @@ class ChisubmitTestCase(BaseChisubmitTestCase):
         self.server.init_db()
         self.server.create_admin(api_key="admin")
         
+        if hasattr(self, "FIXTURE"):
+            load_fixture(self.server.db, self.FIXTURE)
+        
+        
     def tearDown(self):
         self.server.db.session.remove()
         self.server.db.drop_all()
@@ -72,6 +76,10 @@ class ChisubmitMultiTestCase(BaseChisubmitTestCase):
         super(ChisubmitMultiTestCase, cls).setUpClass()
         cls.server.init_db()
         cls.server.create_admin(api_key="admin")
+        
+        if hasattr(cls, "FIXTURE"):
+            load_fixture(cls.server.db, cls.FIXTURE)
+        
 
     @classmethod
     def tearDownClass(cls):
@@ -79,24 +87,39 @@ class ChisubmitMultiTestCase(BaseChisubmitTestCase):
         cls.server.db.drop_all()
         super(ChisubmitMultiTestCase, cls).tearDownClass()
     
-fixture1 = { "users": { "jinstr": {"first_name": "Joe",
-                                    "last_name": "Instructor",
-                                    "id": "jinstr",
-                                    "api_key": "jinstr"},
-                         
-                         "sinstr": {"first_name": "Sam",
-                                    "last_name": "Instructor",
-                                    "id": "sinstr",
-                                    "api_key": "sinstr"},
-                        },
-             "courses": { "cmsc40100": {"id": "cmsc40100",
-                                        "name": "Introduction to Software Testing",
-                                        "instructors": ["jinstr"]},
-                          "cmsc40110": {"id": "cmsc40110",
-                                        "name": "Advanced Software Testing",
-                                        "instructors": ["sinstr"]}
-                        }
-            }
+class ChisubmitFixtureTestCase(ChisubmitMultiTestCase):
+    
+    def test_get_courses(self):        
+        for course in self.FIXTURE["courses"].values():
+            for instructor in course["instructors"]:
+                c = self.get_test_client(self.FIXTURE["users"][instructor])
+                response = c.get("courses")
+                self.assert_http_code(response, 200)
+         
+                expected_ncourses = len([c for c in self.FIXTURE["courses"].values()
+                                         if instructor in c["instructors"]])
+         
+                data = json.loads(response.get_data())        
+                self.assertIn("courses", data)
+                self.assertEquals(len(data["courses"]), expected_ncourses)
+                 
+    def test_get_course(self):
+        for course in self.FIXTURE["courses"].values():
+            for instructor in course["instructors"]:
+                c = self.get_test_client(self.FIXTURE["users"][instructor])
+                response = c.get("courses/" + course["id"])
+                self.assert_http_code(response, 200)
+                data = json.loads(response.get_data())        
+                self.assertIn("course", data)
+                self.assertEquals(data["course"]["name"], course["name"])
+                 
+        for course1 in self.FIXTURE["courses"].values():
+            for course2 in self.FIXTURE["courses"].values():
+                if course1 != course2:
+                    for instructor in course1["instructors"]:    
+                        c = self.get_test_client(self.FIXTURE["users"][instructor])
+                        response = c.get("courses/" + course2["id"])
+                        self.assert_http_code(response, 404)
  
     
 def load_fixture(db, fixture):

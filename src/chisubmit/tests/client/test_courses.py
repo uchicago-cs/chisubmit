@@ -1,14 +1,12 @@
-from chisubmit.tests.common import ChisubmitMultiTestCase, fixture1,\
-    load_fixture
+from chisubmit.tests.common import ChisubmitMultiTestCase
 from chisubmit.client.course import Course
+from chisubmit.tests.fixtures import users_and_courses
+import unittest
         
         
-class CompleteCourse(ChisubmitMultiTestCase):
+class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
     
-    @classmethod
-    def setUpClass(cls):
-        super(CompleteCourse, cls).setUpClass()
-        load_fixture(cls.server.db, fixture1)
+    FIXTURE = users_and_courses
         
     def test_get_course(self):
         

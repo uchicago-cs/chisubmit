@@ -98,7 +98,7 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
     ctx.obj["course_id"] = course_id
     ctx.obj["config"] = config
 
-    return 0
+    return CHISUBMIT_SUCCESS
 
 
 def chisubmit_cmd_wrapper():

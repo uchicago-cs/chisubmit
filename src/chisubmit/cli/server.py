@@ -35,8 +35,6 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, ChisubmitException
 from chisubmit.backend.webapp.api import ChisubmitAPIServer
 import tempfile
-from chisubmit.tests.fixtures import fixtures
-from chisubmit.tests.common import load_fixture
 
 def get_server(config, profile):
     p = config.get_server_profile(profile)
@@ -62,6 +60,9 @@ def server_start(ctx, profile, test_fixture):
     config = ctx.obj["config"]
     
     if test_fixture is not None:
+        from chisubmit.tests.fixtures import fixtures
+        from chisubmit.tests.common import load_fixture
+        
         if not fixtures.has_key(test_fixture):
             raise ChisubmitException("Test fixture '%s' does not exist" % test_fixture)
         fixture, _ = fixtures[test_fixture]

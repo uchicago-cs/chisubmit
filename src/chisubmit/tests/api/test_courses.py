@@ -14,7 +14,13 @@ class Courses(ChisubmitTestCase, unittest.TestCase):
         self.assertIn("courses", data)
         self.assertEquals(len(data["courses"]), 0)
         
-    
+    def test_create_course(self):
+        c = self.get_admin_test_client()
+        
+        data = {"id": "cmsc12300", "name": "Foobarmentals of Foobar"}        
+        response = c.post("courses", data)
+        self.assert_http_code(response, 201)
+           
          
 
         

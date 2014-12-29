@@ -61,13 +61,13 @@ DEBUG = False
 @click.group()
 @click.option('--conf', type=str, default=None)
 @click.option('--dir', type=str, default=None)
-@click.option('--noop', is_flag=True)
 @click.option('--course', type=str, default=None)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--debug', is_flag=True)
+@click.option('--testing', is_flag=True)
 @click.version_option(version=RELEASE)
 @click.pass_context
-def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
+def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
     global VERBOSE, DEBUG
     
     VERBOSE = verbose
@@ -81,7 +81,11 @@ def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
     if not config['api-key']:
         raise click.BadParameter("Sorry, can't find your chisubmit api token")
 
-    session.connect(config['api-url'], config['api-key'])
+    if testing:
+        from chisubmit.backend.webapp.api import app 
+        session.connect_test(app, access_token = config['api-key'])
+    else:
+        session.connect(config['api-url'], config['api-key'])
 
     if course:
         course_specified = True

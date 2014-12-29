@@ -10,6 +10,7 @@ from click.testing import CliRunner
 from functools import update_wrapper
 import yaml
 from chisubmit.cli import chisubmit_cmd
+import sys
 
 
 class ChisubmitTestClient(object):
@@ -50,10 +51,12 @@ def cli_test(func):
 
 class ChisubmitCLITestClient(object):
     
-    def __init__(self, user_id, api_key, runner):
+    def __init__(self, user_id, api_key, runner, verbose = False):
+        self.user_id = user_id
         self.conf_dir = ".chisubmit-%s" % user_id
         self.conf_file = self.conf_dir + "/chisubmit.conf"
         self.runner = runner
+        self.verbose = True
 
         os.mkdir(self.conf_dir)
         with open(self.conf_file, 'w') as f:
@@ -62,13 +65,20 @@ class ChisubmitCLITestClient(object):
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
     def run(self, subcommands, params = [], catch_exceptions=False):
-        args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
+        chisubmit_args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
         
-        args += subcommands.split()
-        args += params
+        cmd_args = subcommands.split()
+        cmd_args += params
         
-        result = self.runner.invoke(chisubmit_cmd, args, catch_exceptions=catch_exceptions)
+        if self.verbose:
+            print "%s$ chisubmit %s" % (self.user_id, " ".join(cmd_args))
         
+        result = self.runner.invoke(chisubmit_cmd, chisubmit_args + cmd_args, catch_exceptions=catch_exceptions)
+        
+        if self.verbose and len(result.output) > 0:
+            sys.stdout.write(result.output)
+            sys.stdout.flush()
+            
         return result
 
 class BaseChisubmitTestCase(object):

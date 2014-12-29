@@ -82,7 +82,7 @@ def post(resource, data, **kwargs):
 
 def put(resource, data, **kwargs):
     if testing:
-        response = test_client.put(endpoint + resource, headers=headers, **kwargs)
+        response = test_client.put(endpoint + resource, data=data, headers=headers, **kwargs)
         return json.loads(response.get_data())
     else:
         response = session.put(endpoint + resource, data, **kwargs)

@@ -78,3 +78,8 @@ class Course(ExposedModel, Serializable):
                       'git_staging_server_connection_string']
     readonly_fields = ['id', 'projects', 'instructors', 'students',
                        'graders', 'teams']
+    
+    @staticmethod
+    def from_id(course_id):
+        return Course.query.filter_by(id=course_id).first()
+        

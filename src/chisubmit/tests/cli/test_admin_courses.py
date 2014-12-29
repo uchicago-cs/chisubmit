@@ -1,32 +1,39 @@
-from chisubmit.tests.common import ChisubmitMultiTestCase
+from chisubmit.tests.common import ChisubmitMultiTestCase, cli_test,\
+    ChisubmitCLITestClient, ChisubmitTestCase
 from chisubmit.tests.fixtures import users_and_courses
 import unittest
-
-from click.testing import CliRunner        
-from chisubmit.cli.admin import admin_course_list
-import yaml
-import os
-from chisubmit.cli import chisubmit_cmd
+from chisubmit.backend.webapp.api.courses.models import Course
+    
+    
+class CLIAdminCourse(ChisubmitTestCase, unittest.TestCase):
+            
+    @cli_test
+    def test_admin_course_add(self, runner):
+        admin = ChisubmitCLITestClient("admin", "admin", runner)
         
-class CLIAdminCourse(ChisubmitMultiTestCase, unittest.TestCase):
+        course_id = u"cmsc12300"
+        course_name = u"Foobarmentals of Foobar"
+        
+        result = admin.run("admin course add", [course_id, course_name], catch_exceptions=True)
+        self.assertEquals(result.exit_code, 0)
+        
+        course = Course.from_id(course_id)
+        self.assertIsNotNone(course)
+        self.assertEquals(course.name, course_name)
+ 
+        
+class CLIAdminCourseFixture(ChisubmitMultiTestCase, unittest.TestCase):
     
     FIXTURE = users_and_courses
         
-    def test_admin_course_list(self):
+    @cli_test
+    def test_admin_course_list(self, runner):
+        admin = ChisubmitCLITestClient("admin", "admin", runner)
         
-        runner = CliRunner()
-        with runner.isolated_filesystem():
-            os.mkdir(".chisubmit")
-            with open('.chisubmit/chisubmit.conf', 'w') as f:
-                conf = {"api-url": "NONE",
-                        "api-key": "admin"}
-                yaml.safe_dump(conf, f, default_flow_style=False)
-    
-            result = runner.invoke(chisubmit_cmd, ['--testing', 
-                                                   '--dir', '.chisubmit/',
-                                                   '--conf', '.chisubmit/chisubmit.conf',
-                                                   'admin', 'course', 'list'])
+        result = admin.run("admin course list")
 
-            for course in self.FIXTURE["courses"].values():            
-                self.assertIn(course["name"], result.output)
+        self.assertEquals(result.exit_code, 0)
+
+        for course in self.FIXTURE["courses"].values():            
+            self.assertIn(course["name"], result.output)
             

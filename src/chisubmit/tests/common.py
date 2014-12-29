@@ -1,4 +1,3 @@
-import unittest
 import chisubmit.client.session as session
 import tempfile
 import os
@@ -7,6 +6,10 @@ from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.courses.models import Course,\
     CoursesInstructors
 from chisubmit.backend.webapp.api import ChisubmitAPIServer
+from click.testing import CliRunner
+from functools import update_wrapper
+import yaml
+from chisubmit.cli import chisubmit_cmd
 
 
 class ChisubmitTestClient(object):
@@ -33,6 +36,40 @@ class ChisubmitTestClient(object):
         elif isinstance(data, basestring):
             datastr = data
         return self.test_client.post(self.API_PREFIX + resource, data = datastr, headers = self.headers)
+
+
+def cli_test(func):
+    
+    def new_func(self, *args, **kwargs):
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            func(self, runner, *args, **kwargs)
+    
+    return update_wrapper(new_func, func)
+
+
+class ChisubmitCLITestClient(object):
+    
+    def __init__(self, user_id, api_key, runner):
+        self.conf_dir = ".chisubmit-%s" % user_id
+        self.conf_file = self.conf_dir + "/chisubmit.conf"
+        self.runner = runner
+
+        os.mkdir(self.conf_dir)
+        with open(self.conf_file, 'w') as f:
+            conf = {"api-url": "NONE",
+                    "api-key": api_key}
+            yaml.safe_dump(conf, f, default_flow_style=False)   
+            
+    def run(self, subcommands, params = [], catch_exceptions=False):
+        args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
+        
+        args += subcommands.split()
+        args += params
+        
+        result = self.runner.invoke(chisubmit_cmd, args, catch_exceptions=catch_exceptions)
+        
+        return result
 
 class BaseChisubmitTestCase(object):
     

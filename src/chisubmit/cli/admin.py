@@ -122,19 +122,19 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
         print "INSTRUCTORS"
         print "-----------"
         for i in course.instructors:
-            print i
+            print "%s: %s, %s <%s>" % (i.id, i.last_name, i.first_name, i.email)
         print
             
         print "GRADERS"
         print "-------"
         for g in course.graders:
-            print g
+            print "%s: %s, %s <%s>" % (g.id, g.last_name, g.first_name, g.email)
         print
         
         print "STUDENTS"
         print "--------"
         for s in course.students:
-            print s
+            print "%s: %s, %s <%s>" % (s.id, s.last_name, s.first_name, s.email)
         print
     
     return CHISUBMIT_SUCCESS
@@ -150,10 +150,43 @@ def admin_course_list(ctx):
 
     return CHISUBMIT_SUCCESS
 
+@click.command(name="add-instructor")
+@click.argument('course_id', type=str)
+@click.argument('user_id', type=str)
+@click.pass_context
+def admin_course_add_instructor(ctx, course_id, user_id):
+    course = Course.from_course_id(course_id)
+    user = User.from_id(user_id)
+    
+    course.add_instructor(user)
+    
+@click.command(name="add-grader")
+@click.argument('course_id', type=str)
+@click.argument('user_id', type=str)
+@click.pass_context
+def admin_course_add_grader(ctx, course_id, user_id):
+    course = Course.from_course_id(course_id)
+    user = User.from_id(user_id)
+    
+    course.add_grader(user)
+    
+@click.command(name="add-student")
+@click.argument('course_id', type=str)
+@click.argument('user_id', type=str)
+@click.pass_context
+def admin_course_add_student(ctx, course_id, user_id):
+    course = Course.from_course_id(course_id)
+    user = User.from_id(user_id)
+    
+    course.add_student(user)        
+
 admin.add_command(admin_course)
 admin_course.add_command(admin_course_add)
 admin_course.add_command(admin_course_remove)
 admin_course.add_command(admin_course_show)
 admin_course.add_command(admin_course_list)
+admin_course.add_command(admin_course_add_instructor)
+admin_course.add_command(admin_course_add_grader)
+admin_course.add_command(admin_course_add_student)
 
 

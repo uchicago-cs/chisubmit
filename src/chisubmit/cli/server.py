@@ -34,6 +34,9 @@ import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, ChisubmitException
 from chisubmit.backend.webapp.api import ChisubmitAPIServer
+import tempfile
+from chisubmit.tests.fixtures import fixtures
+from chisubmit.tests.common import load_fixture
 
 def get_server(config, profile):
     p = config.get_server_profile(profile)
@@ -51,14 +54,34 @@ def get_server(config, profile):
         
     return server
 
-
 @click.command(name="start")
 @click.option('--profile', type=str)
+@click.option('--test-fixture', type=str)
 @click.pass_context
-def server_start(ctx, profile):
+def server_start(ctx, profile, test_fixture):
     config = ctx.obj["config"]
     
-    server = get_server(config, profile)
+    if test_fixture is not None:
+        if not fixtures.has_key(test_fixture):
+            raise ChisubmitException("Test fixture '%s' does not exist" % test_fixture)
+        fixture, _ = fixtures[test_fixture]
+        
+        server = ChisubmitAPIServer(debug=True)
+        
+        if os.environ.get('WERKZEUG_RUN_MAIN') != "true":
+            _ , db_filename = tempfile.mkstemp(prefix="chisubmit-test-")
+            os.environ['CHISUBMIT_TEST_DB'] = db_filename
+            server.connect_sqlite(db_filename)
+            server.init_db()
+            server.create_admin(api_key="admin")
+            
+            load_fixture(server.db, fixture)
+            
+            print "Fixture '%s' has been loaded on database %s" % (test_fixture, db_filename) 
+        else:
+            server.connect_sqlite(os.environ['CHISUBMIT_TEST_DB'])
+    else:
+        server = get_server(config, profile)
 
     server.start()
     

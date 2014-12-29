@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 users_and_courses = \
 { "users": { "jinstr": {"first_name": "Joe",
                         "last_name": "Instructor",

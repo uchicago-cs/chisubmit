@@ -55,7 +55,7 @@ class ChisubmitAPIServer(object):
     def create_admin(self, api_key=None):
         from chisubmit.backend.webapp.api.users.models import User
 
-        admin = User.query.filter_by(id="admin").first()
+        admin = User.query.filter_by(id=u"admin").first()
         
         if admin is not None:
             return None
@@ -63,10 +63,10 @@ class ChisubmitAPIServer(object):
         if api_key is None:
             api_key = gen_api_key()
             
-        admin = User(first_name="Administrator", 
-                       last_name="Administrator", 
-                       id="admin",
-                       api_key=api_key, 
+        admin = User(first_name=u"Administrator", 
+                       last_name=u"Administrator", 
+                       id=u"admin",
+                       api_key=unicode(api_key), 
                        admin=1)
         
         self.db.session.add(admin)

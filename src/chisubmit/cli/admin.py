@@ -115,7 +115,12 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
     course = Course.from_course_id(course_id)
     
     print course.id, course.name
-    print "Options:", course.options
+    if len(course.options) == 0:
+        print "No options"
+    else:
+        print "Options"
+        for name, value in course.options.items():
+            print "  %s: %s" % (name, value)
     print
 
     if include_users:
@@ -179,6 +184,17 @@ def admin_course_add_student(ctx, course_id, user_id):
     user = User.from_id(user_id)
     
     course.add_student(user)        
+    
+    
+@click.command(name="set-option")
+@click.argument('course_id', type=str)
+@click.argument('option_name', type=str)
+@click.argument('option_value', type=str)
+@click.pass_context
+def admin_course_set_option(ctx, course_id, option_name, option_value):
+    course = Course.from_course_id(course_id)
+    course.set_option(option_name, option_value)
+
 
 admin.add_command(admin_course)
 admin_course.add_command(admin_course_add)
@@ -188,5 +204,6 @@ admin_course.add_command(admin_course_list)
 admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)
+admin_course.add_command(admin_course_set_option)
 
 

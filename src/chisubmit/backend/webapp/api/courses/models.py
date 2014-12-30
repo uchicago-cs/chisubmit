@@ -65,20 +65,16 @@ class Course(ExposedModel, Serializable):
     __tablename__ = 'courses'
     id = db.Column(db.Unicode, primary_key=True, unique=True)
     name = db.Column(db.Unicode)
-    options = db.Column(JSONEncodedDict)
-    git_server_connection_string = db.Column(db.Unicode)
-    git_staging_server_connection_string = db.Column(db.Unicode)
+    options = db.Column(JSONEncodedDict, default={})
     graders = association_proxy('courses_graders', 'grader')
     students = association_proxy('courses_students', 'student')
     instructors = association_proxy('courses_instructors', 'instructor')
     projects = db.relationship("Project", backref="course")
     teams = db.relationship("Team", backref="course")
     default_fields = ['name', 'options', 'students', 'instructors',
-                      'projects', 'teams', 'graders',
-                      'git_server_connection_string',
-                      'git_staging_server_connection_string']
+                      'projects', 'teams', 'graders']
     readonly_fields = ['id', 'projects', 'instructors', 'students',
-                       'graders', 'teams']
+                       'graders', 'teams', 'options']
     
     @staticmethod
     def from_id(course_id):

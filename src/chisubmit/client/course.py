@@ -73,7 +73,7 @@ class Course(object):
         else:
             super(Course, self).__setattr__(name, value)
 
-    def __init__(self, course_id, name, options = ""):
+    def __init__(self, course_id, name, options = {}):
         self.course_id = course_id
         self.name = name
         self.options = options
@@ -102,7 +102,7 @@ class Course(object):
             course_data = data['course']
         if not course:
             course = \
-                Course(course_data['id'], course_data['name'])
+                Course(course_data['id'], course_data['name'], course_data['options'])
         course.id = course_data['id']
         course._json_response = course_data
         return course
@@ -149,6 +149,11 @@ class Course(object):
         attrs = {'course_id': self.id, 'instructor_id': instructor.id}
         data = json.dumps({'instructors': {'add': [attrs]}})
         session.put('courses/%s' % (self.id), data=data)
+        
+    def set_option(self, name, value):
+        attrs = {'name': name, 'value': value}
+        data = json.dumps({'options': {'update': [attrs]}})
+        session.put('courses/%s' % (self.id), data=data)        
  
     # TODO 15JULY14: move this to Project.get() or something similar
     def get_project(self, project_id):

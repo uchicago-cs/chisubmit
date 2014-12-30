@@ -51,6 +51,7 @@ def course(course_id):
 
     if request.method == 'PUT':
         input_data = request.get_json(force=True)
+
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400
         form = UpdateCourseInput.from_json(input_data)
@@ -87,6 +88,11 @@ def course(course_id):
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
                 db.session.add(new_child)
+                
+        if len(form.options.update) > 0:
+            for child_data in form.options.update:
+                course.options[child_data.data["name"]] = child_data.data["value"]
+            db.session.add(course)
 
         db.session.commit()
 

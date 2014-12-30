@@ -1,11 +1,11 @@
 from chisubmit.tests.common import ChisubmitMultiTestCase
 from chisubmit.client.course import Course
-from chisubmit.tests.fixtures import users_and_courses
+from chisubmit.tests.fixtures import users_and_courses, complete_course
 import unittest
 from chisubmit.client.assignment import Assignment
         
         
-class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
+class EmptyCourse(ChisubmitMultiTestCase, unittest.TestCase):
     
     FIXTURE = users_and_courses
         
@@ -19,4 +19,24 @@ class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
                                 course_id = "cmsc40100")        
         
         
-                
+class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
+    
+    FIXTURE = complete_course
+        
+    def test_get_assignments(self):
+        
+        self.get_test_client({"id":"student1", "api_key":"student1"})
+        
+        assignments = Assignment.all_in_course("cmsc40100")
+        
+        print assignments        
+        
+    def test_get_assignment(self):
+        
+        self.get_test_client({"id":"student1", "api_key":"student1"})
+        
+        assignment = Assignment.from_course_and_id("cmsc40100", "pa1")
+        
+
+        
+                              

@@ -9,9 +9,9 @@ class CreateTeamInput(Form):
     course_id = StringField(validators=[Length(max=36), InputRequired()])
 
 
-class LinkProjectInput(Form):
+class LinkAssignmentInput(Form):
     team_id = StringField(InputRequired())
-    project_id = StringField(InputRequired())
+    assignment_id = StringField(InputRequired())
 
 
 class LinkStudentInput(Form):
@@ -19,13 +19,13 @@ class LinkStudentInput(Form):
     student_id = StringField(InputRequired())
 
 
-class AddProjectsInput(Form):
-    add = FieldList(FormField(LinkProjectInput))
+class AddAssignmentsInput(Form):
+    add = FieldList(FormField(LinkAssignmentInput))
 
 
 class AddGradeInput(Form):
     team_id = StringField(InputRequired())
-    project_id = StringField(InputRequired())
+    assignment_id = StringField(InputRequired())
     grade_component_name = StringField(InputRequired())
     points = IntegerField(InputRequired())
 
@@ -40,10 +40,10 @@ class AddStudentsInput(Form):
 
 class UpdateTeamInput(Form):
     students = FormField(AddStudentsInput)
-    projects = FormField(AddProjectsInput)
+    assignments = FormField(AddAssignmentsInput)
     git_staging_repo_created = BooleanField()
 
 
-class UpdateProjectTeamInput(Form):
+class UpdateAssignmentTeamInput(Form):
     grader_id = StringField(Optional())
     grades = FormField(AddGradesInput)

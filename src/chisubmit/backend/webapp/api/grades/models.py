@@ -6,22 +6,22 @@ class GradeComponent(Serializable, db.Model):
     __tablename__ = 'grade_components'
     name = db.Column(db.Unicode, primary_key=True)
     points = db.Column('points', db.Integer)
-    project_id = db.Column('project_id',
+    assignment_id = db.Column('assignment_id',
                            db.Integer,
-                           db.ForeignKey('projects.id'), primary_key=True)
+                           db.ForeignKey('assignments.id'), primary_key=True)
     grades = db.relationship('Grade', back_populates='grade_component')
-    default_fields = ['name', 'points', 'project_id']
-    readonly_fields = ['name', 'project_id']
+    default_fields = ['name', 'points', 'assignment_id']
+    readonly_fields = ['name', 'assignment_id']
 
 
 class Grade(Serializable, db.Model):
     __tablename__ = 'grades'
     id = db.Column(db.Integer, primary_key=True)
     points = db.Column(db.Integer, nullable=False)
-    project_team_id = db.Column('project_team_id', db.Integer,
-                                db.ForeignKey('projects_teams.id'))
-    project_id = db.Column('project_id', db.Integer,
-                           db.ForeignKey('projects.id'))
+    assignment_team_id = db.Column('assignment_team_id', db.Integer,
+                                db.ForeignKey('assignments_teams.id'))
+    assignment_id = db.Column('assignment_id', db.Integer,
+                           db.ForeignKey('assignments.id'))
     team_id = db.Column('team_id',
                         db.Integer,
                         db.ForeignKey('teams.id'))
@@ -30,6 +30,6 @@ class Grade(Serializable, db.Model):
                                      db.ForeignKey('grade_components.name'))
     grade_component = db.relationship('GradeComponent',
                                       back_populates='grades')
-    projects_teams = db.relationship('ProjectsTeams', backref='grades')
+    assignments_teams = db.relationship('AssignmentsTeams', backref='grades')
     default_fields = ['id', 'points', 'grade_component']
     readonly_fields = ['id', 'team', 'grade_component']

@@ -1,7 +1,7 @@
 from wtforms import Form, StringField, IntegerField
 from wtforms.fields import FormField, FieldList
 from wtforms.validators import Length, InputRequired, NumberRange, Optional
-from chisubmit.backend.webapp.api.projects.forms import CreateProjectInput
+from chisubmit.backend.webapp.api.assignments.forms import CreateAssignmentInput
 from chisubmit.backend.webapp.api.teams.forms import CreateTeamInput
 
 
@@ -9,8 +9,8 @@ class AddTeamsInput(Form):
     add = FieldList(FormField(CreateTeamInput))
 
 
-class AddProjectsInput(Form):
-    add = FieldList(FormField(CreateProjectInput))
+class AddAssignmentsInput(Form):
+    add = FieldList(FormField(CreateAssignmentInput))
 
 
 class LinkGraderInput(Form):
@@ -55,7 +55,7 @@ class UpdateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
     id = StringField(validators=[Length(max=36, min=10), Optional()])
     name = StringField(validators=[Length(max=36, min=10), Optional()])
-    projects = FormField(AddProjectsInput)
+    assignments = FormField(AddAssignmentsInput)
     instructors = FormField(AddInstructorsInput)
     students = FormField(AddStudentsInput)
     teams = FormField(AddTeamsInput)

@@ -38,7 +38,7 @@ from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 @click.command(name="submit")
 @click.argument('team_id', type=str)    
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.argument('commit', type=str)
 @click.argument('extensions', type=int, default=0)
 @click.option('--force', is_flag=True)
@@ -47,10 +47,10 @@ from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 @pass_course
 @save_changes
 @click.pass_context  
-def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ignore_extensions):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def submit(ctx, course, team_id, assignment_id, commit, extensions, force, yes, ignore_extensions):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
         return CHISUBMIT_FAIL
     
     team = course.get_team(team_id)
@@ -78,10 +78,10 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
     commit_time_utc = set_datetime_timezone_utc(commit.commit.author.date)
     commit_time_local = convert_timezone_to_local(commit_time_utc)
     
-    deadline_utc = project.get_deadline()
+    deadline_utc = assignment.get_deadline()
     deadline_local = convert_timezone_to_local(deadline_utc)
         
-    extensions_needed = project.extensions_needed(commit_time_utc)
+    extensions_needed = assignment.extensions_needed(commit_time_utc)
     
     extensions_bad = False
     if extensions_requested < extensions_needed:
@@ -121,7 +121,7 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
         print "of extensions. Make sure you have approval from the instructor"
         print "to do this."
         
-    tag_name = project.id
+    tag_name = assignment.id
     submission_tag = conn.get_submission_tag(course, team, tag_name)
     
     if submission_tag is not None and not force:
@@ -139,7 +139,7 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
         print "Make sure you want to overwrite the previous submission tag."
         
     print
-    print "You are going to tag your code for %s as ready to grade." % project.name
+    print "You are going to tag your code for %s as ready to grade." % assignment.name
     print "The commit you are submitting is the following:"
     print
     print "      Commit: %s" % commit.commit.sha
@@ -151,7 +151,7 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
         print "The number of extensions you are requesting (%i) is acceptable." % extensions
         print "Please note that this program does not check how many extensions"
         print "you have left. It only checks whether the number of extensions is"
-        print "correct given the deadline for the project."
+        print "correct given the deadline for the assignment."
     
     print
     print "Are you sure you want to continue? (y/n): ", 
@@ -175,7 +175,7 @@ def submit(ctx, course, team_id, project_id, commit, extensions, force, yes, ign
             
         print
         print "Your submission has been completed."
-        #print "You can use 'chisubmit team-project-submission-verify' to double-check"
+        #print "You can use 'chisubmit team-assignment-submission-verify' to double-check"
         #print "that your code was correctly tagged as ready to grade."
         
     return CHISUBMIT_SUCCESS

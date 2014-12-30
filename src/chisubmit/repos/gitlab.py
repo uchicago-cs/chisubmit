@@ -90,7 +90,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
 
     
     def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
-        repo_name = self.__get_team_namespaced_project_name(course, team)
+        repo_name = self.__get_team_namespaced_assignment_name(course, team)
         student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
         
@@ -106,12 +106,12 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                 
                 gitlab_students.append(gitlab_student)        
         
-        project = self.__get_team_project(course, team)
+        assignment = self.__get_team_assignment(course, team)
         
-        if project is not None and fail_if_exists:
+        if assignment is not None and fail_if_exists:
             raise ChisubmitException("Repository %s already exists" % repo_name)
         
-        if project is None:
+        if assignment is None:
             group = self.__get_group(course)
             
             if group is None:
@@ -122,17 +122,17 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             else:
                 public = 1
             
-            gitlab_project = self.gitlab.createproject(team.id,
+            gitlab_assignment = self.gitlab.createassignment(team.id,
                                                        namespace_id = group["id"],
                                                        description = repo_description,
                                                        public = public)
             
-            if gitlab_project == False:
+            if gitlab_assignment == False:
                 raise ChisubmitException("Could not create repository %s" % repo_name)
             
             if team_access:                
                 for gitlab_student in gitlab_students:
-                    rc = self.gitlab.addprojectmember(gitlab_project["id"],
+                    rc = self.gitlab.addassignmentmember(gitlab_assignment["id"],
                                                       gitlab_student["id"], 
                                                       "developer")
                     
@@ -148,11 +148,11 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         pass
     
     def get_repository_git_url(self, course, team):
-        repo_name = self.__get_team_namespaced_project_name(course, team)
+        repo_name = self.__get_team_namespaced_assignment_name(course, team)
         return "git@%s:%s.git" % (self.gitlab_hostname, repo_name)
             
     def get_repository_http_url(self, course, team):
-        repo_name = self.__get_team_namespaced_project_name(course, team)
+        repo_name = self.__get_team_namespaced_assignment_name(course, team)
         return "https://%s/%s" % (self.gitlab_hostname, repo_name)
     
     def get_commit(self, course, team, commit_sha):
@@ -236,21 +236,21 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         else:
             return group
         
-    def __get_team_namespaced_project_name(self, course, team):
+    def __get_team_namespaced_assignment_name(self, course, team):
         return "%s/%s" % (course.id, team.id)      
     
     
-    def __get_team_project(self, course, team):
-        project_name = self.__get_team_namespaced_project_name(course, team)
+    def __get_team_assignment(self, course, team):
+        assignment_name = self.__get_team_namespaced_assignment_name(course, team)
         
-        project_name = project_name.replace("/", "%2F")
+        assignment_name = assignment_name.replace("/", "%2F")
         
-        project = self.gitlab.getproject(project_name)
+        assignment = self.gitlab.getassignment(assignment_name)
         
-        if project == False:
+        if assignment == False:
             return None
         else:
-            return project      
+            return assignment      
         
     def __add_user_to_course_group(self, course, username, access_level):
         user = self.__get_user_by_username(username)

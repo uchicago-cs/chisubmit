@@ -39,17 +39,7 @@ config = None
 import chisubmit.common.log as log
 from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.cli.course import course
-from chisubmit.cli.student import student
-from chisubmit.cli.instructor import instructor
-from chisubmit.cli.team import team
-from chisubmit.cli.project import project
-from chisubmit.cli.submit import submit
-from chisubmit.cli.shell import shell
-from chisubmit.cli.grader import grader
-from chisubmit.cli.gh import gh
 from chisubmit.cli.admin import admin
-from chisubmit.cli.user import user
 from chisubmit.client import session
 
 SUBCOMMANDS_NO_COURSE = [('course','create')]

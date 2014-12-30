@@ -32,7 +32,7 @@ import click
 
 from chisubmit.common.utils import get_datetime_now_utc,\
     convert_timezone_to_local
-from chisubmit.client.project import Project
+from chisubmit.client.assignment import Assignment
 from chisubmit.client.grade_component import GradeComponent
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.cli.common import pass_course, DATETIME
@@ -40,21 +40,21 @@ from chisubmit.cli.common import pass_course, DATETIME
 
 @click.group()
 @click.pass_context
-def project(ctx):
+def assignment(ctx):
     pass
 
 
 @click.command(name="create")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.argument('name', type=str)
 @click.argument('deadline', type=DATETIME)
 @pass_course
 @click.pass_context
-def project_create(ctx, course, project_id, name, deadline):
-    project = Project(project_id = project_id,
+def assignment_create(ctx, course, assignment_id, name, deadline):
+    assignment = Assignment(assignment_id = assignment_id,
                       name = name,
                       deadline = deadline)
-    course.add_project(project)
+    course.add_assignment(assignment)
 
     return CHISUBMIT_SUCCESS
 
@@ -64,22 +64,22 @@ def project_create(ctx, course, project_id, name, deadline):
 @click.option('--utc', is_flag=True)
 @pass_course
 @click.pass_context
-def project_list(ctx, course, ids, utc):
-    project_ids = course.projects.keys()
-    project_ids.sort()
+def assignment_list(ctx, course, ids, utc):
+    assignment_ids = course.assignments.keys()
+    assignment_ids.sort()
 
-    for project_id in project_ids:
+    for assignment_id in assignment_ids:
         if ids:
-            print project_id
+            print assignment_id
         else:
-            project = course.get_project(project_id)
+            assignment = course.get_assignment(assignment_id)
 
             if utc:
-                deadline = project.get_deadline().isoformat(" ")
+                deadline = assignment.get_deadline().isoformat(" ")
             else:
-                deadline = convert_timezone_to_local(project.get_deadline()).isoformat(" ")
+                deadline = convert_timezone_to_local(assignment.get_deadline()).isoformat(" ")
 
-            fields = [project.id, deadline, project.name]
+            fields = [assignment.id, deadline, assignment.name]
 
             print "\t".join(fields)
 
@@ -87,41 +87,41 @@ def project_list(ctx, course, ids, utc):
 
 
 @click.command(name="grade-component-add")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.argument('name', type=str)
 @click.argument('points', type=int)
 @pass_course
 @click.pass_context
-def project_grade_component_add(ctx, course, project_id, name, points):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def assignment_grade_component_add(ctx, course, assignment_id, name, points):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
         return CHISUBMIT_FAIL
 
     grade_component = GradeComponent(name=name, points=points)
-    project.add_grade_component(grade_component)
+    assignment.add_grade_component(grade_component)
 
     return CHISUBMIT_SUCCESS
 
 
 @click.command(name="deadline-show")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.option('--utc', is_flag=True)
 @pass_course
 @click.pass_context
-def project_deadline_show(ctx, course, project_id, utc):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist"
+def assignment_deadline_show(ctx, course, assignment_id, utc):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         return CHISUBMIT_FAIL
 
     now_utc = get_datetime_now_utc()
     now_local = convert_timezone_to_local(now_utc)
 
-    deadline_utc = project.get_deadline()
+    deadline_utc = assignment.get_deadline()
     deadline_local = convert_timezone_to_local(deadline_utc)
 
-    print project.name
+    print assignment.name
     print
     if utc:
         print "      Now (Local): %s" % now_local.isoformat(" ")
@@ -135,7 +135,7 @@ def project_deadline_show(ctx, course, project_id, utc):
 
     print
 
-    extensions = project.extensions_needed(now_utc)
+    extensions = assignment.extensions_needed(now_utc)
 
     if extensions == 0:
         diff = deadline_utc - now_utc
@@ -152,12 +152,12 @@ def project_deadline_show(ctx, course, project_id, utc):
         print "You have %i days, %i hours, %i minutes, %i seconds left" % (days, hours, minutes, seconds)
     else:
         print "The deadline passed %i days, %i hours, %i minutes, %i seconds ago" % (days, hours, minutes, seconds)
-        print "If you submit your project now, you will need to use %i extensions" % extensions
+        print "If you submit your assignment now, you will need to use %i extensions" % extensions
 
     return CHISUBMIT_SUCCESS
 
 
-project.add_command(project_create)
-project.add_command(project_list)
-project.add_command(project_grade_component_add)
-project.add_command(project_deadline_show)
+assignment.add_command(assignment_create)
+assignment.add_command(assignment_list)
+assignment.add_command(assignment_grade_component_add)
+assignment.add_command(assignment_deadline_show)

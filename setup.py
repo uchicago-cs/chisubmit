@@ -45,7 +45,7 @@ eps = ['chisubmit = chisubmit.cli:chisubmit_cmd_wrapper',
 
 setup(name='chisubmit',
       version=RELEASE,
-      description='A system for managing projects and teams in university courses',
+      description='A system for managing assignments and teams in university courses',
       author='University of Chicago, Department of Computer Science',
       author_email='borja@cs.uchicago.edu',
       url='http://www.cs.uchicago.edu/',

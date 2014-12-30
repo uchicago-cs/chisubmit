@@ -59,4 +59,4 @@ class Grader(User):
 class Instructor(User):
     _course_qualified = True
 
-    _has_many = ('students', 'projects')   
+    _has_many = ('students', 'assignments')   

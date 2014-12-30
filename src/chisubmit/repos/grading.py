@@ -117,32 +117,32 @@ class LocalGitRepo(object):
             return refs[0]
 
 class GradingGitRepo(object):
-    def __init__(self, team, project, repo, repo_path):
+    def __init__(self, team, assignment, repo, repo_path):
         self.team = team
-        self.project = project
+        self.assignment = assignment
         self.repo = repo
         self.repo_path = repo_path
 
     @classmethod
-    def get_grading_repo(cls, base_dir, course, team, project):
-        repo_path = cls.get_grading_repo_path(base_dir, course, team, project)
+    def get_grading_repo(cls, base_dir, course, team, assignment):
+        repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         if not os.path.exists(repo_path):
             return None
         else:
             repo = LocalGitRepo(repo_path)
-            return cls(team, project, repo, repo_path)
+            return cls(team, assignment, repo, repo_path)
 
     @classmethod
-    def create_grading_repo(cls, base_dir, course, team, project):
+    def create_grading_repo(cls, base_dir, course, team, assignment):
         conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
         conn_staging = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
 
-        repo_path = cls.get_grading_repo_path(base_dir, course, team, project)
+        repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         gh_url = conn.get_repository_git_url(course, team)
         staging_url = conn_staging.get_repository_git_url(course, team)
 
         repo = LocalGitRepo.create_repo(repo_path, clone_from_url = gh_url, remotes = [("staging", staging_url)])
-        return cls(team, project, repo, repo_path)
+        return cls(team, assignment, repo, repo_path)
 
     def sync(self):
         self.repo.fetch("origin")
@@ -150,34 +150,34 @@ class GradingGitRepo(object):
         self.repo.reset_branch("origin", "master")
 
     def create_grading_branch(self):
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
         if self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository already has a %s branch" % (self.team.id, branch_name))
 
-        tag = self.repo.get_tag(self.project.id)
+        tag = self.repo.get_tag(self.assignment.id)
         if tag is None:
             self.sync()
-            tag = self.repo.get_tag(self.project.id)
+            tag = self.repo.get_tag(self.assignment.id)
             if tag is None:
-                raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.project.id))
+                raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.assignment.id))
 
         self.repo.create_branch(branch_name, tag.commit)
         self.repo.checkout_branch(branch_name)
 
     def has_grading_branch(self):
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
         return self.repo.has_branch(branch_name)
 
     def has_grading_branch_staging(self):
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
         return self.repo.has_remote_branch("staging", branch_name)
 
     def has_grading_branch_github(self):
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
         return self.repo.has_remote_branch("origin", branch_name)
 
     def checkout_grading_branch(self):
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
         if not self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository does not have a %s branch" % (self.team.id, branch_name))
 
@@ -202,7 +202,7 @@ class GradingGitRepo(object):
         c.set_value("user", "email", "do-not-email@example.org")
 
     def __push_grading_branch(self, remote_name, push_master = False):
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
 
         if not self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository does not have a %s branch" % (self.team.id, branch_name))
@@ -217,7 +217,7 @@ class GradingGitRepo(object):
             self.repo.checkout_branch("master")
             self.repo.pull(remote_name, "master")
 
-        branch_name = self.project.get_grading_branch_name()
+        branch_name = self.assignment.get_grading_branch_name()
         if self.repo.has_branch(branch_name):
             self.repo.checkout_branch(branch_name)
             self.repo.pull(remote_name, branch_name)
@@ -226,7 +226,7 @@ class GradingGitRepo(object):
             self.repo.checkout_branch(branch_name)
 
     @staticmethod
-    def get_grading_repo_path(base_dir, course, team, project):
+    def get_grading_repo_path(base_dir, course, team, assignment):
         # TODO 18DEC14: This code could be a problem
         # The base_dir is passed from far away
-        return "%s/repositories/%s/%s/%s" % (base_dir, course.id, project.id, team.id)
+        return "%s/repositories/%s/%s/%s" % (base_dir, course.id, assignment.id, team.id)

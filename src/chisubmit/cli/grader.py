@@ -116,28 +116,28 @@ def grader_add_conflict(ctx, course, grader_id, student_id):
 
 @click.command(name="create-grading-repos")
 @click.argument('grader_id', type=str)
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @save_changes
 @click.pass_context
-def grader_create_grading_repos(ctx, course, grader_id, project_id):
+def grader_create_grading_repos(ctx, course, grader_id, assignment_id):
     grader = course.get_grader(grader_id)
     if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
-    project = course.get_project(project_id)
-    if not project:
-        print "Project %s does not exist"
+    assignment = course.get_assignment(assignment_id)
+    if not assignment:
+        print "Assignment %s does not exist"
         return CHISUBMIT_FAIL
 
-    teams = get_teams(course, project, grader = grader)
+    teams = get_teams(course, assignment, grader = grader)
 
     if not teams:
         print "No teams found"
         return CHISUBMIT_FAIL
 
-    repos = create_grading_repos(course, project, teams, grader = grader)
+    repos = create_grading_repos(course, assignment, teams, grader = grader)
 
     if not repos:
         print "There was some kind of problem creating the grading repos."
@@ -148,41 +148,41 @@ def grader_create_grading_repos(ctx, course, grader_id, project_id):
 
     for team in teams:
         print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(course, team, project, staging = True)
+        gradingrepo_pull_grading_branch(course, team, assignment, staging = True)
 
     return CHISUBMIT_SUCCESS
 
 
 @click.command(name="validate-rubric")
 @click.argument('team_id', type=str)
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @save_changes
 @click.pass_context
-def grader_validate_rubric(ctx, course, team_id, project_id):
+def grader_validate_rubric(ctx, course, team_id, assignment_id):
     team = course.get_team(team_id)
     if not team:
         print "Team %s does not exist"
         return CHISUBMIT_FAIL
 
-    project = course.get_project(project_id)
-    if not project:
-        print "Project %s does not exist"
+    assignment = course.get_assignment(assignment_id)
+    if not assignment:
+        print "Assignment %s does not exist"
         return CHISUBMIT_FAIL
 
-    repo = GradingGitRepo.get_grading_repo(course, team, project)
+    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
     if not repo:
         print "Repository for %s does not exist" % (team.id)
         return CHISUBMIT_FAIL
 
-    rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+    rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.id
 
     if not os.path.exists(rubricfile):
-        print "Repository for %s does not exist have a rubric for project %s" % (team.id, project.id)
+        print "Repository for %s does not exist have a rubric for assignment %s" % (team.id, assignment.id)
         return CHISUBMIT_FAIL
 
     # FIXME 18DEC14: validation explicit
-    RubricFile.from_file(open(rubricfile), project)
+    RubricFile.from_file(open(rubricfile), assignment)
     print "Rubric OK."
 
     return CHISUBMIT_SUCCESS
@@ -190,59 +190,59 @@ def grader_validate_rubric(ctx, course, team_id, project_id):
 
 @click.command(name="push-grading-branch")
 @click.argument('grader_id', type=str)
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @pass_course
 @save_changes
 @click.pass_context
-def grader_push_grading_branch(ctx, course, grader_id, project_id, only):
+def grader_push_grading_branch(ctx, course, grader_id, assignment_id, only):
     grader = course.get_grader(grader_id)
     if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
-    project = course.get_project(project_id)
-    if not project:
-        print "Project %s does not exist"
+    assignment = course.get_assignment(assignment_id)
+    if not assignment:
+        print "Assignment %s does not exist"
         return CHISUBMIT_FAIL
 
-    teams = get_teams(course, project, grader = grader, only = only)
+    teams = get_teams(course, assignment, grader = grader, only = only)
 
     if not teams:
         return CHISUBMIT_FAIL
 
     for team in teams:
         print "Pushing grading branch for team %s... " % team.id
-        gradingrepo_push_grading_branch(course, team, project, staging = True)
+        gradingrepo_push_grading_branch(course, team, assignment, staging = True)
 
     return CHISUBMIT_SUCCESS
 
 @click.command(name="pull-grading-branch")
 @click.argument('grader_id', type=str)
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @pass_course
 @save_changes
 @click.pass_context
-def grader_pull_grading_branch(ctx, course, grader_id, project_id, only):
+def grader_pull_grading_branch(ctx, course, grader_id, assignment_id, only):
     grader = course.get_grader(grader_id)
     if not grader:
         print "Grader %s does not exist" % grader_id
         return CHISUBMIT_FAIL
 
-    project = course.get_project(project_id)
-    if not project:
-        print "Project %s does not exist"
+    assignment = course.get_assignment(assignment_id)
+    if not assignment:
+        print "Assignment %s does not exist"
         return CHISUBMIT_FAIL
 
-    teams = get_teams(course, project, grader = grader, only = only)
+    teams = get_teams(course, assignment, grader = grader, only = only)
 
     if not teams:
         return CHISUBMIT_FAIL
 
     for team in teams:
         print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(course, team, project, staging = True)
+        gradingrepo_pull_grading_branch(course, team, assignment, staging = True)
 
     return CHISUBMIT_SUCCESS
 

@@ -34,7 +34,7 @@ import json
 from chisubmit.client.user import Grader
 from chisubmit.client.user import Instructor
 from chisubmit.client.user import Student
-from chisubmit.client.project import Project
+from chisubmit.client.assignment import Assignment
 from chisubmit.client.team import Team
 from chisubmit.client import session
 
@@ -43,7 +43,7 @@ from chisubmit.client import session
 class Course(object):
 
     _updatable_attributes = ('git_server_connection_string', 'git_staging_server_connection_string')
-    _has_many = ('students', 'projects', 'teams', 'graders', 'instructors')
+    _has_many = ('students', 'assignments', 'teams', 'graders', 'instructors')
 
     def __getattr__(self, name):
         if name in self._updatable_attributes:
@@ -155,19 +155,19 @@ class Course(object):
         data = json.dumps({'options': {'update': [attrs]}})
         session.put('courses/%s' % (self.id), data=data)        
  
-    # TODO 15JULY14: move this to Project.get() or something similar
-    def get_project(self, project_id):
-        return Project.from_uri('projects/%s' % (project_id))
+    # TODO 15JULY14: move this to Assignment.get() or something similar
+    def get_assignment(self, assignment_id):
+        return Assignment.from_uri('assignments/%s' % (assignment_id))
 
-    def add_project(self, project):
+    def add_assignment(self, assignment):
         attrs = {'course_id': self.id}
-        for attr in project._api_attrs:
+        for attr in assignment._api_attrs:
             if attr == 'deadline':
-                attrs[attr] = getattr(project, attr, None).isoformat()
+                attrs[attr] = getattr(assignment, attr, None).isoformat()
             else:
-                attrs[attr] = getattr(project, attr, None)
-        # _api_attrs = ('name', 'deadline', 'project_id')
-        data = json.dumps({'projects': {'add': [attrs]}})
+                attrs[attr] = getattr(assignment, attr, None)
+        # _api_attrs = ('name', 'deadline', 'assignment_id')
+        data = json.dumps({'assignments': {'add': [attrs]}})
         session.put('courses/%s' % (self.id), data=data)
 
     def get_team(self, team_id):

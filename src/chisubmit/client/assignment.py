@@ -36,7 +36,7 @@ from dateutil import parser
 import json
 import math
 
-class Project(ApiObject):
+class Assignment(ApiObject):
 
     _api_attrs = ('name', 'deadline', 'id')
     _has_many = ('grade_components', 'teams')
@@ -49,24 +49,24 @@ class Project(ApiObject):
                 else:
                     self.deadline = convert_timezone_to_local(parser.parse(kw['deadline']))
             elif attr == 'id':
-              if 'project_id' in kw:
-                self.id = kw['project_id']
+              if 'assignment_id' in kw:
+                self.id = kw['assignment_id']
               else:
                 self.id = kw['id']
             else:
                 setattr(self, attr, kw[attr])
 
     def get_grade_component(self, grade_component_name):
-        url = 'projects/%s/grade_components/%s' % \
+        url = 'assignments/%s/grade_components/%s' % \
             (self.id, grade_component_name)
         return GradeComponent.from_uri(url)
 
     def add_grade_component(self, gc):
-        attrs = {'project_id': self.id}
+        attrs = {'assignment_id': self.id}
         for attr in gc._api_attrs:
             attrs[attr] = getattr(gc, attr, None)
         data = json.dumps({'grade_components': {'add': [attrs]}})
-        session.put('projects/%s' % (self.id), data=data)
+        session.put('assignments/%s' % (self.id), data=data)
 
     def get_deadline(self):
         return self.deadline

@@ -53,35 +53,35 @@ class DateTimeParamType(click.ParamType):
 DATETIME = DateTimeParamType()
 
 
-def get_teams(course, project, grader = None, only = None):
+def get_teams(course, assignment, grader = None, only = None):
     if only is not None:
         team = course.get_team(only)
         if team is None:
             print "Team %s does not exist"
             return None
-        if not team.has_project(project.id):
-            print "Team %s has not been assigned project %s" % (team.id, project.id)
+        if not team.has_assignment(assignment.id):
+            print "Team %s has not been assigned assignment %s" % (team.id, assignment.id)
             return None
 
         teams = [team]
     else:
-        teams = [t for t in course.teams if t.has_project(project.id)]
+        teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
         if grader is not None:
-            teams = [t for t in teams if t.get_project(project.id).get_grader().id == grader.id]
+            teams = [t for t in teams if t.get_assignment(assignment.id).get_grader().id == grader.id]
 
     return teams
 
 
-def create_grading_repos(base_dir, course, project, teams, grader = None):
+def create_grading_repos(base_dir, course, assignment, teams, grader = None):
     repos = []
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(base_dir, course, team, project)
+        repo = GradingGitRepo.get_grading_repo(base_dir, course, team, assignment)
 
         if repo is None:
             print ("Creating grading repo for %s... " % team.id),
-            repo = GradingGitRepo.create_grading_repo(base_dir, course, team, project)
+            repo = GradingGitRepo.create_grading_repo(base_dir, course, team, assignment)
             repo.sync()
 
             repos.append(repo)
@@ -93,8 +93,8 @@ def create_grading_repos(base_dir, course, project, teams, grader = None):
     return repos
 
 
-def gradingrepo_push_grading_branch(course, team, project, github=False, staging=False):
-    repo = GradingGitRepo.get_grading_repo(course, team, project)
+def gradingrepo_push_grading_branch(course, team, assignment, github=False, staging=False):
+    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
@@ -112,9 +112,9 @@ def gradingrepo_push_grading_branch(course, team, project, github=False, staging
 
     return CHISUBMIT_SUCCESS
 
-def gradingrepo_pull_grading_branch(course, team, project, github=False, staging=False):
+def gradingrepo_pull_grading_branch(course, team, assignment, github=False, staging=False):
     assert(not (github and staging))
-    repo = GradingGitRepo.get_grading_repo(course, team, project)
+    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
 
     if repo is None:
         print "%s does not have a grading repository" % team.id

@@ -14,13 +14,11 @@ admin
         show COURSE_ID [--include-users] [--include-assignments]
         set-option COURSE_ID OPTION_KEY OPTION_VALUE
         list
-        set-git-server COURSE_ID CONNECTION_STRING
-        set-staging-git-server COURSE_ID CONNECTION_STRING
-        add-instructor COURSE_ID USER_ID GIT_SERVER_ID STAGING_GIT_SERVER_ID
+        add-instructor COURSE_ID USER_ID
         remove-instructor COURSE_ID USER_ID
-        add-grader COURSE_ID USER_ID GIT_SERVER_ID STAGING_GIT_SERVER_ID
+        add-grader COURSE_ID USER_ID
         remove-grader COURSE_ID USER_ID 
-        add-student COURSE_ID USER_ID GIT_SERVER_ID
+        add-student COURSE_ID USER_ID
         remove-student COURSE_ID USER_ID
         set-student-dropped COURSE_ID USER_ID
     

@@ -3,7 +3,7 @@ from chisubmit.backend.webapp.api import db
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from chisubmit.backend.webapp.api.courses.models import Course, CoursesInstructors,\
     CoursesStudents, CoursesGraders
-from chisubmit.backend.webapp.api.projects.models import Project
+from chisubmit.backend.webapp.api.assignments.models import Assignment
 from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
@@ -60,13 +60,13 @@ def course(course_id):
 
         course.set_columns(**form.patch_data)
 
-        if 'projects' in form:
-            for project_data in form.projects.add:
-                new_project = Project()
+        if 'assignments' in form:
+            for assignment_data in form.assignments.add:
+                new_assignment = Assignment()
                 # anonymous class to fool the populate_obj() call
-                anonymous_class = type("", (), dict(project=new_project))()
-                project_data.populate_obj(anonymous_class, 'project')
-                db.session.add(new_project)
+                anonymous_class = type("", (), dict(assignment=new_assignment))()
+                assignment_data.populate_obj(anonymous_class, 'assignment')
+                db.session.add(new_assignment)
 
         if 'instructors' in form:
             for child_data in form.instructors.add:

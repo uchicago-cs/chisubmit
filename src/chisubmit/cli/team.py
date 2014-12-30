@@ -99,9 +99,9 @@ def team_show(ctx, course, search, verbose, team_id):
     for t in teams:
         tdict = dict(vars(t))
         if verbose:
-            tdict["projects"] = dict(tdict["projects"])
-            for p in tdict["projects"]:
-                tdict["projects"][p] = vars(tdict["projects"][p])
+            tdict["assignments"] = dict(tdict["assignments"])
+            for p in tdict["assignments"]:
+                tdict["assignments"][p] = vars(tdict["assignments"][p])
 
             tdict["students"] = [vars(s) for s in tdict["students"]]
 
@@ -131,15 +131,15 @@ def team_student_add(ctx, course, team_id, student_id):
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="project-add")
+@click.command(name="assignment-add")
 @click.argument('team_id', type=str)
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @click.pass_context
-def team_project_add(ctx, course, team_id, project_id):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def team_assignment_add(ctx, course, team_id, assignment_id):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
         return CHISUBMIT_FAIL
 
     team = course.get_team(team_id)
@@ -147,26 +147,26 @@ def team_project_add(ctx, course, team_id, project_id):
         print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
 
-    if team.projects.has_key(project.id):
-        print "Team %s has already been assigned project %s"  % (team.id, project.id)
+    if team.assignments.has_key(assignment.id):
+        print "Team %s has already been assigned assignment %s"  % (team.id, assignment.id)
         return CHISUBMIT_FAIL
 
-    team.add_project(project)
+    team.add_assignment(assignment)
 
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="project-set-grade")
+@click.command(name="assignment-set-grade")
 @click.argument('team_id', type=str)
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.argument('grade_component', type=str)
 @click.argument('grade', type=float)
 @pass_course
 @click.pass_context
-def team_project_set_grade(ctx, course, team_id, project_id, grade_component, grade):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def team_assignment_set_grade(ctx, course, team_id, assignment_id, grade_component, grade):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
         return CHISUBMIT_FAIL
 
     team = course.get_team(team_id)
@@ -174,12 +174,12 @@ def team_project_set_grade(ctx, course, team_id, project_id, grade_component, gr
         print "Team %s does not exist" % team_id
         return CHISUBMIT_FAIL
 
-    grade_component = project.get_grade_component(grade_component)
+    grade_component = assignment.get_grade_component(grade_component)
     if not grade_component:
-        print "Project %s does not have a grade component '%s'" % (project.id, grade_component)
+        print "Assignment %s does not have a grade component '%s'" % (assignment.id, grade_component)
         return CHISUBMIT_FAIL
 
-    team.set_project_grade(project, grade_component, grade)
+    team.set_assignment_grade(assignment, grade_component, grade)
 
 
 @click.command(name="set-private-name")
@@ -388,8 +388,8 @@ team.add_command(team_create)
 team.add_command(team_list)
 team.add_command(team_show)
 team.add_command(team_student_add)
-team.add_command(team_project_add)
-team.add_command(team_project_set_grade)
+team.add_command(team_assignment_add)
+team.add_command(team_assignment_set_grade)
 team.add_command(team_set_private_name)
 team.add_command(team_repo_create)
 team.add_command(team_repo_update)

@@ -37,7 +37,7 @@ class Team(ApiObject):
 
     _api_attrs = ('id', 'course_id')
     _updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
-    _has_many = ('students', 'projects', 'grades', 'projects_teams')
+    _has_many = ('students', 'assignments', 'grades', 'assignments_teams')
 
     def __setattr__(self, name, value):
         if name in self._updatable_attributes:
@@ -50,20 +50,20 @@ class Team(ApiObject):
         data = json.dumps({'students': {'add': [attrs]}})
         session.put('teams/%s' % (self.id), data=data)
 
-    def get_project(self, project_id):
-        return next(project_team for project_team in self.projects_teams if project_team.project_id == project_id)
+    def get_assignment(self, assignment_id):
+        return next(assignment_team for assignment_team in self.assignments_teams if assignment_team.assignment_id == assignment_id)
 
-    def add_project(self, project):
-        attrs = {'team_id': self.id, 'project_id': project.id}
-        data = json.dumps({'projects': {'add': [attrs]}})
+    def add_assignment(self, assignment):
+        attrs = {'team_id': self.id, 'assignment_id': assignment.id}
+        data = json.dumps({'assignments': {'add': [attrs]}})
         session.put('teams/%s' % (self.id), data=data)
 
-    def has_project(self, project_id):
-        return session.exists('teams/%s/projects/%s' %
-                         (self.id, project_id))
+    def has_assignment(self, assignment_id):
+        return session.exists('teams/%s/assignments/%s' %
+                         (self.id, assignment_id))
 
-    def set_project_grade(self, project, grade_component, points):
+    def set_assignment_grade(self, assignment, grade_component, points):
         assert(isinstance(grade_component, GradeComponent))
 
-        project_team = self.get_project(project.id)
-        project_team.set_grade(grade_component, points)
+        assignment_team = self.get_assignment(assignment.id)
+        assignment_team.set_grade(grade_component, points)

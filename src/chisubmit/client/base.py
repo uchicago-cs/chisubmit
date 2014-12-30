@@ -157,6 +157,21 @@ class ApiObject(object):
         url = cls.pluralize() + '/%s' % identifier
         return cls.from_uri(url)
 
+    @classmethod
+    def from_course_and_id(cls, course_id, identifier):
+        url = "courses/%s/%s/%s" % (course_id, cls.pluralize(), identifier)
+        return cls.from_uri(url)
+    
+    @classmethod
+    def all(cls):
+        json = session.get(cls.pluralize())
+        return [cls.from_json(o) for o in json[cls.pluralize()]]    
+
+    @classmethod
+    def all_in_course(cls, course_id):
+        json = session.get("courses/%s/%s" % (course_id, cls.pluralize()))
+        return [cls.from_json(o) for o in json[cls.pluralize()]]    
+
     def _api_update(self, attr, value):
         data = json.dumps({attr: value}, default=json_default)
         result = session.put(self.url(), data=data)

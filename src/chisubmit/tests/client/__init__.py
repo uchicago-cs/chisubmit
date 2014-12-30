@@ -1,7 +1,9 @@
-from . import test_courses
 from unittest.suite import TestSuite
 
-test_cases = [test_courses]
+from . import test_courses
+from . import test_assignments
+
+test_cases = [test_courses, test_assignments]
 
 def load_tests(loader, tests, pattern):
     suite = TestSuite()

@@ -87,6 +87,14 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
         self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
 
-        result = admin.run("admin course show --include-users %s" % (course_id))
+
+        result = instructor.run("instructor assignment add", 
+                                ["pa1", "Programming Assignment 1", "2042-01-21T20:00"],
+                                course = "cmsc40200")
+        self.assertEquals(result.exit_code, 0)
+
+        
+        
+        result = admin.run("admin course show", ["--include-users", "--include-assignments", course_id])
         self.assertEquals(result.exit_code, 0)
         

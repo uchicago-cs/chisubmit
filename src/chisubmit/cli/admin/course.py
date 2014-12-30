@@ -31,57 +31,13 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-import operator
-import random
 from chisubmit.client.user import User
 from chisubmit.client.course import Course
-
-
-@click.group()
-@click.pass_context
-def admin(ctx):
-    pass
-
-
-
-@click.group(name="user")
-@click.pass_context
-def admin_user(ctx):
-    pass
-
 
 @click.group(name="course")
 @click.pass_context
 def admin_course(ctx):
     pass
-
-@click.command(name="add")
-@click.argument('user_id', type=str)
-@click.argument('first_name', type=str)
-@click.argument('last_name', type=str)
-@click.argument('email', type=str)
-@click.pass_context
-def admin_user_add(ctx, user_id, first_name, last_name, email):
-    user = User(id = user_id,
-                first_name = first_name,
-                last_name = last_name,
-                email = email)
-
-    return CHISUBMIT_SUCCESS
-
-@click.command(name="remove")
-@click.argument('user_id', type=str)
-@click.pass_context
-def admin_user_remove(ctx, user_id):
-    # TODO
-    print "NOT IMPLEMENTED"
-    
-    return CHISUBMIT_SUCCESS
-
-
-admin.add_command(admin_user)
-admin_user.add_command(admin_user_add)
-admin_user.add_command(admin_user_remove)
 
 
 @click.command(name="add")
@@ -141,6 +97,14 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
         for s in course.students:
             print "%s: %s, %s <%s>" % (s.id, s.last_name, s.first_name, s.email)
         print
+
+    if include_assignments:
+        print "ASSIGNMENTS"
+        print "-----------"
+        for a in course.assignments:
+            print "%s: %s (Due: %s)" % (a.id, a.name, a.deadline)
+        print
+
     
     return CHISUBMIT_SUCCESS
 
@@ -195,8 +159,6 @@ def admin_course_set_option(ctx, course_id, option_name, option_value):
     course = Course.from_course_id(course_id)
     course.set_option(option_name, option_value)
 
-
-admin.add_command(admin_course)
 admin_course.add_command(admin_course_add)
 admin_course.add_command(admin_course_remove)
 admin_course.add_command(admin_course_show)

@@ -29,6 +29,11 @@
 import re
 import json
 from chisubmit.client import session
+from datetime import datetime
+
+def json_default(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
 
 
 class AttrOverride(type):
@@ -108,9 +113,28 @@ class ApiObject(object):
     def register_subclass(klass, cls):
         klass._subclasses.append(cls)
 
-    def url(self):
+    def is_course_qualified(self):
+        class_attrs = self.__class__.__dict__
+        if "_course_qualified" in class_attrs:
+            if class_attrs["_course_qualified"]:
+                return True
+        return False
+
+    def url(self, with_id = True):
         i = self.identifier
-        return '%s/%s' % (self.pluralize(), i)
+                
+        if self.is_course_qualified():
+            url_prefix = 'courses/%s/' % self.course_id
+        else:
+            url_prefix = ''
+            
+        if with_id:
+            i = self.identifier
+            id_suffix = "/%s" % i
+        else:
+            id_suffix = ""
+            
+        return '%s%s%s' % (url_prefix, self.pluralize(), id_suffix)
 
     @classmethod
     def pluralize(cls):
@@ -134,10 +158,8 @@ class ApiObject(object):
         return cls.from_uri(url)
 
     def _api_update(self, attr, value):
-        data = json.dumps({attr: value})
-        result = session.put('%s/%s' % (self.__class__.pluralize(),
-                                                self.id),
-                           data=data)
+        data = json.dumps({attr: value}, default=json_default)
+        result = session.put(self.url(), data=data)
         self.__class__.from_json(result, self)
 
     @classmethod
@@ -154,14 +176,18 @@ class ApiObject(object):
             # FIXME 16JULY14: "alias" the id attribute.
             if attr == class_id:
                 self.id = kw[attr]
+                
+        if self.is_course_qualified():
+            self.course_id = kw.get("course_id", None)
+                
         if backendSave:
             self.save()
 
     def save(self):
         attributes = {'id': self.identifier}
-        attributes.update({attr: getattr(self, attr) for attr in self._api_attrs})
-        data = json.dumps(attributes)
-        session.post(type(self).pluralize(), data)
+        attributes.update({attr: getattr(self, attr) for attr in self._api_attrs})        
+        data = json.dumps(attributes, default=json_default)
+        session.post(self.url(with_id=False), data)
 
     def __repr__(self):
         representation = "<%s -- " % (self.__class__.__name__)

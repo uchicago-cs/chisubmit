@@ -34,12 +34,13 @@ from chisubmit.common import ChisubmitException, CHISUBMIT_FAIL,\
 import sys
 from pprint import pprint
 from requests.exceptions import HTTPError, ConnectionError
+from chisubmit.cli.admin import admin
+from chisubmit.cli.instructor import instructor
 config = None
 
 import chisubmit.common.log as log
 from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.cli.admin import admin
 from chisubmit.client import session
 
 SUBCOMMANDS_NO_COURSE = [('course','create')]
@@ -131,6 +132,7 @@ def chisubmit_cmd_wrapper():
         handle_unexpected_exception()
 
 chisubmit_cmd.add_command(admin)
+chisubmit_cmd.add_command(instructor)
 
 
 from chisubmit.cli.server import server_start, server_initdb

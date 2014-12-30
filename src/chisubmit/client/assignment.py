@@ -40,8 +40,13 @@ class Assignment(ApiObject):
 
     _api_attrs = ('name', 'deadline', 'id')
     _has_many = ('grade_components', 'teams')
+    _course_qualified = True
 
     def __init__(self, **kw):
+        backendSave = kw.pop("backendSave", True)
+        
+        ApiObject.__init__(self, backendSave = False, **kw)
+
         for attr in self._api_attrs:
             if attr == 'deadline':
                 if hasattr(kw['deadline'], 'isoformat'):
@@ -49,12 +54,16 @@ class Assignment(ApiObject):
                 else:
                     self.deadline = convert_timezone_to_local(parser.parse(kw['deadline']))
             elif attr == 'id':
-              if 'assignment_id' in kw:
-                self.id = kw['assignment_id']
-              else:
-                self.id = kw['id']
+                if 'assignment_id' in kw:
+                    self.id = kw['assignment_id']
+                else:
+                    self.id = kw['id']
             else:
                 setattr(self, attr, kw[attr])
+        
+        if backendSave:       
+            self.save()
+                
 
     def get_grade_component(self, grade_component_name):
         url = 'assignments/%s/grade_components/%s' % \

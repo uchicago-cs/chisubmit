@@ -7,6 +7,8 @@ from chisubmit.client.course import Course
 from functools import update_wrapper
 from chisubmit.common.utils import mkdatetime
 
+from dateutil.parser import parse
+
 def pass_course(f):
     @click.pass_context
     def new_func(ctx, *args, **kwargs):
@@ -46,7 +48,7 @@ class DateTimeParamType(click.ParamType):
 
     def convert(self, value, param, ctx):
         try:
-            return mkdatetime(value)
+            return parse(value)
         except ValueError:
             self.fail('"%s" is not a valid datetime string' % value, param, ctx)
 

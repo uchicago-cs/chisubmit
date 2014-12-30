@@ -64,8 +64,11 @@ class ChisubmitCLITestClient(object):
                     "api-key": api_key}
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
-    def run(self, subcommands, params = [], catch_exceptions=False):
+    def run(self, subcommands, params = [], course = None, catch_exceptions=False):
         chisubmit_args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
+        
+        if course is not None:
+            chisubmit_args += ['--course', course]
         
         cmd_args = subcommands.split()
         cmd_args += params

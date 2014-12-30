@@ -31,6 +31,7 @@ from requests import exceptions, Session
 from urlparse import urlparse
 import json
 import sys
+from requests.exceptions import HTTPError
 
 endpoint = None
 session = None
@@ -56,9 +57,22 @@ def connect_test(app, access_token = None):
         headers["CHISUBMIT-API-KEY"] = access_token
     return test_client
 
+def test_raise_for_status(response):
+    http_error_msg = ''
+
+    if 400 <= response.status_code < 500:
+        http_error_msg = '%s Client Error: %s' % (response.status_code, response.status)
+
+    elif 500 <= response.status_code < 600:
+        http_error_msg = '%s Server Error: %s' % (response.status_code, response.status)
+
+    if http_error_msg:
+        raise HTTPError(http_error_msg, response=None)    
+
 def get(resource, **kwargs):
     if testing:
         response = test_client.get(endpoint + resource, headers=headers, **kwargs)
+        test_raise_for_status(response)
         return json.loads(response.get_data())
     else:    
         response = session.get(endpoint + resource, **kwargs)
@@ -66,8 +80,10 @@ def get(resource, **kwargs):
         return response.json()
 
 def post(resource, data, **kwargs):
+    # TODO: Improve handling of HTTP 400
     if testing:
         response = test_client.post(endpoint + resource, data=data, headers=headers, **kwargs)
+        test_raise_for_status(response)
         return json.loads(response.get_data())
     else:
         response = session.post(endpoint + resource, data, **kwargs)
@@ -83,6 +99,7 @@ def post(resource, data, **kwargs):
 def put(resource, data, **kwargs):
     if testing:
         response = test_client.put(endpoint + resource, data=data, headers=headers, **kwargs)
+        test_raise_for_status(response)
         return json.loads(response.get_data())
     else:
         response = session.put(endpoint + resource, data, **kwargs)

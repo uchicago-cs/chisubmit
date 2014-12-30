@@ -23,9 +23,6 @@ class UpdateAssignmentInput(Form):
 
 class CreateAssignmentInput(Form):
     id = StringField(validators=[Length(max=36), InputRequired()])
-    course_id = StringField('course_id',
-                            validators=[Length(max=36, min=5),
-                                        InputRequired()])
     deadline = ISODateTimeField(validators=[InputRequired()])
     name = StringField('name',
                        validators=[Length(max=36, min=5),

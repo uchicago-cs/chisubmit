@@ -3,7 +3,8 @@ from chisubmit.backend.webapp.api.assignments.models import Assignment
 from chisubmit.backend.webapp.api.grades.models import GradeComponent
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
-from chisubmit.backend.webapp.api.assignments.forms import UpdateAssignmentInput
+from chisubmit.backend.webapp.api.assignments.forms import UpdateAssignmentInput,\
+    CreateAssignmentInput
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
 from chisubmit.backend.webapp.api.courses.models import Course
@@ -26,13 +27,20 @@ def assignments(course_id):
 
     check_course_access_or_abort(g.user, course, 404, roles=["instructor"])
 
-    new_assignment = Assignment(name=request.json.get('name'),
-                          id=request.json.get('id'),
-                          deadline=request.json.get('deadline'),
-                          course_id = course_id)
-    db.session.add(new_assignment)
+    input_data = request.get_json(force=True)
+    if not isinstance(input_data, dict):
+        return jsonify(error='Request data must be a JSON Object'), 400
+    form = CreateAssignmentInput.from_json(input_data)
+    if not form.validate():
+        return jsonify(errors=form.errors), 400
+
+    assignment = Assignment()
+    form.populate_obj(assignment)
+    assignment.course_id = course_id
+    db.session.add(assignment)
     db.session.commit()
-    return jsonify({'assignment': new_assignment.to_dict()}), 201
+    
+    return jsonify({'assignment': assignment.to_dict()}), 201
 
 
 @api_endpoint.route('/courses/<course_id>/assignments/<assignment_id>', methods=['PUT', 'GET'])

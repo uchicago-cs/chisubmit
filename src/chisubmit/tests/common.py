@@ -4,13 +4,15 @@ import os
 import json
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.courses.models import Course,\
-    CoursesInstructors
+    CoursesInstructors, CoursesGraders, CoursesStudents
 from chisubmit.backend.webapp.api import ChisubmitAPIServer
 from click.testing import CliRunner
 from functools import update_wrapper
 import yaml
 from chisubmit.cli import chisubmit_cmd
 import sys
+from chisubmit.backend.webapp.api.assignments.models import Assignment
+from dateutil.parser import parse
 
 
 class ChisubmitTestClient(object):
@@ -197,10 +199,30 @@ def load_fixture(db, fixture):
         
         db.session.add(c)
         
-        for instructor in course["instructors"]:
-            o = user_objs[instructor]
-            db.session.add(CoursesInstructors(instructor_id = o.id, 
-                                              course_id     = c.id))
+        if course.has_key("instructors"):
+            for instructor in course["instructors"]:
+                o = user_objs[instructor]
+                db.session.add(CoursesInstructors(instructor_id = o.id, 
+                                                  course_id     = c.id))
+        
+        if course.has_key("graders"):
+            for grader in course["graders"]:
+                o = user_objs[grader]
+                db.session.add(CoursesGraders(grader_id = o.id, 
+                                              course_id = c.id))
+
+        if course.has_key("students"):
+            for student in course["students"]:
+                o = user_objs[student]
+                db.session.add(CoursesStudents(student_id = o.id, 
+                                               course_id = c.id))
+
+        if course.has_key("assignments"):
+            for assignment in course["assignments"].values():
+                db.session.add(Assignment(id = assignment["id"], 
+                                          name = assignment["name"],
+                                          deadline = parse(assignment["deadline"]),
+                                          course_id = c.id))
     
     db.session.commit()
         

@@ -50,7 +50,7 @@ SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-dis
 VERBOSE = False
 DEBUG = False 
 
-@click.group()
+@click.group(name="chisubmit")
 @click.option('--conf', type=str, default=None)
 @click.option('--dir', type=str, default=None)
 @click.option('--course', type=str, default=None)

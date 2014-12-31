@@ -74,25 +74,12 @@ def raise_for_status(response):
             http_error_msg = '%s Server Error: %s' % (response.status_code, response.status)
     
         if http_error_msg:
-            raise HTTPError(http_error_msg, response=None)
+            raise HTTPError(http_error_msg, response=response)
     else:
         response.raise_for_status()
 
-def get(resource, **kwargs):
-    if testing:
-        response = test_client.get(endpoint + resource, headers=headers, **kwargs)
-        data_json = json.loads(response.get_data())
-    else:    
-        response = session.get(endpoint + resource, **kwargs)
-        data_json = response.json()
-    
-    raise_for_status(response)
-    
-    return data_json 
-        
-    
 
-def __process_post_put(response):
+def __process_response(response):
     if testing:
         response_text = response.get_data()
     else:
@@ -121,14 +108,21 @@ def __process_post_put(response):
     return data_json
 
 
+def get(resource, **kwargs):
+    if testing:
+        response = test_client.get(endpoint + resource, headers=headers, **kwargs)
+    else:    
+        response = session.get(endpoint + resource, **kwargs)
+        
+    return __process_response(response) 
+
 def post(resource, data, **kwargs):
     if testing:
         response = test_client.post(endpoint + resource, data=data, headers=headers, **kwargs)
     else:
         response = session.post(endpoint + resource, data, **kwargs)
     
-    return __process_post_put(response)
-
+    return __process_response(response)
 
 def put(resource, data, **kwargs):
     if testing:
@@ -136,7 +130,7 @@ def put(resource, data, **kwargs):
     else:
         response = session.put(endpoint + resource, data, **kwargs)
     
-    return __process_post_put(response)
+    return __process_response(response)
 
 
 def exists(obj):

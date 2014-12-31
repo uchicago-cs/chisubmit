@@ -6,8 +6,10 @@ from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.teams.forms import UpdateTeamInput,\
     CreateTeamInput, UpdateAssignmentTeamInput
 from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
+from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
+    check_team_access_or_abort
 from flask import g
+from chisubmit.backend.webapp.api.courses.models import Course
 
 @api_endpoint.route('/courses/<course_id>/teams', methods=['GET', 'POST'])
 @require_apikey
@@ -55,9 +57,10 @@ def team(course_id, team_id):
     if team is None:
         abort(404)
 
-    check_team_access_or_abort(g.user, team, 404, roles = ["instructor"])
-
+    check_team_access_or_abort(g.user, team, 404)
+    
     if request.method == 'PUT':
+        check_team_access_or_abort(g.user, team, 404, roles = ["instructor"])
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400

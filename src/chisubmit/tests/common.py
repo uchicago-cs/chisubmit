@@ -14,6 +14,7 @@ import sys
 from chisubmit.backend.webapp.api.assignments.models import Assignment
 from dateutil.parser import parse
 import colorama
+import functools
 
 colorama.init()
 
@@ -43,14 +44,18 @@ class ChisubmitTestClient(object):
         return self.test_client.post(self.API_PREFIX + resource, data = datastr, headers = self.headers)
 
 
-def cli_test(func):
-    
+def cli_test(func=None, isolated_filesystem = True):
+    if func is None:
+        return functools.partial(cli_test, isolated_filesystem = isolated_filesystem)
     def new_func(self, *args, **kwargs):
         runner = CliRunner()
-        with runner.isolated_filesystem():
+        if isolated_filesystem:
+            with runner.isolated_filesystem():
+                func(self, runner, *args, **kwargs)
+        else:
             func(self, runner, *args, **kwargs)
     
-    return update_wrapper(new_func, func)
+    return new_func
 
 
 class ChisubmitCLITestClient(object):

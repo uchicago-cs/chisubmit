@@ -33,6 +33,12 @@ import json
 import sys
 from requests.exceptions import HTTPError
 
+class BadRequestError(HTTPError):
+    
+    def __init__(self, errors, *args, **kwargs):
+        self.errors = errors        
+        super(BadRequestError, self).__init__(*args, **kwargs)
+
 endpoint = None
 session = None
 test_client = None
@@ -57,54 +63,81 @@ def connect_test(app, access_token = None):
         headers["CHISUBMIT-API-KEY"] = access_token
     return test_client
 
-def test_raise_for_status(response):
-    http_error_msg = ''
-
-    if 400 <= response.status_code < 500:
-        http_error_msg = '%s Client Error: %s' % (response.status_code, response.status)
-
-    elif 500 <= response.status_code < 600:
-        http_error_msg = '%s Server Error: %s' % (response.status_code, response.status)
-
-    if http_error_msg:
-        raise HTTPError(http_error_msg, response=None)    
+def raise_for_status(response):
+    if testing:
+        http_error_msg = ''
+    
+        if 400 <= response.status_code < 500:
+            http_error_msg = '%s Client Error: %s' % (response.status_code, response.status)
+    
+        elif 500 <= response.status_code < 600:
+            http_error_msg = '%s Server Error: %s' % (response.status_code, response.status)
+    
+        if http_error_msg:
+            raise HTTPError(http_error_msg, response=None)
+    else:
+        response.raise_for_status()
 
 def get(resource, **kwargs):
     if testing:
         response = test_client.get(endpoint + resource, headers=headers, **kwargs)
-        test_raise_for_status(response)
-        return json.loads(response.get_data())
+        data_json = json.loads(response.get_data())
     else:    
         response = session.get(endpoint + resource, **kwargs)
-        response.raise_for_status()
-        return response.json()
+        data_json = response.json()
+    
+    raise_for_status(response)
+    
+    return data_json 
+        
+    
+
+def __process_post_put(response):
+    if testing:
+        response_text = response.get_data()
+    else:
+        response_text = response.text
+        
+    if response.status_code != 400:
+        raise_for_status(response)
+    
+    try:
+        if testing:
+            data_json = json.loads(response.get_data())
+        else:
+            data_json = response.json()
+    except ValueError, ve:
+        if response.status_code == 400:
+            raise BadRequestError(errors=[("unknown", "Unexpected error message: %s" % response_text)])
+        else:
+            raise ve
+            
+    if response.status_code == 400:
+        error_result = []
+        for noun, problem in data_json['errors'].items():
+            error_result.append((noun, problem))
+        raise BadRequestError(errors = error_result)
+        
+    return data_json
+
 
 def post(resource, data, **kwargs):
-    # TODO: Improve handling of HTTP 400
     if testing:
         response = test_client.post(endpoint + resource, data=data, headers=headers, **kwargs)
-        test_raise_for_status(response)
-        return json.loads(response.get_data())
     else:
         response = session.post(endpoint + resource, data, **kwargs)
-        if response.status_code == 400:
-            error_result = []
-            for noun, problem in response.json()['errors'].items():
-                error_result.append((noun, problem))
-            response.raise_for_status()
-        else:
-            response.raise_for_status()
-        return response.json()
+    
+    return __process_post_put(response)
+
 
 def put(resource, data, **kwargs):
     if testing:
         response = test_client.put(endpoint + resource, data=data, headers=headers, **kwargs)
-        test_raise_for_status(response)
-        return json.loads(response.get_data())
     else:
         response = session.put(endpoint + resource, data, **kwargs)
-        response.raise_for_status()
-        return response.json()
+    
+    return __process_post_put(response)
+
 
 def exists(obj):
     if isinstance(obj, (str, unicode)):

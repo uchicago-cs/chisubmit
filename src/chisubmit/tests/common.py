@@ -13,7 +13,9 @@ from chisubmit.cli import chisubmit_cmd
 import sys
 from chisubmit.backend.webapp.api.assignments.models import Assignment
 from dateutil.parser import parse
+import colorama
 
+colorama.init()
 
 class ChisubmitTestClient(object):
     
@@ -53,12 +55,14 @@ def cli_test(func):
 
 class ChisubmitCLITestClient(object):
     
-    def __init__(self, user_id, api_key, runner, verbose = False):
+    def __init__(self, user_id, api_key, runner, course = None,
+                 verbose = False):
         self.user_id = user_id
         self.conf_dir = ".chisubmit-%s" % user_id
         self.conf_file = self.conf_dir + "/chisubmit.conf"
         self.runner = runner
         self.verbose = verbose
+        self.course = course
 
         os.mkdir(self.conf_dir)
         with open(self.conf_file, 'w') as f:
@@ -71,12 +75,26 @@ class ChisubmitCLITestClient(object):
         
         if course is not None:
             chisubmit_args += ['--course', course]
+        elif self.course is not None:
+            chisubmit_args += ['--course', self.course]
         
         cmd_args = subcommands.split()
         cmd_args += params
         
         if self.verbose:
-            print "%s$ chisubmit %s" % (self.user_id, " ".join(cmd_args))
+            l = []
+            for ca in cmd_args:
+                if " " in ca:
+                    l.append('"%s"' % ca)
+                else:
+                    l.append(ca)
+            s = ""
+            s+= colorama.Style.BRIGHT + colorama.Fore.BLUE
+            s+= "%s$" % self.user_id
+            s+= colorama.Fore.WHITE
+            s+= " chisubmit %s" % " ".join(l)
+            s+= colorama.Style.RESET_ALL
+            print s
         
         result = self.runner.invoke(chisubmit_cmd, chisubmit_args + cmd_args, catch_exceptions=catch_exceptions)
         

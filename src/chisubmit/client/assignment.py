@@ -67,7 +67,6 @@ class Assignment(ApiObject):
                 
     def register(self, team_name=None, partners = []):
         url = self.url() + "/register"
-        print url
         data = {}
         if team_name is not None:
             data["team_name"] = team_name

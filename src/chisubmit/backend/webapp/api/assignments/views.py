@@ -99,6 +99,10 @@ def assignment_register(course_id, assignment_id):
     if assignment is None:
         abort(404)
 
+    if not g.user.is_student_in(course):
+        error_msg = "You are not a student in course '%s'" % (course_id)
+        return jsonify(errors={"register": error_msg}), 400
+
     if request.method == 'POST':       
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
@@ -117,34 +121,98 @@ def assignment_register(course_id, assignment_id):
                 return jsonify(errors={"partners": error_msg}), 400
             
             partners.append(user)
-            
-        # TODO: Check if team already exists
-    
-        students_in_team = [g.user.id] + [u.id for u in partners]
-        students_in_team.sort()
-        
-        team_name = "_".join(students_in_team)
 
-        team = Team(id = team_name, course_id=course_id)
-        db.session.add(team)
+        students_in_team = [g.user] + partners
         
-        st = StudentsTeams(team_id = team.id, 
-                           course_id = course_id, 
-                           student_id = g.user.id,
-                           status = StudentsTeams.STATUS_CONFIRMED)
-        db.session.add(st)
+        warnings = []
+        create_team = False
         
-        for p in partners:
+        teams = Team.find_teams_with_students(course_id, students_in_team)
+                
+        if len(teams) > 0:
+            # Teams that have the assignment, but are *not* a perfect match
+            have_assignment = []
+            students_have_assignment = set()
+            perfect_match = None
+            
+            for t in teams:
+                if len(t.students) == len(students_in_team):
+                    match = True
+                    for s in students_in_team:
+                        if s not in t.students:
+                            match = False
+                            break
+                        
+                    if match:
+                        if perfect_match is None:
+                            perfect_match = t
+                        else:
+                            # There shouldn't be more than one perfect match
+                            error_msg = "There is more than one team with the exact same students in it." \
+                                        "Please notify your instructor."  
+                            return jsonify(errors={"fatal": error_msg}), 500
+                    else:
+                        if assignment in t.assignments:
+                            have_assignment.append(t)
+                            students_have_assignment.update(t.students)
+                else:
+                    if assignment in t.assignments:
+                        have_assignment.append(t)
+                        students_have_assignment.update(t.students)
+
+            if len(have_assignment) > 0:
+                error_msg = "'%s' is already registered for assignment '%s' in another team"
+                error_msgs = [error_msg % (s.id, assignment.id) for s in students_have_assignment]
+                return jsonify(errors={"partners": error_msgs}), 400                
+                    
+            if perfect_match is not None:
+                if assignment in perfect_match.assignments:
+                    user_st = [st for st in perfect_match.students_teams if st.student == g.user]
+                    if len(user_st) != 1:
+                        error_msg = "You appear to be registered twice in the same team." \
+                                    "Please notify your instructor."
+                        return jsonify(errors={"fatal": error_msg}), 500
+                    user_st = user_st[0]
+                    if user_st.status == StudentsTeams.STATUS_UNCONFIRMED:
+                        user_st.status = StudentsTeams.STATUS_CONFIRMED
+                        db.session.add(user_st)
+                    elif user_st.status == StudentsTeams.STATUS_CONFIRMED:
+                        warnings.append("You are already a confirmed member of this team")                        
+                else:
+                    at = AssignmentsTeams(team_id = perfect_match.id,
+                                          course_id = course_id,
+                                          assignment_id = assignment.id)
+                    db.session.add(at)
+            
+                team_name = perfect_match.id
+            else:
+                create_team = True                        
+        else:
+            create_team = True
+            
+        if create_team:
+            team_name = "_".join(sorted([s.id for s in students_in_team]))
+    
+            team = Team(id = team_name, course_id=course_id)
+            db.session.add(team)
+            
             st = StudentsTeams(team_id = team.id, 
                                course_id = course_id, 
-                               student_id = p.id,
-                               status = StudentsTeams.STATUS_UNCONFIRMED)
+                               student_id = g.user.id,
+                               status = StudentsTeams.STATUS_CONFIRMED)
             db.session.add(st)
             
-        at = AssignmentsTeams(team_id = team.id,
-                              course_id = course_id,
-                              assignment_id = assignment.id)
-        db.session.add(at)
+            for p in partners:
+                st = StudentsTeams(team_id = team.id, 
+                                   course_id = course_id, 
+                                   student_id = p.id,
+                                   status = StudentsTeams.STATUS_UNCONFIRMED)
+                db.session.add(st)
+                
+            at = AssignmentsTeams(team_id = team.id,
+                                  course_id = course_id,
+                                  assignment_id = assignment.id)
+            db.session.add(at)
         
         db.session.commit()
             

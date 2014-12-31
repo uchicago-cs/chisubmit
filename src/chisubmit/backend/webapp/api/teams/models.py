@@ -24,6 +24,16 @@ class Team(Serializable, db.Model):
                       'git_staging_repo_created', 'active',
                       'students', 'assignments', 'assignments_teams', 'grades']
     readonly_fields = ['students', 'assignments', 'grades']
+    
+    @staticmethod
+    def find_teams_with_students(course_id, students):
+        q = Team.query.filter(Team.course_id == course_id,
+                Team.students.any(
+                    StudentsTeams.student_id.in_(
+                        [s.id for s in students])))
+        
+        return q.all()        
+        
 
 
 class StudentsTeams(Serializable, db.Model):

@@ -42,7 +42,7 @@ class Registration(ChisubmitTestCase, unittest.TestCase):
     
     FIXTURE = complete_course
         
-    def test_single_registration(self):
+    def test_single_registration1(self):
         
         self.get_test_client({"id":"student1", "api_key":"student1"})
         
@@ -52,12 +52,43 @@ class Registration(ChisubmitTestCase, unittest.TestCase):
         a = Assignment.from_course_and_id(course["id"], assignment["id"])
         self.assertEquals(a.name, assignment["name"])
                 
-        try:
-            r = a.register(partners=["student2", "student3"]) 
-            print r
-        except BadRequestError, bre:
-            print bre.errors
+        r = a.register(partners=["student2", "student3"]) 
         
+    def test_single_registration2(self):
+        
+        self.get_test_client({"id":"student1", "api_key":"student1"})
+        
+        course = self.FIXTURE["courses"]["cmsc40100"]
+        assignment = course["assignments"]["pa1"] 
+        
+        a = Assignment.from_course_and_id(course["id"], assignment["id"])
+        self.assertEquals(a.name, assignment["name"])
+                
+        r = a.register(partners=["student2", "student3"])         
+            
+        self.get_test_client({"id":"student2", "api_key":"student2"})
+        r = a.register(partners=["student1", "student3"])         
+
+        self.get_test_client({"id":"student3", "api_key":"student3"})
+        r = a.register(partners=["student1", "student2"])         
+
+            
+    def test_team_multiple_registration1(self):
+        
+        self.get_test_client({"id":"student1", "api_key":"student1"})
+        
+        course = self.FIXTURE["courses"]["cmsc40100"]
+        assignment1 = course["assignments"]["pa1"] 
+        assignment2 = course["assignments"]["pa2"] 
+        
+        a1 = Assignment.from_course_and_id(course["id"], assignment1["id"])
+        self.assertEquals(a1.name, assignment1["name"])
+
+        a2 = Assignment.from_course_and_id(course["id"], assignment2["id"])
+        self.assertEquals(a2.name, assignment2["name"])
+                
+        r1 = a1.register(partners=["student2"]) 
+        r2 = a2.register(partners=["student2"]) 
      
 
         

@@ -7,8 +7,7 @@ from chisubmit.backend.webapp.api.types import JSONEncodedDict
 
 class CoursesGraders(Serializable, db.Model):
     __tablename__ = 'courses_graders'
-    git_server_id = db.Column(db.Unicode)
-    git_staging_server_id = db.Column(db.Unicode)
+    repo_info = db.Column(JSONEncodedDict, default={})
     grader_id = db.Column('grader_id',
                           db.Unicode,
                           db.ForeignKey('users.id'), primary_key=True)
@@ -24,7 +23,7 @@ class CoursesGraders(Serializable, db.Model):
 
 class CoursesStudents(Serializable, db.Model):
     __tablename__ = 'courses_students'
-    git_server_id = db.Column(db.Unicode)
+    repo_info = db.Column(JSONEncodedDict, default={})
     dropped = db.Column('dropped', db.Boolean, server_default='0',
                         nullable=False)
     student_id = db.Column('student_id',
@@ -44,8 +43,7 @@ class CoursesStudents(Serializable, db.Model):
 
 class CoursesInstructors(Serializable, db.Model):
     __tablename__ = 'courses_instructors'
-    git_server_id = db.Column(db.Unicode)
-    git_staging_server_id = db.Column(db.Unicode)
+    repo_info = db.Column(JSONEncodedDict, default={})
     instructor_id = db.Column('instructor_id',
                               db.Unicode,
                               db.ForeignKey('users.id'),

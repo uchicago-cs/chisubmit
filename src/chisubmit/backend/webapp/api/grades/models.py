@@ -4,11 +4,14 @@ from chisubmit.backend.webapp.api.models.json import Serializable
 
 class GradeComponent(Serializable, db.Model):
     __tablename__ = 'grade_components'
-    name = db.Column(db.Unicode, primary_key=True)
+    __table_args__ = {'sqlite_autoincrement': True}
+    id = db.Column(db.Integer, primary_key=True)
+    order = db.Column(db.Integer)        
+    name = db.Column(db.Unicode)
     points = db.Column('points', db.Integer)
     assignment_id = db.Column('assignment_id',
                            db.Integer,
-                           db.ForeignKey('assignments.id'), primary_key=True)
+                           db.ForeignKey('assignments.id'))
     grades = db.relationship('Grade', back_populates='grade_component')
     default_fields = ['name', 'points', 'assignment_id']
     readonly_fields = ['name', 'assignment_id']
@@ -16,20 +19,20 @@ class GradeComponent(Serializable, db.Model):
 
 class Grade(Serializable, db.Model):
     __tablename__ = 'grades'
-    id = db.Column(db.Integer, primary_key=True)
     points = db.Column(db.Integer, nullable=False)
-    assignment_team_id = db.Column('assignment_team_id', db.Integer,
-                                db.ForeignKey('assignments_teams.id'))
+    course_id = db.Column('course_id', 
+                          db.Integer, primary_key=True)
     assignment_id = db.Column('assignment_id', db.Integer,
-                           db.ForeignKey('assignments.id'))
+                           db.ForeignKey('assignments.id'), primary_key=True)
     team_id = db.Column('team_id',
                         db.Integer,
-                        db.ForeignKey('teams.id'))
-    grade_component_name = db.Column('grade_component_name',
+                        db.ForeignKey('teams.id'), primary_key=True)
+    grade_component_id = db.Column('grade_component_id',
                                      db.Unicode,
-                                     db.ForeignKey('grade_components.name'))
+                                     db.ForeignKey('grade_components.id'),
+                                     primary_key=True)
     grade_component = db.relationship('GradeComponent',
                                       back_populates='grades')
-    assignments_teams = db.relationship('AssignmentsTeams', backref='grades')
     default_fields = ['id', 'points', 'grade_component']
     readonly_fields = ['id', 'team', 'grade_component']
+ 

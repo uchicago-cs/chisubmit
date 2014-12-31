@@ -3,15 +3,13 @@ from chisubmit.backend.webapp.api.models.json import Serializable
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from chisubmit.backend.webapp.api.assignments.models import Assignment
+from chisubmit.backend.webapp.api.types import JSONEncodedDict
 
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
     id = db.Column(db.Unicode, primary_key=True)
-    private_name = db.Column(db.Unicode)
-    git_repo_created = db.Column(db.Boolean,
-                                 server_default='0', nullable=False)
-    git_staging_repo_created = db.Column(db.Boolean,
-                                         server_default='0', nullable=False)
+    repo_info = db.Column(JSONEncodedDict, default={})
+    extras = db.Column(JSONEncodedDict, default={})
     active = db.Column('active', db.Boolean,
                        server_default='1', nullable=False)
     course_id = db.Column('course_id',
@@ -64,26 +62,25 @@ class StudentsTeams(Serializable, db.Model):
 
 class AssignmentsTeams(Serializable, db.Model):
     __tablename__ = 'assignments_teams'
-    __table_args__ = {'sqlite_autoincrement': True}
-    id = db.Column(db.Integer, primary_key=True)
+
     extensions_used = db.Column(db.Integer)
 
     UniqueConstraint('assignment_id', 'team_id')
     assignment_id = db.Column('assignment_id',
-                           db.Integer)
+                           db.Integer, primary_key=True)
     grader_id = db.Column('grader_id',
                           db.Integer,
                           db.ForeignKey('users.id'))
     team_id = db.Column('team_id',
-                        db.Unicode)
+                        db.Unicode, primary_key=True)
     course_id = db.Column('course_id', 
-                          db.Integer)
+                          db.Integer, primary_key=True)
     team = db.relationship("Team",
                            backref=db.backref("assignments_teams",
                                               cascade="all, delete-orphan"))
     assignment = db.relationship("Assignment")
     grader = db.relationship("User")
-    default_fields = ['id', 'extensions_used', 'assignment_id',
+    default_fields = ['extensions_used', 'assignment_id',
                       'grader_id', 'team_id', 'grades']
     readonly_fields = ['team', 'grader', 'grades']
     __table_args__ = (db.ForeignKeyConstraint([team_id, course_id],

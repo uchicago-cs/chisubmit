@@ -110,6 +110,10 @@ def assignment_register(course_id, assignment_id):
         form = RegisterAssignmentInput.from_json(input_data)
         if not form.validate():
             return jsonify(errors=form.errors), 400
+        
+        team_name = form.team_name.data
+        if len(team_name) == 0:
+            team_name = None
 
         partners = []
         for p in form.partners:
@@ -191,7 +195,8 @@ def assignment_register(course_id, assignment_id):
             create_team = True
             
         if create_team:
-            team_name = "_".join(sorted([s.id for s in students_in_team]))
+            if team_name is None:
+                team_name = "_".join(sorted([s.id for s in students_in_team]))
     
             team = Team(id = team_name, course_id=course_id)
             db.session.add(team)

@@ -2,6 +2,7 @@ from chisubmit.tests.common import cli_test, ChisubmitCLITestClient, ChisubmitTe
 import unittest
 from chisubmit.backend.webapp.api.courses.models import Course
 from chisubmit.backend.webapp.api.users.models import User
+from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams
 
 class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
             
@@ -36,10 +37,12 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         grader_id = u"grader"
         student_ids = [u"student1", u"student2", u"student3", u"student4"]
         
+        team_name = "The Flaming Foobars"
+        
         admin = ChisubmitCLITestClient(admin_id, admin_id, runner, verbose = True)
-        instructor = ChisubmitCLITestClient(instructor_id, instructor_id, runner, verbose = True)
-        grader = ChisubmitCLITestClient(grader_id, grader_id, runner, verbose = True)
-        student = [ChisubmitCLITestClient(s, s, runner, verbose = True) for s in student_ids]
+        instructor = ChisubmitCLITestClient(instructor_id, instructor_id, runner, verbose = True, course = "cmsc40200")
+        grader = ChisubmitCLITestClient(grader_id, grader_id, runner, verbose = True, course = "cmsc40200")
+        student = [ChisubmitCLITestClient(s, s, runner, verbose = True, course = "cmsc40200") for s in student_ids]
 
         print
 
@@ -89,12 +92,36 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
 
 
         result = instructor.run("instructor assignment add", 
-                                ["pa1", "Programming Assignment 1", "2042-01-21T20:00"],
-                                course = "cmsc40200")
+                                ["pa1", "Programming Assignment 1", "2042-01-21T20:00"])
         self.assertEquals(result.exit_code, 0)
 
         
         
         result = admin.run("admin course show", ["--include-users", "--include-assignments", course_id])
         self.assertEquals(result.exit_code, 0)
+        
+        
+        student[0].run("student register-for-assignment", 
+                      [ "pa1", "--team-name", team_name,
+                       "--partner", student_ids[1]])
+        
+        student[1].run("student register-for-assignment", 
+                      [ "pa1", "--team-name", team_name,
+                       "--partner", student_ids[0]])
+        
+        students_in_team = [User.from_id(student_ids[0]),
+                            User.from_id(student_ids[1])]
+        
+        t = Team.find_teams_with_students(course_id, students_in_team)
+        
+        self.assertEquals(len(t), 1)
+        t = t[0]
+        self.assertEquals(t.id, team_name)
+        self.assertListEqual(sorted([s.id for s in students_in_team]), 
+                             sorted([s.id for s in t.students]))
+        for st in t.students_teams:
+            self.assertEquals(st.status, StudentsTeams.STATUS_CONFIRMED)
+        
+        
+        
         

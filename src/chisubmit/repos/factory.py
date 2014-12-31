@@ -2,6 +2,7 @@ from chisubmit.repos import ConnectionString
 from chisubmit.common import ChisubmitException
 from chisubmit.repos.github import GitHubConnection
 from chisubmit.repos.gitlab import GitLabConnection
+from chisubmit.repos.testing import TestingConnection
 
 
 class RemoteRepositoryConnectionFactory(object):
@@ -26,3 +27,4 @@ class RemoteRepositoryConnectionFactory(object):
 
 RemoteRepositoryConnectionFactory.register_server_type("GitHub", GitHubConnection)
 RemoteRepositoryConnectionFactory.register_server_type("GitLab", GitLabConnection)
+RemoteRepositoryConnectionFactory.register_server_type("Testing", TestingConnection)

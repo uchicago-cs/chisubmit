@@ -58,7 +58,7 @@ class ChisubmitCLITestClient(object):
         self.conf_dir = ".chisubmit-%s" % user_id
         self.conf_file = self.conf_dir + "/chisubmit.conf"
         self.runner = runner
-        self.verbose = True
+        self.verbose = verbose
 
         os.mkdir(self.conf_dir)
         with open(self.conf_file, 'w') as f:

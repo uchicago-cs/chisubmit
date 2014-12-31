@@ -27,6 +27,9 @@ class Team(Serializable, db.Model):
 
 
 class StudentsTeams(Serializable, db.Model):
+    STATUS_UNCONFIRMED = 0
+    STATUS_CONFIRMED = 1
+    
     __tablename__ = 'students_teams'
     status = db.Column(db.Integer, nullable=False, server_default='0')
     student_id = db.Column('student_id',

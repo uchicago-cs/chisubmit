@@ -34,3 +34,8 @@ class SearchAssignmentInput(Form):
                              validators=[Length(max=36, min=5),
                                          InputRequired()])
     name = StringField('name', validators=[Length(max=36, min=5), Optional()])
+
+
+class RegisterAssignmentInput(Form):
+    team_name = StringField(validators=[Length(max=36, min=4), Optional()])
+    partners = FieldList(StringField())

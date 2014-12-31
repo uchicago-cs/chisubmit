@@ -39,6 +39,7 @@ import math
 class Assignment(ApiObject):
 
     _api_attrs = ('name', 'deadline', 'id')
+    _primary_key = 'id'    
     _has_many = ('grade_components', 'teams')
     _course_qualified = True
 
@@ -64,6 +65,16 @@ class Assignment(ApiObject):
         if backendSave:       
             self.save()
                 
+    def register(self, team_name=None, partners = []):
+        url = self.url() + "/register"
+        print url
+        data = {}
+        if team_name is not None:
+            data["team_name"] = team_name
+        data["partners"] = partners
+        data = json.dumps(data)
+        response = session.post(url, data=data)
+        return response
 
     def get_grade_component(self, grade_component_name):
         url = 'assignments/%s/grade_components/%s' % \

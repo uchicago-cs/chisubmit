@@ -4,11 +4,14 @@ from chisubmit.backend.webapp.api.grades.models import GradeComponent
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.assignments.forms import UpdateAssignmentInput,\
-    CreateAssignmentInput
+    CreateAssignmentInput, RegisterAssignmentInput
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
 from chisubmit.backend.webapp.api.courses.models import Course
 from flask import g
+from chisubmit.backend.webapp.api.users.models import User
+from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams,\
+    AssignmentsTeams
 
 
 @api_endpoint.route('/courses/<course_id>/assignments', methods=['GET', 'POST'])
@@ -53,7 +56,7 @@ def assignment(course_id, assignment_id):
         
     check_course_access_or_abort(g.user, course, 404)    
     
-    assignment = Assignment.query.filter_by(id=assignment_id).first()
+    assignment = Assignment.query.filter_by(id=assignment_id, course_id=course_id).first()
     # TODO 12DEC14: check permissions *before* 404
     if assignment is None:
         abort(404)
@@ -81,22 +84,69 @@ def assignment(course_id, assignment_id):
     return jsonify({'assignment': assignment.to_dict()})
 
 
-@api_endpoint.route('/courses/<course_id>/assignments/<assignment_id>/'
-                    'grade_components/<grade_component_id>', methods=['GET'])
+@api_endpoint.route('/courses/<course_id>/assignments/<assignment_id>/register', methods=['POST'])
 @require_apikey
-def grade_component_assignment(course_id, assignment_id, grade_component_id):
-        course = Course.query.filter_by(id=course_id).first()
+def assignment_register(course_id, assignment_id):
+    course = Course.query.filter_by(id=course_id).first()
+    
+    if course is None:
+        abort(404)
         
-        if course is None:
-            abort(404)
+    check_course_access_or_abort(g.user, course, 404, roles=["student"])    
+    
+    assignment = Assignment.query.filter_by(id=assignment_id, course_id=course_id).first()
+    # TODO 12DEC14: check permissions *before* 404
+    if assignment is None:
+        abort(404)
+
+    if request.method == 'POST':       
+        input_data = request.get_json(force=True)
+        if not isinstance(input_data, dict):
+            return jsonify(error='Request data must be a JSON Object'), 400
+        form = RegisterAssignmentInput.from_json(input_data)
+        if not form.validate():
+            return jsonify(errors=form.errors), 400
+
+        partners = []
+        for p in form.partners:
+            user_id = p.data
+            user = User.from_id(user_id)
             
-        check_course_access_or_abort(g.user, course, 404)   
+            if user is None or not user.is_student_in(course):
+                error_msg = "User '%s' is either not a valid user or not a student in course '%s'" % (user_id, course_id)
+                return jsonify(errors={"partners": error_msg}), 400
+            
+            partners.append(user)
+            
+        # TODO: Check if team already exists
+    
+        students_in_team = [g.user.id] + [u.id for u in partners]
+        students_in_team.sort()
         
-        grade_component = GradeComponent.query.filter_by(
-            assignment_id=assignment_id).filter_by(
-                name=grade_component_id).first()
+        team_name = "_".join(students_in_team)
 
-        if not grade_component:
-            abort(404)
+        team = Team(id = team_name, course_id=course_id)
+        db.session.add(team)
+        
+        st = StudentsTeams(team_id = team.id, 
+                           course_id = course_id, 
+                           student_id = g.user.id,
+                           status = StudentsTeams.STATUS_CONFIRMED)
+        db.session.add(st)
+        
+        for p in partners:
+            st = StudentsTeams(team_id = team.id, 
+                               course_id = course_id, 
+                               student_id = p.id,
+                               status = StudentsTeams.STATUS_UNCONFIRMED)
+            db.session.add(st)
+            
+        at = AssignmentsTeams(team_id = team.id,
+                              course_id = course_id,
+                              assignment_id = assignment.id)
+        db.session.add(at)
+        
+        db.session.commit()
+            
+        return jsonify({'team_name': team_name})
 
-        return jsonify({'grade_component': grade_component.to_dict()}), 201

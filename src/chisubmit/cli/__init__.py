@@ -37,6 +37,7 @@ from requests.exceptions import HTTPError, ConnectionError
 from chisubmit.cli.admin import admin
 from chisubmit.cli.instructor import instructor
 from chisubmit.cli.student import student
+from chisubmit.client.session import BadRequestError
 config = None
 
 import chisubmit.common.log as log
@@ -96,6 +97,9 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
 def chisubmit_cmd_wrapper():
     try:
         chisubmit_cmd.main()
+    except BadRequestError, he:
+        pass
+        
     except HTTPError, he:
         print "ERROR: chisubmit server returned an HTTP error"
         print

@@ -37,6 +37,7 @@ from chisubmit.client.user import Student
 from chisubmit.client.assignment import Assignment
 from chisubmit.client.team import Team
 from chisubmit.client import session
+from requests.exceptions import HTTPError
 
 
 # TODO 18DEC14: integrate with the base ApiObject class
@@ -157,7 +158,7 @@ class Course(object):
  
     # TODO 15JULY14: move this to Assignment.get() or something similar
     def get_assignment(self, assignment_id):
-        return Assignment.from_uri('assignments/%s' % (assignment_id))
+        return Assignment.from_course_and_id(self.id, assignment_id)
 
     def add_assignment(self, assignment):
         attrs = {'course_id': self.id}
@@ -171,7 +172,7 @@ class Course(object):
         session.put('courses/%s' % (self.id), data=data)
 
     def get_team(self, team_id):
-        return Team.from_uri('teams/%s' % (team_id))
+        return Team.from_course_and_id(self.id, team_id) 
 
     def search_team(self, search_term):
         teams = []

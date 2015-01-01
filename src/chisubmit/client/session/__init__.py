@@ -35,9 +35,20 @@ from requests.exceptions import HTTPError
 
 class BadRequestError(HTTPError):
     
-    def __init__(self, errors, *args, **kwargs):
+    def __init__(self, method, url, errors, *args, **kwargs):
+        self.method = method
+        self.url = url
         self.errors = errors        
         super(BadRequestError, self).__init__(*args, **kwargs)
+        
+    def print_errors(self):
+        print "HTTP request %s %s returned error code 400 (Bad Request)" %(self.method, self.url)
+        if len(self.errors) == 0:
+            print "No additional error messages returned."
+        else:
+            for noun, message in self.errors:
+                print "%s: %s" % (noun, message)
+    
 
 endpoint = None
 session = None
@@ -79,11 +90,13 @@ def raise_for_status(response):
         response.raise_for_status()
 
 
-def __process_response(response):
+def __process_response(response, method, url):
     if testing:
         response_text = response.get_data()
+        response_exc = None
     else:
         response_text = response.text
+        response_exc = response
         
     if response.status_code != 400:
         raise_for_status(response)
@@ -101,36 +114,45 @@ def __process_response(response):
             
     if response.status_code == 400:
         error_result = []
-        for noun, problem in data_json['errors'].items():
+        for noun, problem in data_json.get('errors', {}).items():
             error_result.append((noun, problem))
-        raise BadRequestError(errors = error_result)
+        raise BadRequestError(method = method,
+                              url = url,
+                              errors = error_result,
+                              response = response_exc)
         
     return data_json
 
 
 def get(resource, **kwargs):
+    url = endpoint + resource
+    
     if testing:
-        response = test_client.get(endpoint + resource, headers=headers, **kwargs)
+        response = test_client.get(url, headers=headers, **kwargs)
     else:    
-        response = session.get(endpoint + resource, **kwargs)
+        response = session.get(url, **kwargs)
         
-    return __process_response(response) 
+    return __process_response(response, method = "GET", url = url) 
 
 def post(resource, data, **kwargs):
+    url = endpoint + resource
+
     if testing:
-        response = test_client.post(endpoint + resource, data=data, headers=headers, **kwargs)
+        response = test_client.post(url, data=data, headers=headers, **kwargs)
     else:
-        response = session.post(endpoint + resource, data, **kwargs)
+        response = session.post(url, data, **kwargs)
     
-    return __process_response(response)
+    return __process_response(response, method = "POST", url = url) 
 
 def put(resource, data, **kwargs):
-    if testing:
-        response = test_client.put(endpoint + resource, data=data, headers=headers, **kwargs)
-    else:
-        response = session.put(endpoint + resource, data, **kwargs)
+    url = endpoint + resource
     
-    return __process_response(response)
+    if testing:
+        response = test_client.put(url, data=data, headers=headers, **kwargs)
+    else:
+        response = session.put(url, data, **kwargs)
+    
+    return __process_response(response, method = "PUT", url = url) 
 
 
 def exists(obj):

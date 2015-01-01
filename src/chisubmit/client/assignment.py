@@ -30,7 +30,7 @@
 
 from chisubmit.client.base import ApiObject
 from chisubmit.client.grade_component import GradeComponent
-from chisubmit.common.utils import convert_timezone_to_local
+from chisubmit.common.utils import convert_datetime_to_utc
 from chisubmit.client import session
 from dateutil import parser
 import json
@@ -53,7 +53,7 @@ class Assignment(ApiObject):
                 if hasattr(kw['deadline'], 'isoformat'):
                     self.deadline = kw['deadline']
                 else:
-                    self.deadline = convert_timezone_to_local(parser.parse(kw['deadline']))
+                    self.deadline = convert_datetime_to_utc(parser.parse(kw['deadline']))
             elif attr == 'id':
                 if 'assignment_id' in kw:
                     self.id = kw['assignment_id']
@@ -74,6 +74,17 @@ class Assignment(ApiObject):
         data = json.dumps(data)
         response = session.post(url, data=data)
         return response
+    
+    def submit(self, team_id, commit_sha, extensions, dry_run):
+        url = self.url() + "/submit"
+        data = {}
+        data["team_id"] = team_id
+        data["commit_sha"] = commit_sha
+        data["extensions"] = extensions
+        data["dry_run"] = dry_run
+        data = json.dumps(data)
+        response = session.post(url, data=data)
+        return response    
 
     def get_grade_component(self, grade_component_name):
         url = 'assignments/%s/grade_components/%s' % \
@@ -89,16 +100,6 @@ class Assignment(ApiObject):
 
     def get_deadline(self):
         return self.deadline
-
-    def extensions_needed(self, submission_time):
-        delta = (submission_time - self.get_deadline()).total_seconds()
-
-        extensions_needed = math.ceil(delta / (3600.0 * 24))
-
-        if extensions_needed <= 0:
-            return 0
-        else:
-            return int(extensions_needed)
 
     def get_grading_branch_name(self):
         return self.id + "-grading"

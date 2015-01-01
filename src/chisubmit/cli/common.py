@@ -5,7 +5,6 @@ from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.client.course import Course
 
 from functools import update_wrapper
-from chisubmit.common.utils import mkdatetime
 
 from dateutil.parser import parse
 

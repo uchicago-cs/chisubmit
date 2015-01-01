@@ -125,3 +125,24 @@ class RemoteRepositoryConnectionBase(object):
     @abc.abstractmethod
     def delete_team_repository(self, course, team):
         pass
+    
+    
+class GitCommit(object):
+    
+    def __init__(self, sha, message, 
+                 author_name, author_email, authored_date,
+                 committer_name, committer_email, committed_date):
+        self.sha = sha
+        self.message = message
+        self.author_name = author_name
+        self.author_email = author_email
+        self.authored_date = authored_date
+        self.committer_name = committer_name
+        self.committer_email = committer_email
+        self.committed_date = committed_date
+        
+class GitTag(object):
+    
+    def __init__(self, name, commit):
+        self.name = name
+        self.commit = commit

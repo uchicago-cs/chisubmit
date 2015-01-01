@@ -30,6 +30,8 @@ import re
 import json
 from chisubmit.client import session
 from datetime import datetime
+import sys
+from requests.exceptions import HTTPError
 
 def json_default(obj):
     if isinstance(obj, datetime):
@@ -179,8 +181,15 @@ class ApiObject(object):
 
     @classmethod
     def from_uri(cls, uri):
-        result = session.get(uri)
-        return cls.from_json(data=result[cls.singularize()])
+        try:
+            result = session.get(uri)
+            return cls.from_json(data=result[cls.singularize()])
+        except HTTPError, he:
+            if he.response.status_code == 404:
+                return None
+            else:
+                raise            
+            
 
     def __init__(self, backendSave=True, **kw):
         class_id = self.__class__.__name__.lower() + '_id'

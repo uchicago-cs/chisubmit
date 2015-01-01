@@ -4,6 +4,10 @@ from chisubmit.backend.webapp.api.courses.models import Course
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams
 import re
+from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local
+from datetime import timedelta
+from chisubmit.client.session import BadRequestError
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
             
@@ -28,7 +32,7 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         self.server.db.session.add(user)
         self.server.db.session.commit()
             
-    def register_team(self, student_clients, team_name, course_id):
+    def register_team(self, student_clients, team_name, assignment_id, course_id):
         
         for s in student_clients:
             partners = [s2 for s2 in student_clients if s2!=s]
@@ -37,7 +41,7 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
                 partner_args += ["--partner", p.user_id]
         
             s.run("student register-for-assignment", 
-                  [ "pa1", "--team-name", team_name] + partner_args)
+                  [ assignment_id, "--team-name", team_name] + partner_args)
         
         
         students_in_team = [User.from_id(s.user_id) for s in student_clients]
@@ -113,6 +117,9 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
 
         result = admin.run("admin course set-option %s git-staging-connstr %s" % (course_id, git_staging_connstr))
         self.assertEquals(result.exit_code, 0)
+
+        result = admin.run("admin course set-option %s default-extensions 2" % (course_id))
+        self.assertEquals(result.exit_code, 0)
         
         course = Course.from_id(course_id)
         self.assertIn("git-server-connstr", course.options)
@@ -121,17 +128,30 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
 
 
+        deadline = get_datetime_now_utc() - timedelta(hours=23)
+        deadline = convert_datetime_to_local(deadline)
+        deadline = deadline.replace(tzinfo=None).isoformat(sep=" ")        
+
         result = instructor.run("instructor assignment add", 
-                                ["pa1", "Programming Assignment 1", "2042-01-21T20:00"])
+                                ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)
 
+
+        deadline = get_datetime_now_utc() - timedelta(hours=49)
+        deadline = deadline.isoformat(sep=" ")
+
+        result = instructor.run("instructor assignment add", 
+                                ["pa2", "Programming Assignment 2", deadline])
+        self.assertEquals(result.exit_code, 0)
         
         
         result = admin.run("admin course show", ["--include-users", "--include-assignments", course_id])
         self.assertEquals(result.exit_code, 0)
         
-        self.register_team(students_team1, team_name1, course_id)
-        self.register_team(students_team2, team_name2, course_id)
+        self.register_team(students_team1, team_name1, "pa1", course_id)
+        self.register_team(students_team1, team_name1, "pa2", course_id)
+
+        self.register_team(students_team2, team_name2, "pa1", course_id)
 
 
         result = instructor.run("instructor team repo-create", [team_name1])
@@ -182,7 +202,10 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         
         team2_git_repo.index.add(files)
         team2_git_repo.index.commit("First commit of team2")
-                
+
+        team1_commit1 = team1_git_repo.heads.master.commit
+        team2_commit1 = team2_git_repo.heads.master.commit
+
         team1_remote.push("master")
         team2_remote.push("master")
         
@@ -203,11 +226,60 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         team1_remote.push("master")
         team2_remote.push("master")      
         
-        team1_commit = team1_git_repo.heads.master.commit
-        team2_commit = team2_git_repo.heads.master.commit
+        team1_commit2 = team1_git_repo.heads.master.commit
+        team2_commit2 = team2_git_repo.heads.master.commit
                 
+        
+        # Try to submit without enough extensions
         result = student[0].run("student submit-assignment", 
-                                [team_name1, "pa1", team1_commit.hexsha, "--yes"])
-        self.assertEquals(result.exit_code, 0)
+                                [team_name1, "pa1", team1_commit1.hexsha, 
+                                 "--extensions", "0",
+                                 "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+        
+        # Try to submit with too many extensions
+        result = student[0].run("student submit-assignment", 
+                                [team_name1, "pa1", team1_commit1.hexsha, 
+                                 "--extensions", "2",
+                                 "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+
+        # Submit with just the right number
+        result = student[0].run("student submit-assignment", 
+                                [team_name1, "pa1", team1_commit1.hexsha, 
+                                 "--extensions", "1",
+                                 "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+
+        # Try submitting an already-submitted assignment
+        result = student[0].run("student submit-assignment", 
+                                [team_name1, "pa1", team1_commit2.hexsha, 
+                                 "--extensions", "1",
+                                 "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+        
+        # Submit an already-submitted assignment
+        result = student[0].run("student submit-assignment", 
+                                [team_name1, "pa1", team1_commit2.hexsha, 
+                                 "--extensions", "1",
+                                 "--yes", "--force"])
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
+        
+        # Try requesting more extensions than the team has
+        result = student[0].run("student submit-assignment", 
+                                [team_name1, "pa2", team1_commit2.hexsha, 
+                                 "--extensions", "3",
+                                 "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+        
+        # Try submitting for a project the team is not registered for
+        with self.assertRaises(BadRequestError) as cm:
+            student[2].run("student submit-assignment", 
+                           [team_name2, "pa2", team2_commit2.hexsha, 
+                           "--extensions", "0",
+                           "--yes"])        
+
+        bre = cm.exception
+        bre.print_errors()
         
         

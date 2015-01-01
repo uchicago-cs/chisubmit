@@ -1,8 +1,11 @@
 import git
 
-from chisubmit.repos import RemoteRepositoryConnectionBase
+from chisubmit.repos import RemoteRepositoryConnectionBase, GitCommit
 from chisubmit.common import ChisubmitException
 import os
+from gitdb.exc import BadObject
+import datetime
+from chisubmit.repos.local import LocalGitRepo
 
 class TestingConnection(RemoteRepositoryConnectionBase):
 
@@ -49,10 +52,8 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         if os.path.exists(repo_path) and fail_if_exists:
             raise ChisubmitException("Repository %s already exists" % repo_path)
         
-        os.makedirs(repo_path)
+        repo = LocalGitRepo.create_repo(repo_path, bare=True)
         
-        repo = git.Repo.init(repo_path, bare=True)
-    
     def update_team_repository(self, course, team):
         pass
     
@@ -69,20 +70,35 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         return None
     
     def get_commit(self, course, team, commit_sha):
-        pass
+        repo_path = self.__get_team_path(course, team)
+        repo = LocalGitRepo(repo_path)
+        
+        return repo.get_commit(commit_sha)        
+        
     
     def create_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
-        pass
+        repo_path = self.__get_team_path(course, team)
+        repo = LocalGitRepo(repo_path)
+        
+        tag = repo.create_tag(tag_name, commit_sha, tag_message)
     
     def update_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
         pass
     
     def get_submission_tag(self, course, team, tag_name):
-        pass
+        repo_path = self.__get_team_path(course, team)
+        repo = LocalGitRepo(repo_path)
+        
+        tag = repo.get_tag(tag_name)
+        
+        if tag is None:
+            return None
+        else:
+            return tag
     
     def delete_team_repository(self, course, team):
         pass
     
     def __get_team_path(self, course, team):
-        return "%s/%s/%s" % (self.local_path, course.id, team.id)   
+        return "%s/%s/%s.git" % (os.path.abspath(self.local_path), course.id, team.id)   
         

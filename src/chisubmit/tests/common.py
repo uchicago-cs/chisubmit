@@ -14,7 +14,9 @@ import sys
 from chisubmit.backend.webapp.api.assignments.models import Assignment
 from dateutil.parser import parse
 import colorama
+import git
 import functools
+from chisubmit.client.session import BadRequestError
 
 colorama.init()
 
@@ -49,12 +51,16 @@ def cli_test(func=None, isolated_filesystem = True):
         return functools.partial(cli_test, isolated_filesystem = isolated_filesystem)
     def new_func(self, *args, **kwargs):
         runner = CliRunner()
-        if isolated_filesystem:
-            with runner.isolated_filesystem():
+        
+        try:
+            if isolated_filesystem:
+                with runner.isolated_filesystem():
+                    func(self, runner, *args, **kwargs)
+            else:
                 func(self, runner, *args, **kwargs)
-        else:
-            func(self, runner, *args, **kwargs)
-    
+        except BadRequestError, bre:
+            bre.print_errors()
+            raise
     return new_func
 
 
@@ -63,16 +69,21 @@ class ChisubmitCLITestClient(object):
     def __init__(self, user_id, api_key, runner, course = None,
                  verbose = False):
         self.user_id = user_id
-        self.conf_dir = ".chisubmit-%s" % user_id
+        self.home_dir = "test-fs/home/%s" % self.user_id
+        self.conf_dir = "%s/.chisubmit-%s" % (self.home_dir, self.user_id)
         self.conf_file = self.conf_dir + "/chisubmit.conf"
         self.runner = runner
         self.verbose = verbose
         self.course = course
 
+        os.makedirs(self.home_dir)
         os.mkdir(self.conf_dir)
         with open(self.conf_file, 'w') as f:
             conf = {"api-url": "NONE",
-                    "api-key": api_key}
+                    "api-key": api_key,
+                    "git-credentials":
+                        {"Testing" : "testing-credentials"}
+                    }
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
     def run(self, subcommands, params = [], course = None, catch_exceptions=False):
@@ -108,6 +119,13 @@ class ChisubmitCLITestClient(object):
             sys.stdout.flush()
             
         return result
+    
+    def create_local_git_repository(self, path):
+        git_path = "%s/%s" % (self.home_dir, path)
+                
+        repo = git.Repo.init(git_path)
+
+        return repo, git_path
 
 class BaseChisubmitTestCase(object):
     

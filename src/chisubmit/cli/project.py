@@ -30,8 +30,7 @@
 
 import click
 
-from chisubmit.common.utils import get_datetime_now_utc,\
-    convert_timezone_to_local
+from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local
 from chisubmit.client.assignment import Assignment
 from chisubmit.client.grade_component import GradeComponent
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
@@ -77,7 +76,7 @@ def assignment_list(ctx, course, ids, utc):
             if utc:
                 deadline = assignment.get_deadline().isoformat(" ")
             else:
-                deadline = convert_timezone_to_local(assignment.get_deadline()).isoformat(" ")
+                deadline = convert_datetime_to_local(assignment.get_deadline()).isoformat(" ")
 
             fields = [assignment.id, deadline, assignment.name]
 
@@ -116,10 +115,10 @@ def assignment_deadline_show(ctx, course, assignment_id, utc):
         return CHISUBMIT_FAIL
 
     now_utc = get_datetime_now_utc()
-    now_local = convert_timezone_to_local(now_utc)
+    now_local = convert_datetime_to_local(now_utc)
 
     deadline_utc = assignment.get_deadline()
-    deadline_local = convert_timezone_to_local(deadline_utc)
+    deadline_local = convert_datetime_to_local(deadline_utc)
 
     print assignment.name
     print

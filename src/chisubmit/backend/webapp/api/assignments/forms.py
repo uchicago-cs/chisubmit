@@ -2,6 +2,7 @@ from wtforms import Form
 from wtforms.validators import InputRequired, Optional, Length
 from wtforms.fields import StringField, IntegerField, FormField, FieldList
 from chisubmit.backend.webapp.api.forms import ISODateTimeField
+from wtforms.fields.core import BooleanField
 
 
 class CreateGradeComponentInput(Form):
@@ -39,3 +40,10 @@ class SearchAssignmentInput(Form):
 class RegisterAssignmentInput(Form):
     team_name = StringField(validators=[Length(max=36, min=4), Optional()])
     partners = FieldList(StringField())
+    
+class SubmitAssignmentInput(Form):
+    team_id = StringField(validators=[Length(max=36, min=4),InputRequired()])
+    commit_sha = StringField(validators=[Length(max=40, min=20),InputRequired()])
+    extensions = IntegerField(default=0)
+    dry_run = BooleanField(default=False)
+        

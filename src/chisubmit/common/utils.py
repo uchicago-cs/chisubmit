@@ -36,11 +36,7 @@ import base64
 import string
 from tzlocal import get_localzone
 
-def create_subparser(subparsers, name, func):
-    subparser = subparsers.add_parser(name)
-    subparser.set_defaults(func=func)
-
-    return subparser
+localzone = get_localzone()
 
 def get_datetime_now_utc():
     return datetime.datetime.now(pytz.utc).replace(microsecond=0)
@@ -48,15 +44,15 @@ def get_datetime_now_utc():
 def set_datetime_timezone_utc(dt):
     return pytz.utc.localize(dt)
 
-def convert_timezone_to_local(dt):
-    tz = get_localzone()
+def convert_datetime_to_utc(dt, default_tz = localzone):
     if dt.tzinfo is None:
-        dt = pytz.utc.localize(dt)
-    return dt.astimezone(tz)
+        dt = localzone.localize(dt)
+    return dt.astimezone(pytz.utc)
 
-def mkdatetime(datetimestr):
-    dt = datetime.datetime.strptime(datetimestr, '%Y-%m-%dT%H:%M')
-    return set_datetime_timezone_utc(dt)
+def convert_datetime_to_local(dt, default_tz = localzone):
+    if dt.tzinfo is None:
+        dt = localzone.localize(dt)
+    return dt.astimezone(localzone)
 
 # Based on http://jetfar.com/simple-api-key-generation-in-python/
 def gen_api_key():

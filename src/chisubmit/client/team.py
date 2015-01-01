@@ -35,9 +35,12 @@ import json
 
 class Team(ApiObject):
 
-    _api_attrs = ('id', 'course_id')
-    _updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
+    _api_attrs = ('id',)
+    _primary_key = 'id'    
+    _updatable_attributes = ('active',)
     _has_many = ('students', 'assignments', 'grades', 'assignments_teams')
+    _course_qualified = True
+    
 
     def __setattr__(self, name, value):
         if name in self._updatable_attributes:

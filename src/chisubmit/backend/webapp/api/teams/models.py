@@ -3,11 +3,12 @@ from chisubmit.backend.webapp.api.models.json import Serializable
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from chisubmit.backend.webapp.api.assignments.models import Assignment
-from chisubmit.backend.webapp.api.types import JSONEncodedDict
+from chisubmit.backend.webapp.api.types import JSONEncodedDict, UTCDateTime
 
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
     id = db.Column(db.Unicode, primary_key=True)
+    extensions = db.Column(db.Integer)    
     repo_info = db.Column(JSONEncodedDict, default={})
     extras = db.Column(JSONEncodedDict, default={})
     active = db.Column('active', db.Boolean,
@@ -30,9 +31,16 @@ class Team(Serializable, db.Model):
                     StudentsTeams.student_id.in_(
                         [s.id for s in students])))
         
-        return q.all()        
+        return q.all()       
+    
+    def get_extensions_used(self):
+        extensions = 0
+        for at in self.assignments_teams:
+            extensions += at.extensions_used
+        return extensions 
         
-
+    def get_extensions_available(self):
+        return self.extensions - self.get_extensions_used()
 
 class StudentsTeams(Serializable, db.Model):
     STATUS_UNCONFIRMED = 0
@@ -63,9 +71,10 @@ class StudentsTeams(Serializable, db.Model):
 class AssignmentsTeams(Serializable, db.Model):
     __tablename__ = 'assignments_teams'
 
-    extensions_used = db.Column(db.Integer)
+    extensions_used = db.Column(db.Integer, default = 0)
+    commit_sha = db.Column(db.Unicode)
+    submitted_at = db.Column(UTCDateTime)
 
-    UniqueConstraint('assignment_id', 'team_id')
     assignment_id = db.Column('assignment_id',
                            db.Integer, primary_key=True)
     grader_id = db.Column('grader_id',
@@ -90,4 +99,9 @@ class AssignmentsTeams(Serializable, db.Model):
                       {})
     
 
-
+    @staticmethod
+    def from_id(course_id, team_id, assignment_id):
+        return AssignmentsTeams.query.filter_by(course_id=course_id,
+                                                team_id=team_id,
+                                                assignment_id=assignment_id).first()
+                                    

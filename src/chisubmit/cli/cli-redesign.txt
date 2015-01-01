@@ -74,7 +74,7 @@ grader
 student
 
     register-for-assignment ASSIGNMENT_ID [--partners USER_ID[,USER_ID]*]
-    submit-assignment ASSIGNMENT_ID COMMIT_SHA [--extensions N] [--yes] [--force]
+    submit-assignment TEAM_ID ASSIGNMENT_ID COMMIT_SHA [--extensions N] [--yes] [--force]
     list-assignments [--verbose]
     check-repo-assignment ASSIGNMENT_ID
     get-git-credentials

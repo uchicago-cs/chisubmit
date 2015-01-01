@@ -1,9 +1,30 @@
-# From http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/mutable.html
 
 from sqlalchemy.ext.mutable import Mutable
-from sqlalchemy.types import TypeDecorator, Unicode
+from sqlalchemy.types import TypeDecorator, Unicode, DateTime
+from datetime import datetime
+import pytz
 import json
 
+# From 
+#   http://stackoverflow.com/questions/2528189/can-sqlalchemy-datetime-objects-only-be-naive
+# and
+#   http://stackoverflow.com/questions/23316083/sqlalchemy-how-to-load-dates-with-timezone-utc-dates-stored-without-timezone
+
+class UTCDateTime(TypeDecorator):
+
+    impl = DateTime
+
+    def process_bind_param(self, value, engine):
+        if value is not None:
+            return value.astimezone(pytz.utc)
+
+    def process_result_value(self, value, engine):
+        if value is not None:
+            return datetime(value.year, value.month, value.day,
+                            value.hour, value.minute, value.second,
+                            value.microsecond, tzinfo=pytz.utc)
+
+# From http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/mutable.html
 class JSONEncodedDict(TypeDecorator):
     "Represents an immutable structure as a json-encoded string."
 

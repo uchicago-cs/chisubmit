@@ -11,8 +11,8 @@ class TestingConnection(RemoteRepositoryConnectionBase):
 
     VALID_CREDENTIALS = "testing-credentials"
 
-    def __init__(self, connection_string):
-        RemoteRepositoryConnectionBase.__init__(self, connection_string)   
+    def __init__(self, connection_string, staging):
+        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging)
         
     @staticmethod
     def get_server_type_name():
@@ -40,13 +40,16 @@ class TestingConnection(RemoteRepositoryConnectionBase):
     def init_course(self, course, fail_if_exists=True):
         pass            
     
+    def deinit_course(self, course):
+        pass
+        
     def update_instructors(self, course):
         pass
 
     def update_graders(self, course):
         pass
 
-    def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
+    def create_team_repository(self, course, team, fail_if_exists=True, private=True):
         repo_path = self.__get_team_path(course, team)
         
         if os.path.exists(repo_path) and fail_if_exists:

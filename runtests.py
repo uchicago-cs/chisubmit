@@ -97,9 +97,11 @@ def configure_integration_test(test, config, git_server, git_staging):
         
         connstr = config.get(git_server, "server-connstr")
         apikey = config.get(git_server, "api-key")
+        username = config.get(git_server, "username")
         
         test.set_git_server_connstr(connstr)
         test.add_api_key(git_server, apikey)
+        test.set_git_server_user(username)
         
     if git_staging is not None:
         if not config.has_section(git_staging):
@@ -108,9 +110,11 @@ def configure_integration_test(test, config, git_server, git_staging):
         
         connstr = config.get(git_staging, "staging-connstr")
         apikey = config.get(git_staging, "api-key")
+        username = config.get(git_server, "username")
         
-        test.set_git_staging_connstr(connstr)
+        test.set_git_staging_connstr(connstr, username)
         test.add_api_key(git_staging, apikey)
+        test.set_git_staging_user(username)
             
 if __name__ == "__main__":
     runtests()

@@ -132,6 +132,19 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
         self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
 
+        result = admin.run("admin course unsetup-repo %s" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+        
+        result = admin.run("admin course setup-repo %s" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+
+        result = admin.run("admin course unsetup-repo %s --staging" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+
+        result = admin.run("admin course setup-repo %s --staging" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+
+
         if self.git_server_user is None:
             git_username = "git" + instructor_id
         else:
@@ -148,6 +161,12 @@ class CLICompleteWorkflow(ChisubmitTestCase):
 
         result = instructor.run("instructor user set-repo-option", 
                                 ["grader", grader_id, "git-username", git_username])
+        self.assertEquals(result.exit_code, 0)
+        
+        result = instructor.run("admin course update-repo-access", [course_id])
+        self.assertEquals(result.exit_code, 0)
+        
+        result = instructor.run("admin course update-repo-access", [course_id, "--staging"])
         self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=23)
@@ -185,22 +204,32 @@ class CLICompleteWorkflow(ChisubmitTestCase):
             self.assertIn("git-username", course_student.repo_info)
             self.assertEquals(course_student.repo_info["git-username"], git_username)
         
-        
-        
         self.register_team(students_team1, team_name1, "pa1", course_id)
         self.register_team(students_team1, team_name1, "pa2", course_id)
 
         self.register_team(students_team2, team_name2, "pa1", course_id)
 
 
-        result = instructor.run("instructor team repo-create", [team_name1])
+        result = instructor.run("admin course team-repo-remove", [course_id, team_name1])
         self.assertEquals(result.exit_code, 0)
-        result = instructor.run("instructor team repo-create", ["--staging", team_name1])
+        result = instructor.run("admin course team-repo-remove", ["--staging", course_id, team_name1])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructor.run("instructor team repo-create", [team_name2])
+        result = instructor.run("admin course team-repo-remove", [course_id, team_name2])
         self.assertEquals(result.exit_code, 0)
-        result = instructor.run("instructor team repo-create", ["--staging", team_name2])
+        result = instructor.run("admin course team-repo-remove", ["--staging", course_id, team_name2])
+        self.assertEquals(result.exit_code, 0)
+        
+
+
+        result = instructor.run("admin course team-repo-create", [course_id, team_name1, "--public"])
+        self.assertEquals(result.exit_code, 0)
+        result = instructor.run("admin course team-repo-create", ["--staging", course_id, team_name1, "--public"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("admin course team-repo-create", [course_id, team_name2, "--public"])
+        self.assertEquals(result.exit_code, 0)
+        result = instructor.run("admin course team-repo-create", ["--staging", course_id, team_name2, "--public"])
         self.assertEquals(result.exit_code, 0)
         
         result = student[0].run("student repo-check", [team_name1])

@@ -34,19 +34,19 @@ from chisubmit.client.team import Team
 from chisubmit.client import session, ApiObject, JSONObject
 from chisubmit.client.user import User
 
-class Student(JSONObject):
+class CourseStudent(JSONObject):
     
     _api_attrs = ('dropped', 'repo_info')
     _has_one = {'user': 'student'}
 
-class Instructor(JSONObject):
+class CourseInstructor(JSONObject):
     
-    _api_attrs = ('repo_info')
+    _api_attrs = ('repo_info',)
     _has_one = {'user': 'instructor'}
 
-class Grader(JSONObject):
+class CourseGrader(JSONObject):
     
-    _api_attrs = ('repo_info')
+    _api_attrs = ('repo_info',)
     _has_one = {'user': 'grader'}
 
 

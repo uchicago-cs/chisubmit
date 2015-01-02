@@ -1,5 +1,7 @@
 import click
 from chisubmit.cli.common import pass_course
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+from chisubmit.common import CHISUBMIT_FAIL
 
 @click.group(name="user")
 @click.pass_context

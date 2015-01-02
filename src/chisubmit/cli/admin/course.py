@@ -33,6 +33,8 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.user import User
 from chisubmit.client.course import Course
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+from chisubmit.common.utils import create_connection
 
 @click.group(name="course")
 @click.pass_context
@@ -157,6 +159,137 @@ def admin_course_set_option(ctx, course_id, option_name, option_value):
     course = Course.from_id(course_id)
     course.set_option(option_name, option_value)
 
+
+@click.command(name="setup-repo")
+@click.argument('course_id', type=str)
+@click.option('--staging', is_flag=True)
+@click.pass_context
+def admin_course_setup_repo(ctx, course_id, staging):
+    course = Course.from_id(course_id)
+
+    conn = create_connection(course, ctx.obj['config'], staging)
+    
+    if conn is None:
+        return CHISUBMIT_FAIL
+
+    conn.init_course(course)
+
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="unsetup-repo")
+@click.argument('course_id', type=str)
+@click.option('--staging', is_flag=True)
+@click.pass_context
+def admin_course_unsetup_repo(ctx, course_id, staging):
+    course = Course.from_id(course_id)
+
+    conn = create_connection(course, ctx.obj['config'], staging)
+    
+    if conn is None:
+        return CHISUBMIT_FAIL
+
+    conn.deinit_course(course)
+
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="update-repo-access")
+@click.argument('course_id', type=str)
+@click.option('--staging', is_flag=True)
+@click.pass_context
+def admin_course_update_repo_access(ctx, course_id, staging):
+    course = Course.from_id(course_id)
+    
+    conn = create_connection(course, ctx.obj['config'], staging)
+    
+    if conn is None:
+        return CHISUBMIT_FAIL
+    
+    conn.update_instructors(course)
+    conn.update_graders(course)
+
+
+@click.command(name="team-repo-create")
+@click.argument('course_id', type=str)
+@click.argument('team_id', type=str)
+@click.option('--ignore-existing', is_flag=True)
+@click.option('--public', is_flag=True)
+@click.option('--staging', is_flag=True)
+@click.pass_context
+def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, public, staging):
+    course = Course.from_id(course_id)
+
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        return CHISUBMIT_FAIL
+
+    #if team.git_repo_created and not ignore_existing:
+    #    print "Repository for team %s has already been created." % team.id
+    #    print "Maybe you meant to run team-repo-update?"
+    #    return CHISUBMIT_FAIL
+
+    conn = create_connection(course, ctx.obj['config'], staging)
+    
+    if conn is None:
+        return CHISUBMIT_FAIL
+    
+    conn.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
+
+    return CHISUBMIT_SUCCESS
+
+
+@click.command(name="team-repo-update")
+@click.argument('course_id', type=str)
+@click.argument('team_id', type=str)
+@click.pass_context
+def admin_course_team_repo_update(ctx, course_id, team_id):
+    course = Course.from_id(course_id)
+
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        return CHISUBMIT_FAIL
+
+    #if team.github_repo is None:
+    #    print "Team %s does not have a repository." % team.id
+    #    return CHISUBMIT_FAIL
+
+    conn = create_connection(course, ctx.obj['config'], staging = False)
+    
+    if conn is None:
+        return CHISUBMIT_FAIL
+
+    conn.update_team_repository(team)
+    return CHISUBMIT_SUCCESS
+
+
+@click.command(name="team-repo-remove")
+@click.argument('course_id', type=str)
+@click.argument('team_id', type=str)
+@click.option('--staging', is_flag=True)
+@click.pass_context
+def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
+    course = Course.from_id(course_id)
+
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        return CHISUBMIT_FAIL
+
+    #if team.github_repo is None:
+    #    print "Team %s does not have a repository." % team.id
+    #    return CHISUBMIT_FAIL
+
+    conn = create_connection(course, ctx.obj['config'], staging)
+    
+    if conn is None:
+        return CHISUBMIT_FAIL
+
+    conn.delete_team_repository(course, team)
+
+    return CHISUBMIT_SUCCESS
+
+
 admin_course.add_command(admin_course_add)
 admin_course.add_command(admin_course_remove)
 admin_course.add_command(admin_course_show)
@@ -165,5 +298,11 @@ admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)
 admin_course.add_command(admin_course_set_option)
+admin_course.add_command(admin_course_setup_repo)
+admin_course.add_command(admin_course_unsetup_repo)
+admin_course.add_command(admin_course_update_repo_access)
+admin_course.add_command(admin_course_team_repo_create)
+admin_course.add_command(admin_course_team_repo_update)
+admin_course.add_command(admin_course_team_repo_remove)
 
 

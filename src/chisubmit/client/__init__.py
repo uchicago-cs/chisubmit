@@ -112,7 +112,7 @@ class JSONObject(object):
         elif '_has_many' in class_attrs and name in class_attrs['_has_many']:
             attr = class_attrs['_has_many'][name]
             results = []
-            singular_name = "_".join( [re.sub('s$', '', subname) for subname in name.split('_') ])
+            singular_name = "_".join( [re.sub('s$', '', subname) for subname in attr.split('_') ])
             cls = singular_name.title().translate(None, '_')
             for item in self._json[attr]:
                 c = None

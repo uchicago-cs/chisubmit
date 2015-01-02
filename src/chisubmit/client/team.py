@@ -28,17 +28,29 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client import CourseQualifiedApiObject
+from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
 import json
+
+class StudentTeam(JSONObject):
+    
+    _api_attrs = ('status',)
+    _has_one = {'user': 'student'}
+
+class AssignmentTeam(JSONObject):
+    
+    _api_attrs = ('extensions_used', 'commit_sha', 'submitted_at', 'assignment_id')
+    #_has_one = {'assignment': 'assignment'}
 
 class Team(CourseQualifiedApiObject):
 
     _api_attrs = ('id', 'course_id')
     _primary_key = 'id'    
     _updatable_attributes = ('active',)
-    _has_many = ('students', 'assignments', 'grades', 'assignments_teams')
-
+    _has_many = {'students': 'students_teams',
+                 'assignments': 'assignments_teams',
+                 }
+    
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
         data = json.dumps({'students': {'add': [attrs]}})

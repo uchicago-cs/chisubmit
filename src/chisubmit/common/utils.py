@@ -35,6 +35,7 @@ import hashlib
 import base64
 import string
 from tzlocal import get_localzone
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 localzone = get_localzone()
 
@@ -62,6 +63,24 @@ def gen_api_key():
     b = base64.b64encode(h.digest(), altchars).rstrip("==")
     return b
     
+    
+def create_connection(course, config, staging = False):
+    if not staging:
+        connstr = course.options["git-server-connstr"]
+    else:
+        connstr = course.options["git-staging-connstr"]
+
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
+    server_type = conn.get_server_type_name()
+    git_credentials = config['git-credentials'].get(server_type, None)
+
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return None
+    else:
+        conn.connect(git_credentials)
+        return conn
+           
 
     
     

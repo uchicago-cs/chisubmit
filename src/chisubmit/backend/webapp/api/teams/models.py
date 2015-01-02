@@ -20,7 +20,7 @@ class Team(Serializable, db.Model):
     grades = db.relationship('Grade', cascade="all, delete-orphan",
                              backref='team')
     default_fields = ['extensions', 'repo_info', 'active', 'course_id',
-                      'students', 'assignments', 'assignments_teams', 'grades']
+                      'students_teams', 'assignments_teams', 'grades']
     readonly_fields = ['students', 'assignments', 'grades']
     
     @staticmethod
@@ -88,8 +88,7 @@ class AssignmentsTeams(Serializable, db.Model):
                                               cascade="all, delete-orphan"))
     assignment = db.relationship("Assignment")
     grader = db.relationship("User")
-    default_fields = ['extensions_used', 'assignment_id',
-                      'grader_id', 'team_id', 'grades']
+    default_fields = ['extensions_used', 'commit_sha', 'submitted_at', 'assignment_id']
     readonly_fields = ['team', 'grader', 'grades']
     __table_args__ = (db.ForeignKeyConstraint([team_id, course_id],
                                               [Team.id, Team.course_id]),

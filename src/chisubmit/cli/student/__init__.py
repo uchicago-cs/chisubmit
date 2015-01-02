@@ -3,7 +3,8 @@ from chisubmit.cli.common import pass_course
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
-from chisubmit.common.utils import convert_datetime_to_utc, convert_datetime_to_local
+from chisubmit.common.utils import convert_datetime_to_utc, convert_datetime_to_local,\
+    create_connection
 import pytz
 from dateutil.parser import parse
 
@@ -41,17 +42,10 @@ def student_repo_check(ctx, course, team_id):
     #    print "Team %s does not have a repository." % team.id
     #    return CHISUBMIT_FAIL
 
-    connstr = course.options["git-server-connstr"]
-
-    conn = RemoteRepositoryConnectionFactory.create_connection(connstr)
-    server_type = conn.get_server_type_name()
-    git_credentials = ctx.obj['config']['git-credentials'].get(server_type, None)
-
-    if git_credentials is None:
-        print "You do not have %s credentials." % server_type
+    conn = create_connection(course, ctx.obj['config'])
+    
+    if conn is None:
         return CHISUBMIT_FAIL
-
-    conn.connect(git_credentials)
 
     if not conn.exists_team_repository(course, team):
         print "The repository '%s' does not exist or you do not have permission to access it." % team.github_repo
@@ -103,15 +97,11 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
     
     extensions_requested = extensions
     
-    conn = RemoteRepositoryConnectionFactory.create_connection(course.options["git-server-connstr"])
-    server_type = conn.get_server_type_name()
-    git_credentials = ctx.obj['config']['git-credentials'].get(server_type, None)
-
-    if git_credentials is None:
-        print "You do not have %s credentials." % server_type
-        return CHISUBMIT_FAIL    
+    conn = create_connection(course, ctx.obj['config'])
     
-    conn.connect(git_credentials)        
+    if conn is None:
+        return CHISUBMIT_FAIL
+    
     commit = conn.get_commit(course, team, commit_sha)
     
     if commit is None:

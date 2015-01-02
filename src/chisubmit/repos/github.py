@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from github import Github, InputGitAuthor
 from github.GithubException import GithubException
 
-from chisubmit.repos import RemoteRepositoryConnectionBase
+from chisubmit.repos import RemoteRepositoryConnectionBase, GitCommit, GitTag
 from chisubmit.common import ChisubmitException
 import pytz
 from datetime import datetime
@@ -13,8 +13,8 @@ import sys
 
 class GitHubConnection(RemoteRepositoryConnectionBase):
 
-    def __init__(self, connection_string):
-        RemoteRepositoryConnectionBase.__init__(self, connection_string)
+    def __init__(self, connection_string, staging):
+        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging)
 
         self.organization = None
         self.gh = None
@@ -78,18 +78,21 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         instructors_ghteam = self.__create_ghteam(self.__get_instructors_ghteam_name(course), [], "admin", fail_if_exists = fail_if_exists)
         graders_ghteam = self.__create_ghteam(self.__get_graders_ghteam_name(course), [], "push", fail_if_exists = fail_if_exists)
 
-        for instructor in course.instructors:
-            self.__add_user_to_ghteam(instructor.git_server_id, instructors_ghteam)
-
-        for grader in course.graders:
-            self.__add_user_to_ghteam(grader.git_server_id, graders_ghteam)
-
+    def deinit_course(self, course):
+        instructors_ghteam = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))
+        graders_ghteam = self.__get_ghteam_by_name(self.__get_graders_ghteam_name(course))
+        
+        if instructors_ghteam is not None:
+            instructors_ghteam.delete()
+            
+        if graders_ghteam is not None:
+            graders_ghteam.delete()
 
     def update_instructors(self, course):
         instructors_ghteam = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))
 
         for instructor in course.instructors:
-            self.__add_user_to_ghteam(instructor.git_server_id, instructors_ghteam)
+            self.__add_user_to_ghteam(self._get_user_git_username(instructor), instructors_ghteam)
 
         # TODO: Remove instructors that may have been removed
 
@@ -98,31 +101,30 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         graders_ghteam = self.__get_ghteam_by_name(self.__get_graders_ghteam_name(course))
 
         for grader in course.graders:
-            self.__add_user_to_ghteam(grader.git_server_id, graders_ghteam)
+            self.__add_user_to_ghteam(self._get_user_git_username(grader), graders_ghteam)
 
         # TODO: Remove graders that may have been removed
 
 
-    def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
+    def create_team_repository(self, course, team, fail_if_exists=True, private=True):
         repo_name = self.__get_team_ghrepo_name(course, team)
-        student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
+        student_names = ", ".join(["%s %s" % (s.user.first_name, s.user.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
         github_instructors = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))
         github_graders = self.__get_ghteam_by_name(self.__get_graders_ghteam_name(course))
 
-        if team_access:
+        students = [s for s in course.students if s.user in [ts.user for ts in team.students]]
+
+        if not self.staging:
             github_students = []
 
             # Make sure users exist
-            for s in team.students:
-                from pprint import pprint
-                pprint(course.courses_students)
-                pprint(s)
-                sys.exit(0)
-                github_student = self.__get_user(s.git_server_id)
+            for s in students:
+                username = self._get_user_git_username(s)
+                github_student = self.__get_user(username)
 
                 if github_student is None:
-                    raise ChisubmitException("GitHub user '%s' does not exist " % (s.git_server_id))
+                    raise ChisubmitException("GitHub user '%s' does not exist " % (username))
 
                 github_students.append(github_student)
 
@@ -147,7 +149,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception adding repository to Graders team (%i: %s)" % (ge.status, ge.data["message"]), ge)
 
-        if team_access:
+        if not self.staging:
             team_name = self.__get_team_ghteam_name(course, team)
 
             github_team = self.__create_ghteam(team_name, [github_repo], "push", fail_if_exists)
@@ -156,18 +158,19 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
                 try:
                     github_team.add_to_members(github_student)
                 except GithubException as ge:
-                    raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.git_server_id, ge.status, ge.data["message"]), ge)
+                    raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (username, ge.status, ge.data["message"]), ge)
 
 
     def update_team_repository(self, course, team):
         github_team = self.__get_ghteam_by_name(self.__get_team_ghteam_name(course, team))
 
         for s in team.students:
-            github_student = self.__get_user(s.git_server_id)
+            username = self._get_user_git_username(s)
+            github_student = self.__get_user(username)
             try:
                 github_team.add_to_members(github_student)
             except GithubException as ge:
-                raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (s.git_server_id, ge.status, ge.data["message"]))
+                raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (username, ge.status, ge.data["message"]))
 
         #TODO: Remove students that may have been removed from team
 
@@ -192,7 +195,12 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def get_commit(self, course, team, commit_sha):
         try:
             github_repo = self.organization.get_repo(self.__get_team_ghrepo_name(course, team))
-            commit = github_repo.get_commit(commit_sha)
+            gh_commit = github_repo.get_commit(commit_sha)
+            
+            commit = GitCommit(gh_commit.commit.sha, gh_commit.commit.message, 
+                 gh_commit.commit.author.name, gh_commit.commit.author.email, gh_commit.commit.author.date,
+                 gh_commit.commit.committer.name, gh_commit.commit.committer.email, gh_commit.commit.committer.date)
+
             return commit
         except GithubException as ge:
             if ge.status == 404:
@@ -230,7 +238,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         submission_tag_ref = self.__get_submission_tag_ref(course, team, tag_name)
         submission_tag_ref.delete()
 
-        self.create_submission_tag(team, tag_name, tag_message, commit_sha)
+        self.create_submission_tag(course, team, tag_name, tag_message, commit_sha)
 
 
     # Return a new "tag" object
@@ -242,9 +250,12 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         if submission_tag_ref is None:
             return None
 
-        submission_tag = github_repo.get_git_tag(submission_tag_ref.object.sha)
+        gh_tag = github_repo.get_git_tag(submission_tag_ref.object.sha)
+        
+        tag = GitTag(name = gh_tag.tag,
+                     commit = self.get_commit(course, team, gh_tag.object.sha))
 
-        return submission_tag
+        return tag
 
 
     def delete_team_repository(self, course, team):
@@ -266,7 +277,6 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
             github_team.delete()
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception deleting team %s (%i: %s)" % (github_team_name, ge.status, ge.data["message"]), ge)
-
 
     def __get_instructors_ghteam_name(self, course):
         return "%s-instructors" % course.id

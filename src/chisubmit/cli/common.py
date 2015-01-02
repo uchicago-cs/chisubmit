@@ -5,7 +5,10 @@ from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.client.course import Course
 
 from functools import update_wrapper
-from chisubmit.common.utils import mkdatetime
+
+from dateutil.parser import parse
+import getpass
+from chisubmit.client.user import User
 
 def pass_course(f):
     @click.pass_context
@@ -14,12 +17,12 @@ def pass_course(f):
         course_specified = ctx.obj["course_specified"]
 
         if course_specified:
-            course_obj = Course.from_course_id(course_id)
+            course_obj = Course.from_id(course_id)
         else:
             if course_id is None:
                 raise click.UsageError("No course specified with --course and there is no default course")
             else:
-                course_obj = Course.from_course_id(course_id)
+                course_obj = Course.from_id(course_id)
 
         if course_obj is None:
             raise click.BadParameter("Course '%s' does not exist" % course_id)
@@ -31,57 +34,47 @@ def pass_course(f):
     return update_wrapper(new_func, f)
 
 
-def save_changes(f):
-    @click.pass_context
-    def new_func(ctx, *args, **kwargs):
-        #ctx.call_on_close(ctx.obj["course_obj"].save)
-
-        return ctx.invoke(f, *args, **kwargs)
-
-    return update_wrapper(new_func, f)
-
-
 class DateTimeParamType(click.ParamType):
     name = 'datetime'
 
     def convert(self, value, param, ctx):
         try:
-            return mkdatetime(value)
+            return parse(value)
         except ValueError:
             self.fail('"%s" is not a valid datetime string' % value, param, ctx)
 
 DATETIME = DateTimeParamType()
 
 
-def get_teams(course, project, grader = None, only = None):
+def get_teams(course, assignment, grader = None, only = None):
     if only is not None:
         team = course.get_team(only)
         if team is None:
             print "Team %s does not exist"
             return None
-        if not team.has_project(project.id):
-            print "Team %s has not been assigned project %s" % (team.id, project.id)
+        if not team.has_assignment(assignment.id):
+            print "Team %s has not been assigned assignment %s" % (team.id, assignment.id)
             return None
 
         teams = [team]
     else:
-        teams = [t for t in course.teams if t.has_project(project.id)]
+        teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
         if grader is not None:
-            teams = [t for t in teams if t.get_project(project.id).get_grader().id == grader.id]
+            teams = [t for t in teams if t.get_assignment(assignment.id).get_grader().id == grader.id]
 
     return teams
 
 
-def create_grading_repos(base_dir, course, project, teams, grader = None):
+def create_grading_repos(base_dir, course, assignment, teams, grader = None):
     repos = []
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(base_dir, course, team, project)
+        repo = GradingGitRepo.get_grading_repo(base_dir, course, team, assignment)
 
         if repo is None:
             print ("Creating grading repo for %s... " % team.id),
-            repo = GradingGitRepo.create_grading_repo(base_dir, course, team, project)
+            repo = GradingGitRepo.create_grading_repo(base_dir, course, team, assignment)
             repo.sync()
 
             repos.append(repo)
@@ -93,8 +86,8 @@ def create_grading_repos(base_dir, course, project, teams, grader = None):
     return repos
 
 
-def gradingrepo_push_grading_branch(course, team, project, github=False, staging=False):
-    repo = GradingGitRepo.get_grading_repo(course, team, project)
+def gradingrepo_push_grading_branch(course, team, assignment, github=False, staging=False):
+    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
@@ -112,9 +105,9 @@ def gradingrepo_push_grading_branch(course, team, project, github=False, staging
 
     return CHISUBMIT_SUCCESS
 
-def gradingrepo_pull_grading_branch(course, team, project, github=False, staging=False):
+def gradingrepo_pull_grading_branch(course, team, assignment, github=False, staging=False):
     assert(not (github and staging))
-    repo = GradingGitRepo.get_grading_repo(course, team, project)
+    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
@@ -131,5 +124,25 @@ def gradingrepo_pull_grading_branch(course, team, project, github=False, staging
             print "%s does not have a grading branch in staging" % team.id
         else:
             repo.pull_grading_branch_from_staging()
+
+    return CHISUBMIT_SUCCESS
+
+
+@click.command(name="get-access-token")
+@click.option('--user', prompt='Enter your chisubmit username', default=lambda: getpass.getuser())
+@click.option('--delete', is_flag=True)
+@click.pass_context
+def get_access_token(ctx, user, delete):
+
+    password = getpass.getpass("Enter your password: ")
+    token = User.get_token(user, password, delete)
+
+    if token:
+        ctx.obj['config']['api-token'] = token
+        click.echo("Your chisubmit access token is: %s")
+        click.echo("The token has been stored in your chisubmit configuration file.")
+        click.echo("You should now be able to use the chisubmit commands.")
+    else:
+        click.echo("Unable to create token. Incorrect username/password.")
 
     return CHISUBMIT_SUCCESS

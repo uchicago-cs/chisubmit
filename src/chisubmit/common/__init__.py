@@ -44,3 +44,9 @@ class ChisubmitException(Exception):
 
     def print_exception(self):
         print self.traceback
+        
+def handle_unexpected_exception():
+    print "ERROR: Unexpected exception"
+    print traceback.format_exc()
+    exit(CHISUBMIT_FAIL)
+        

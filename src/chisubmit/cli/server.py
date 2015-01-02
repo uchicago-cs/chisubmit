@@ -28,34 +28,85 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import sys
+import os.path
+
 import click
 
-from chisubmit.common import CHISUBMIT_SUCCESS
-from chisubmit.backend.server import ChisubmitServer
+from chisubmit.common import CHISUBMIT_SUCCESS, ChisubmitException
+from chisubmit.backend.webapp.api import ChisubmitAPIServer
+import tempfile
+
+def get_server(config, profile):
+    p = config.get_server_profile(profile)
+
+    if p is None:
+        raise ChisubmitException("Specified server profile '%s' does not exist" % profile)
+    
+    server = ChisubmitAPIServer(p.get("debug", False))
+    
+    if p["db"] == "sqlite":
+        dbfile = os.path.expanduser(p["db-sqlite-file"])
+        server.connect_sqlite(dbfile)
+    elif p["db"]  == "postgres":
+        server.connect_postgres()
+        
+    return server
 
 @click.command(name="start")
+@click.option('--profile', type=str)
+@click.option('--test-fixture', type=str)
 @click.pass_context
-def server_start(ctx):
-    server = ChisubmitServer()
+def server_start(ctx, profile, test_fixture):
+    config = ctx.obj["config"]
+    
+    if test_fixture is not None:
+        from chisubmit.tests.fixtures import fixtures
+        from chisubmit.tests.common import load_fixture
+        
+        if not fixtures.has_key(test_fixture):
+            raise ChisubmitException("Test fixture '%s' does not exist" % test_fixture)
+        fixture, _ = fixtures[test_fixture]
+        
+        server = ChisubmitAPIServer(debug=True)
+        
+        if os.environ.get('WERKZEUG_RUN_MAIN') != "true":
+            _ , db_filename = tempfile.mkstemp(prefix="chisubmit-test-")
+            os.environ['CHISUBMIT_TEST_DB'] = db_filename
+            server.connect_sqlite(db_filename)
+            server.init_db()
+            server.create_admin(api_key="admin")
+            
+            load_fixture(server.db, fixture)
+            
+            print "Fixture '%s' has been loaded on database %s" % (test_fixture, db_filename) 
+        else:
+            server.connect_sqlite(os.environ['CHISUBMIT_TEST_DB'])
+    else:
+        server = get_server(config, profile)
 
     server.start()
     
     return CHISUBMIT_SUCCESS
 
 @click.command(name="initdb")
+@click.option('--profile', type=str)
+@click.option('--admin-api-key', type=str)
+@click.option('--force', is_flag=True)
 @click.pass_context
-def server_initdb(ctx):
-    server = ChisubmitServer()
+def server_initdb(ctx, profile, admin_api_key, force):
+    config = ctx.obj["config"]
+    
+    server = get_server(config, profile)
 
-    server.init_db()
-    admin_key = server.create_admin()
+    server.init_db(drop_all = force)
+    admin_key = server.create_admin(admin_api_key)
     
     if admin_key is not None:
         print "Chisubmit database has been created."
         print "The administrator's API key is %s" % admin_key
     else:
         print "The Chisubmit database already exists and it contains an 'admin' user"
+        print "Use --force to re-create the database from scratch."
     
     return CHISUBMIT_SUCCESS
 

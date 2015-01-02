@@ -28,42 +28,48 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client.base import ApiObject
+from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
-from chisubmit.client.grade_component import GradeComponent
 import json
 
-class Team(ApiObject):
+class StudentTeam(JSONObject):
+    
+    _api_attrs = ('status',)
+    _has_one = {'user': 'student'}
 
-    _api_attrs = ('id', 'course_id')
-    _updatable_attributes = ('private_name', 'git_staging_repo_created', 'git_repo_created', 'active')
-    _has_many = ('students', 'projects', 'grades', 'projects_teams')
+class AssignmentTeam(JSONObject):
+    
+    _api_attrs = ('extensions_used', 'commit_sha', 'submitted_at', 'assignment_id')
+    #_has_one = {'assignment': 'assignment'}
 
-    def __setattr__(self, name, value):
-        if name in self._updatable_attributes:
-            self._api_update(name, value)
-        else:
-            super(Team, self).__setattr__(name, value)
+class Team(CourseQualifiedApiObject):
 
+    _api_attrs = ('id', 'active', 'course_id')
+    _primary_key = 'id'    
+    _updatable_attributes = ('active',)
+    _has_many = {'students': 'students_teams',
+                 'assignments': 'assignments_teams',
+                 }
+    
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
         data = json.dumps({'students': {'add': [attrs]}})
         session.put('teams/%s' % (self.id), data=data)
 
-    def get_project(self, project_id):
-        return next(project_team for project_team in self.projects_teams if project_team.project_id == project_id)
+    def get_assignment(self, assignment_id):
+        return next(assignment_team for assignment_team in self.assignments_teams if assignment_team.assignment_id == assignment_id)
 
-    def add_project(self, project):
-        attrs = {'team_id': self.id, 'project_id': project.id}
-        data = json.dumps({'projects': {'add': [attrs]}})
+    def add_assignment(self, assignment):
+        attrs = {'team_id': self.id, 'assignment_id': assignment.id}
+        data = json.dumps({'assignments': {'add': [attrs]}})
         session.put('teams/%s' % (self.id), data=data)
 
-    def has_project(self, project_id):
-        return session.exists('teams/%s/projects/%s' %
-                         (self.id, project_id))
+    def has_assignment(self, assignment_id):
+        return session.exists('teams/%s/assignments/%s' %
+                         (self.id, assignment_id))
 
-    def set_project_grade(self, project, grade_component, points):
-        assert(isinstance(grade_component, GradeComponent))
-
-        project_team = self.get_project(project.id)
-        project_team.set_grade(grade_component, points)
+#    def set_assignment_grade(self, assignment, grade_component, points):
+#        assert(isinstance(grade_component, GradeComponent))
+#
+#        assignment_team = self.get_assignment(assignment.id)
+#        assignment_team.set_grade(grade_component, points)

@@ -40,12 +40,12 @@ sys.path.insert(0, './src')
 from chisubmit import RELEASE
 
 
-eps = ['chisubmit = chisubmit.cli:chisubmit_cmd',
+eps = ['chisubmit = chisubmit.cli:chisubmit_cmd_wrapper',
        'chisubmit-server = chisubmit.cli:chisubmit_server_cmd [server]']
 
 setup(name='chisubmit',
       version=RELEASE,
-      description='A system for managing projects and teams in university courses',
+      description='A system for managing assignments and teams in university courses',
       author='University of Chicago, Department of Computer Science',
       author_email='borja@cs.uchicago.edu',
       url='http://www.cs.uchicago.edu/',
@@ -55,7 +55,8 @@ setup(name='chisubmit',
       
       install_requires = [ "PyGithub >= 1.25.2", "GitPython >= 0.3.2.1",
                            "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0",
-                           "click >= 3.3", "requests >= 2.5.1" ],
+                           "click >= 3.3", "requests >= 2.5.1",
+                           "colorama >= 0.3.2" ],
       extras_require = {
                          "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
                                      "flask-restless >= 0.15", "Flask-Script >= 2.0.5", 

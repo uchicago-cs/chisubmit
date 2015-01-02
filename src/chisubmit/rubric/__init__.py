@@ -48,8 +48,8 @@ class RubricFile(object):
     FIELD_POINTS_POSSIBLE = "Points Possible"
     FIELD_POINTS_OBTAINED = "Points Obtained"
     
-    def __init__(self, project, points, penalties, comments):
-        self.project = project
+    def __init__(self, assignment, points, penalties, comments):
+        self.assignment = assignment
         self.points = points
         self.penalties = penalties
         self.comments = comments
@@ -65,7 +65,7 @@ class RubricFile(object):
         total_points_possible = 0
         total_points_obtained = 0
         
-        for gc in self.project.grade_components:
+        for gc in self.assignment.grade_components:
             s += "%s%s:\n" % (" "*4, gc.name)
             s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_POSSIBLE, self.__format_points(gc.points))
             total_points_possible += gc.points
@@ -112,7 +112,7 @@ class RubricFile(object):
             raise ChisubmitRubricException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.message), ioe)
         
     @classmethod
-    def from_file(cls, rubric_file, project):
+    def from_file(cls, rubric_file, assignment):
         rubric = yaml.load(rubric_file)
 
         if not rubric.has_key(RubricFile.FIELD_POINTS):
@@ -124,7 +124,7 @@ class RubricFile(object):
         points = {}
         total_points_obtained = 0
         total_points_possible = 0
-        for grade_component in project.grade_components:
+        for grade_component in assignment.grade_components:
             if not rubric[RubricFile.FIELD_POINTS].has_key(grade_component.name):
                 raise ChisubmitRubricException("Rubric is missing '%s' points." % grade_component.name)
             
@@ -187,15 +187,15 @@ class RubricFile(object):
         else:
             comments = rubric[RubricFile.FIELD_COMMENTS]
 
-        return cls(project, points, penalties, comments)
+        return cls(assignment, points, penalties, comments)
 
     @classmethod
-    def from_project(cls, project, team_project = None):
-        points = dict([(gc.name, None) for gc in project.grade_components])
+    def from_assignment(cls, assignment, team_assignment = None):
+        points = dict([(gc.name, None) for gc in assignment.grade_components])
         
-        if team_project is not None:
-            for grade in team_project.grades:
+        if team_assignment is not None:
+            for grade in team_assignment.grades:
                 gc = grade.grade_component
                 points[gc.name] = grade.points
         
-        return cls(project, points, penalties = None, comments = None)
+        return cls(assignment, points, penalties = None, comments = None)

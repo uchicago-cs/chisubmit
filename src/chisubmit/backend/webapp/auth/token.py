@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import request, abort, g
-from chisubmit.backend.webapp.api.people.models import Person
+from chisubmit.backend.webapp.api.users.models import User
 
 
 def require_apikey(view_function):
@@ -20,7 +20,7 @@ def require_apikey(view_function):
                 api_key = api_key_param
             
         if api_key is not None:
-            user = Person.query.filter_by(api_key=api_key).first()
+            user = User.query.filter_by(api_key=api_key).first()
             
             if user is None:
                 abort(401)

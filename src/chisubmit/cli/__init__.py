@@ -29,38 +29,43 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import click
+from chisubmit.common import ChisubmitException, CHISUBMIT_FAIL,\
+    handle_unexpected_exception, CHISUBMIT_SUCCESS
+import sys
+from pprint import pprint
+from requests.exceptions import HTTPError, ConnectionError
+from chisubmit.cli.admin import admin
+from chisubmit.cli.instructor import instructor
+from chisubmit.cli.student import student
+from chisubmit.client.session import BadRequestError
 config = None
 
 import chisubmit.common.log as log
 from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.cli.course import course
-from chisubmit.cli.student import student
-from chisubmit.cli.instructor import instructor
-from chisubmit.cli.team import team
-from chisubmit.cli.project import project
-from chisubmit.cli.submit import submit
-from chisubmit.cli.shell import shell
-from chisubmit.cli.grader import grader
-from chisubmit.cli.gh import gh
-from chisubmit.cli.admin import admin
-from chisubmit.cli.user import user
 from chisubmit.client import session
 
 SUBCOMMANDS_NO_COURSE = [('course','create')]
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
+VERBOSE = False
+DEBUG = False 
 
-@click.group()
+@click.group(name="chisubmit")
 @click.option('--conf', type=str, default=None)
 @click.option('--dir', type=str, default=None)
-@click.option('--noop', is_flag=True)
 @click.option('--course', type=str, default=None)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--debug', is_flag=True)
+@click.option('--testing', is_flag=True)
 @click.version_option(version=RELEASE)
 @click.pass_context
-def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
+def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
+    global VERBOSE, DEBUG
+    
+    VERBOSE = verbose
+    DEBUG = debug
+    
     ctx.obj = {}
 
     config = Config(dir, conf)
@@ -69,7 +74,11 @@ def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
     if not config['api-key']:
         raise click.BadParameter("Sorry, can't find your chisubmit api token")
 
-    session.connect(config['api-url'], config['api-key'])
+    if testing:
+        from chisubmit.backend.webapp.api import app 
+        session.connect_test(app, access_token = config['api-key'])
+    else:
+        session.connect(config['api-url'], config['api-key'])
 
     if course:
         course_specified = True
@@ -82,20 +91,54 @@ def chisubmit_cmd(ctx, conf, dir, noop, course, verbose, debug):
     ctx.obj["course_id"] = course_id
     ctx.obj["config"] = config
 
-    return 0
+    return CHISUBMIT_SUCCESS
 
 
-chisubmit_cmd.add_command(course)
-chisubmit_cmd.add_command(project)
-chisubmit_cmd.add_command(student)
-chisubmit_cmd.add_command(instructor)
-chisubmit_cmd.add_command(team)
-chisubmit_cmd.add_command(grader)
-chisubmit_cmd.add_command(submit)
-chisubmit_cmd.add_command(shell)
-chisubmit_cmd.add_command(gh)
+def chisubmit_cmd_wrapper():
+    try:
+        chisubmit_cmd.main()
+    except BadRequestError, he:
+        pass
+        
+    except HTTPError, he:
+        print "ERROR: chisubmit server returned an HTTP error"
+        print
+        print "URL: %s" % he.request.url
+        print "HTTP method: %s" % he.request.method
+        print "Status code: %i" % he.response.status_code
+        print "Message: %s" % he.response.reason
+        if DEBUG:
+            print
+            print "HTTP REQUEST"
+            print "------------"
+            print "%s %s" % (he.request.method, he.request.url)
+            print
+            for hname, hvalue in he.request.headers.items():
+                print "%s: %s" % (hname, hvalue) 
+            print
+            if he.request.body is not None:
+                print he.request.body
+            print
+            print "HTTP RESPONSE"
+            print "-------------"
+            for hname, hvalue in he.response.headers.items():
+                print "%s: %s" % (hname, hvalue) 
+            print
+            print he.response._content
+    except ConnectionError, ce:
+        print "ERROR: Could not connect to chisubmit server"
+        print "URL: %s" % ce.request.url
+    except ChisubmitException, ce:
+        print "ERROR: %s" % ce.message
+        if DEBUG:
+            ce.print_exception()
+        sys.exit(CHISUBMIT_FAIL)
+    except Exception, e:
+        handle_unexpected_exception()
+
 chisubmit_cmd.add_command(admin)
-chisubmit_cmd.add_command(user)
+chisubmit_cmd.add_command(instructor)
+chisubmit_cmd.add_command(student)
 
 
 from chisubmit.cli.server import server_start, server_initdb
@@ -114,8 +157,8 @@ def chisubmit_server_cmd(ctx, conf, dir, verbose, debug):
     log.init_logging(verbose, debug)
     
     ctx.obj["config"] = config
-    
-    return 0
+        
+    return CHISUBMIT_SUCCESS
 
 
 chisubmit_server_cmd.add_command(server_start)

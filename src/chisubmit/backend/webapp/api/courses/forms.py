@@ -1,16 +1,22 @@
 from wtforms import Form, StringField, IntegerField
 from wtforms.fields import FormField, FieldList
 from wtforms.validators import Length, InputRequired, NumberRange, Optional
-from chisubmit.backend.webapp.api.projects.forms import CreateProjectInput
+from chisubmit.backend.webapp.api.assignments.forms import CreateAssignmentInput
 from chisubmit.backend.webapp.api.teams.forms import CreateTeamInput
+from wtforms.fields.core import BooleanField
+
+
+class SetOptionInput(Form):
+    name = StringField(validators=[InputRequired()])
+    value = StringField(validators=[InputRequired()])
 
 
 class AddTeamsInput(Form):
     add = FieldList(FormField(CreateTeamInput))
 
 
-class AddProjectsInput(Form):
-    add = FieldList(FormField(CreateProjectInput))
+class AddAssignmentsInput(Form):
+    add = FieldList(FormField(CreateAssignmentInput))
 
 
 class LinkGraderInput(Form):
@@ -22,6 +28,19 @@ class LinkStudentInput(Form):
     course_id = StringField(validators=[InputRequired()])
     student_id = StringField(validators=[InputRequired()])
 
+class UpdateStudentInput(Form):
+    student_id = StringField(default = None)
+    dropped = BooleanField(validators=[Optional()])
+    repo_info = FieldList(FormField(SetOptionInput))
+
+class UpdateInstructorInput(Form):
+    instructor_id = StringField(default = None)
+    repo_info = FieldList(FormField(SetOptionInput))
+
+class UpdateGraderInput(Form):
+    grader_id = StringField(default = None)
+    repo_info = FieldList(FormField(SetOptionInput))
+
 
 class LinkInstructorInput(Form):
     course_id = StringField(validators=[InputRequired()])
@@ -30,42 +49,38 @@ class LinkInstructorInput(Form):
 
 class AddGradersInput(Form):
     add = FieldList(FormField(LinkGraderInput))
+    update = FieldList(FormField(UpdateGraderInput))
 
 
 class AddStudentsInput(Form):
     add = FieldList(FormField(LinkStudentInput))
+    update = FieldList(FormField(UpdateStudentInput))
 
 
 class AddInstructorsInput(Form):
     add = FieldList(FormField(LinkInstructorInput))
+    update = FieldList(FormField(UpdateInstructorInput))
 
+
+class UpdateOptionInput(Form):
+    update = FieldList(FormField(SetOptionInput))
 
 class CreateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
     id = StringField(validators=[Length(max=36, min=5), InputRequired()])
     name = StringField(validators=[Length(max=36, min=5), InputRequired()])
-    extensions = IntegerField(validators=[NumberRange(max=25), Optional()])
-    git_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
-    git_staging_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
 
 
 class UpdateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
     id = StringField(validators=[Length(max=36, min=10), Optional()])
     name = StringField(validators=[Length(max=36, min=10), Optional()])
-    extensions = IntegerField(
-        validators=[NumberRange(max=25, min=0), Optional()])
-    git_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
-    git_staging_server_connection_string = StringField(
-        validators=[Length(max=120, min=10), Optional()])
-    projects = FormField(AddProjectsInput)
+    assignments = FormField(AddAssignmentsInput)
     instructors = FormField(AddInstructorsInput)
     students = FormField(AddStudentsInput)
     teams = FormField(AddTeamsInput)
     graders = FormField(AddGradersInput)
+    options = FormField(UpdateOptionInput)
 
 
 class SearchCourseStudentInput(Form):

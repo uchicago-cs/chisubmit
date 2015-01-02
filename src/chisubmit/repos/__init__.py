@@ -25,7 +25,7 @@ class ConnectionString(object):
 
 class RemoteRepositoryConnectionBase(object):
 
-    def __init__(self, connection_string):
+    def __init__(self, connection_string, staging):
         if connection_string.server_type != self.get_server_type_name():
             raise ChisubmitException("Expected server_type in connection string to be '%s', got '%s'" %
                                      (self.get_server_type_name(), connection_string.server_type))
@@ -47,7 +47,7 @@ class RemoteRepositoryConnectionBase(object):
             if p not in param_names:
                 setattr(self, p, None)
 
-
+        self.staging = staging
         self.is_connected = False
 
     @staticmethod
@@ -75,6 +75,10 @@ class RemoteRepositoryConnectionBase(object):
         pass
 
     @abc.abstractmethod
+    def deinit_course(self, course):
+        pass
+
+    @abc.abstractmethod
     def init_course(self, course, fail_if_exists=True):
         pass
 
@@ -87,7 +91,7 @@ class RemoteRepositoryConnectionBase(object):
         pass
 
     @abc.abstractmethod
-    def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
+    def create_team_repository(self, course, team, fail_if_exists=True, private=True):
         pass
 
     @abc.abstractmethod
@@ -125,3 +129,36 @@ class RemoteRepositoryConnectionBase(object):
     @abc.abstractmethod
     def delete_team_repository(self, course, team):
         pass
+    
+    def _get_user_git_username(self, user):
+        if self.staging:
+            option = "git-staging-username"
+        else:
+            option = "git-username"
+        
+        if not hasattr(user, "repo_info") or user.repo_info is None or not user.repo_info.has_key(option): 
+            raise ChisubmitException("User '%s' does not have a '%s' value" % (user.user.id, option))
+        else:
+            return user.repo_info[option]
+    
+    
+    
+class GitCommit(object):
+    
+    def __init__(self, sha, message, 
+                 author_name, author_email, authored_date,
+                 committer_name, committer_email, committed_date):
+        self.sha = sha
+        self.message = message
+        self.author_name = author_name
+        self.author_email = author_email
+        self.authored_date = authored_date
+        self.committer_name = committer_name
+        self.committer_email = committer_email
+        self.committed_date = committed_date
+        
+class GitTag(object):
+    
+    def __init__(self, name, commit):
+        self.name = name
+        self.commit = commit

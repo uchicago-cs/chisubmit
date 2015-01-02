@@ -231,12 +231,3 @@ class Serializable(db.Model):
                         )
 
         return ret_data
-
-
-class JSONEncoder(JSONEncoder):
-
-    def default(self, o):
-        if isinstance(o, datetime):
-            pytz.utc.localize(o)
-            return o.isoformat()
-        return JSONEncoder.default(self, o)

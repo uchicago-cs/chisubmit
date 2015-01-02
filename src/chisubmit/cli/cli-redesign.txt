@@ -14,13 +14,11 @@ admin
         show COURSE_ID [--include-users] [--include-assignments]
         set-option COURSE_ID OPTION_KEY OPTION_VALUE
         list
-        set-git-server COURSE_ID CONNECTION_STRING
-        set-staging-git-server COURSE_ID CONNECTION_STRING
-        add-instructor COURSE_ID USER_ID GIT_SERVER_ID STAGING_GIT_SERVER_ID
+        add-instructor COURSE_ID USER_ID
         remove-instructor COURSE_ID USER_ID
-        add-grader COURSE_ID USER_ID GIT_SERVER_ID STAGING_GIT_SERVER_ID
+        add-grader COURSE_ID USER_ID
         remove-grader COURSE_ID USER_ID 
-        add-student COURSE_ID USER_ID GIT_SERVER_ID
+        add-student COURSE_ID USER_ID
         remove-student COURSE_ID USER_ID
         set-student-dropped COURSE_ID USER_ID
     
@@ -28,6 +26,10 @@ admin
 # either with '--course' or with a default course.   
     
 instructor
+
+    course
+        set-user-git-username USER_TYPE USER_ID GIT_USERNAME
+        set-user-git-staging-username USER_TYPE USER_ID GIT_USERNAME
 
     assignment
         add ASSIGNMENT_ID NAME DEADLINE
@@ -76,7 +78,7 @@ grader
 student
 
     register-for-assignment ASSIGNMENT_ID [--partners USER_ID[,USER_ID]*]
-    submit-assignment ASSIGNMENT_ID COMMIT_SHA [--extensions N] [--yes] [--force]
+    submit-assignment TEAM_ID ASSIGNMENT_ID COMMIT_SHA [--extensions N] [--yes] [--force]
     list-assignments [--verbose]
     check-repo-assignment ASSIGNMENT_ID
     get-git-credentials

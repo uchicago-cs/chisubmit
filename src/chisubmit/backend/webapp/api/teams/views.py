@@ -1,13 +1,15 @@
 from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams, ProjectsTeams
+from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams, AssignmentsTeams
 from chisubmit.backend.webapp.api.grades.models import Grade
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.teams.forms import UpdateTeamInput,\
-    CreateTeamInput, UpdateProjectTeamInput
+    CreateTeamInput, UpdateAssignmentTeamInput
 from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort
+from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
+    check_team_access_or_abort
 from flask import g
+from chisubmit.backend.webapp.api.courses.models import Course
 
 @api_endpoint.route('/courses/<course_id>/teams', methods=['GET', 'POST'])
 @require_apikey
@@ -55,9 +57,10 @@ def team(course_id, team_id):
     if team is None:
         abort(404)
 
-    check_team_access_or_abort(g.user, team, 404, roles = ["instructor"])
-
+    check_team_access_or_abort(g.user, team, 404)
+    
     if request.method == 'PUT':
+        check_team_access_or_abort(g.user, team, 404, roles = ["instructor"])
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400
@@ -74,9 +77,9 @@ def team(course_id, team_id):
                     new_child=new_child))(), 'new_child')
                 db.session.add(new_child)
 
-        if 'projects' in form:
-            for child_data in form.projects.add:
-                new_child = ProjectsTeams()
+        if 'assignments' in form:
+            for child_data in form.assignments.add:
+                new_child = AssignmentsTeams()
                 child_data.populate_obj(type("", (), dict(
                     new_child=new_child))(), 'new_child')
                 db.session.add(new_child)
@@ -93,31 +96,31 @@ def team(course_id, team_id):
     return jsonify({'team': team.to_dict()})
 
 
-@api_endpoint.route('/courses/<course_id>/teams/<team_id>/projects/<project_id>',
+@api_endpoint.route('/courses/<course_id>/teams/<team_id>/assignments/<assignment_id>',
                     methods=['GET', 'PUT'])
 @require_apikey
-def projects_teams(course_id, team_id, project_id):
+def assignments_teams(course_id, team_id, assignment_id):
     course = Course.query.filter_by(id=course_id).first()
     
     if course is None:
         abort(404)    
     
-    project_team = ProjectsTeams.query.filter_by(
+    assignment_team = AssignmentsTeams.query.filter_by(
         team_id=team_id).filter_by(
-        project_id=project_id).first()
+        assignment_id=assignment_id).first()
 
-    if not project_team:
+    if not assignment_team:
         abort(404)
 
     if request.method == 'PUT':
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400
-        form = UpdateProjectTeamInput.from_json(input_data)
+        form = UpdateAssignmentTeamInput.from_json(input_data)
         if not form.validate():
             return jsonify(errors=form.errors), 400
 
-        project_team.set_columns(**form.patch_data)
+        assignment_team.set_columns(**form.patch_data)
 
         if 'grades' in form:
             for child_data in form.grades.add:
@@ -128,27 +131,27 @@ def projects_teams(course_id, team_id, project_id):
 
         db.session.commit()
 
-    return jsonify({'project_team': project_team.to_dict()}), 201
+    return jsonify({'assignment_team': assignment_team.to_dict()}), 201
 
 
-@api_endpoint.route('/project_teams/<project_team_id>', methods=['GET', 'PUT'])
+@api_endpoint.route('/assignment_teams/<assignment_team_id>', methods=['GET', 'PUT'])
 @require_apikey
-def direct_projects_teams(project_team_id):
-    project_team = ProjectsTeams.query.filter_by(
-        id=project_team_id).first()
+def direct_assignments_teams(assignment_team_id):
+    assignment_team = AssignmentsTeams.query.filter_by(
+        id=assignment_team_id).first()
 
-    if not project_team:
+    if not assignment_team:
         abort(404)
 
     if request.method == 'PUT':
         input_data = request.get_json(force=True)
         if not isinstance(input_data, dict):
             return jsonify(error='Request data must be a JSON Object'), 400
-        form = UpdateProjectTeamInput.from_json(input_data)
+        form = UpdateAssignmentTeamInput.from_json(input_data)
         if not form.validate():
             return jsonify(errors=form.errors), 400
 
-        project_team.set_columns(**form.patch_data)
+        assignment_team.set_columns(**form.patch_data)
 
         if 'grades' in form:
             for child_data in form.grades.add:
@@ -159,4 +162,4 @@ def direct_projects_teams(project_team_id):
 
         db.session.commit()
 
-    return jsonify({'project_team': project_team.to_dict()}), 201
+    return jsonify({'assignment_team': assignment_team.to_dict()}), 201

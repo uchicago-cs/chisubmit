@@ -32,15 +32,17 @@ from pkg_resources import Requirement, resource_filename
 from chisubmit.common import ChisubmitException
 import shutil
 import yaml
+import collections
 
 DEFAULT_CHISUBMIT_DIR = os.path.expanduser("~/.chisubmit/")
 DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
 
-class Config(dict):
+# Based on http://stackoverflow.com/questions/3387691/python-how-to-perfectly-override-a-dict
+class Config(collections.MutableMapping):
 
-    IMPLICIT_FIELDS = ['directory']
-    REQUIRED_FIELDS = []
-    OPTIONAL_FIELDS = ["default-course", "git-credentials", "api-key", "api-url"]
+    IMPLICIT_FIELDS = ["directory"]
+    REQUIRED_FIELDS = ["api-key", "api-url"]
+    OPTIONAL_FIELDS = ["default-course", "git-credentials", "server"]
 
     def __getitem__(self, key):
         if key in self.options:
@@ -57,6 +59,16 @@ class Config(dict):
         else:
             raise KeyError
 
+    def __delitem__(self, key):
+        del self.options[key]
+        self.save()
+
+    def __iter__(self):
+        return iter(self.options)
+
+    def __len__(self):
+        return len(self.options)
+
     def __init__(self, config_dir=None, config_file=None):
 
         if config_dir is None:
@@ -68,11 +80,11 @@ class Config(dict):
             config_file = config_dir + DEFAULT_CONFIG_FILENAME
         else:
             config_file = os.path.expanduser(config_file)
-
+        
         self.create_directories(config_dir, config_file)
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
-
+        
         if type(config) != dict:
             raise ChisubmitException("Configuration is not valid YAML")
 
@@ -114,3 +126,21 @@ class Config(dict):
             f.close()
         except IOError, ioe:
             raise ChisubmitException("Error when saving configuration to file %s: %s" % (self.config_file, ioe.meesage), ioe)
+        
+    def get_server_profile(self, name=None):
+        if not self.options.has_key("server"):
+            return None
+        
+        if not self["server"].has_key("profiles"):
+            return None
+        
+        if name is None:
+            if not self["server"].has_key("default-profile"):
+                return None
+            else:
+                name = self["server"]["default-profile"]
+
+        if not self["server"]["profiles"].has_key(name):
+            return None
+        else:
+            return self["server"]["profiles"][name]

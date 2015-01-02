@@ -8,8 +8,8 @@ from chisubmit.common import ChisubmitException
 
 class GitLabConnection(RemoteRepositoryConnectionBase):
 
-    def __init__(self, connection_string):
-        RemoteRepositoryConnectionBase.__init__(self, connection_string)   
+    def __init__(self, connection_string, staging):
+        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging)
         
         self.gitlab = None
         
@@ -73,7 +73,9 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         for grader in course.graders.values():
             self.__add_user_to_course_group(course, grader.git_server_id, "developer")
 
-            
+
+    def deinit_course(self, course):
+        pass
     
     def update_instructors(self, course):
         for instructor in course.instructors.values():
@@ -89,12 +91,12 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         # TODO: Remove instructors that may have been removed
 
     
-    def create_team_repository(self, course, team, team_access, fail_if_exists=True, private=True):
+    def create_team_repository(self, course, team, fail_if_exists=True, private=True):
         repo_name = self.__get_team_namespaced_project_name(course, team)
         student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
         
-        if team_access:
+        if not self.staging:
             gitlab_students = []
 
             # Make sure users exist
@@ -130,7 +132,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             if gitlab_project == False:
                 raise ChisubmitException("Could not create repository %s" % repo_name)
             
-            if team_access:                
+            if not self.staging:                
                 for gitlab_student in gitlab_students:
                     rc = self.gitlab.addprojectmember(gitlab_project["id"],
                                                       gitlab_student["id"], 

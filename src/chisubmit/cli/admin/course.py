@@ -68,7 +68,7 @@ def admin_course_remove(ctx, course_id):
 @click.option("--include-assignments", is_flag=True)
 @click.pass_context
 def admin_course_show(ctx, course_id, include_users, include_assignments):
-    course = Course.from_course_id(course_id)
+    course = Course.from_id(course_id)
     
     print course.id, course.name
     if len(course.options) == 0:
@@ -124,7 +124,7 @@ def admin_course_list(ctx):
 @click.argument('user_id', type=str)
 @click.pass_context
 def admin_course_add_instructor(ctx, course_id, user_id):
-    course = Course.from_course_id(course_id)
+    course = Course.from_id(course_id)
     user = User.from_id(user_id)
     
     course.add_instructor(user)
@@ -134,7 +134,7 @@ def admin_course_add_instructor(ctx, course_id, user_id):
 @click.argument('user_id', type=str)
 @click.pass_context
 def admin_course_add_grader(ctx, course_id, user_id):
-    course = Course.from_course_id(course_id)
+    course = Course.from_id(course_id)
     user = User.from_id(user_id)
     
     course.add_grader(user)
@@ -144,7 +144,7 @@ def admin_course_add_grader(ctx, course_id, user_id):
 @click.argument('user_id', type=str)
 @click.pass_context
 def admin_course_add_student(ctx, course_id, user_id):
-    course = Course.from_course_id(course_id)
+    course = Course.from_id(course_id)
     user = User.from_id(user_id)
     
     course.add_student(user)        
@@ -156,7 +156,7 @@ def admin_course_add_student(ctx, course_id, user_id):
 @click.argument('option_value', type=str)
 @click.pass_context
 def admin_course_set_option(ctx, course_id, option_name, option_value):
-    course = Course.from_course_id(course_id)
+    course = Course.from_id(course_id)
     course.set_option(option_name, option_value)
 
 admin_course.add_command(admin_course_add)

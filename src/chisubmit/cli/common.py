@@ -15,12 +15,12 @@ def pass_course(f):
         course_specified = ctx.obj["course_specified"]
 
         if course_specified:
-            course_obj = Course.from_course_id(course_id)
+            course_obj = Course.from_id(course_id)
         else:
             if course_id is None:
                 raise click.UsageError("No course specified with --course and there is no default course")
             else:
-                course_obj = Course.from_course_id(course_id)
+                course_obj = Course.from_id(course_id)
 
         if course_obj is None:
             raise click.BadParameter("Course '%s' does not exist" % course_id)

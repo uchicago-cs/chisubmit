@@ -28,25 +28,16 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client.base import ApiObject
+from chisubmit.client import CourseQualifiedApiObject
 from chisubmit.client import session
-from chisubmit.client.grade_component import GradeComponent
 import json
 
-class Team(ApiObject):
+class Team(CourseQualifiedApiObject):
 
-    _api_attrs = ('id',)
+    _api_attrs = ('id', 'course_id')
     _primary_key = 'id'    
     _updatable_attributes = ('active',)
     _has_many = ('students', 'assignments', 'grades', 'assignments_teams')
-    _course_qualified = True
-    
-
-    def __setattr__(self, name, value):
-        if name in self._updatable_attributes:
-            self._api_update(name, value)
-        else:
-            super(Team, self).__setattr__(name, value)
 
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
@@ -65,8 +56,8 @@ class Team(ApiObject):
         return session.exists('teams/%s/assignments/%s' %
                          (self.id, assignment_id))
 
-    def set_assignment_grade(self, assignment, grade_component, points):
-        assert(isinstance(grade_component, GradeComponent))
-
-        assignment_team = self.get_assignment(assignment.id)
-        assignment_team.set_grade(grade_component, points)
+#    def set_assignment_grade(self, assignment, grade_component, points):
+#        assert(isinstance(grade_component, GradeComponent))
+#
+#        assignment_team = self.get_assignment(assignment.id)
+#        assignment_team.set_grade(grade_component, points)

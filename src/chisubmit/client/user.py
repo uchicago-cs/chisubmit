@@ -28,7 +28,7 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client.base import ApiObject
+from chisubmit.client import ApiObject
 from chisubmit.client import session
 import json
 
@@ -38,7 +38,6 @@ class User(ApiObject):
     _primary_key = 'id'
     _singularize = 'user'
     _pluralize = 'users'
-    _course_qualified = False
 
     def save(self):
         if not session.exists(self):

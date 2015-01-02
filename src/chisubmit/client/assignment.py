@@ -28,42 +28,25 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client.base import ApiObject
+from chisubmit.client import ApiObject, CourseQualifiedApiObject
 from chisubmit.client.grade_component import GradeComponent
 from chisubmit.common.utils import convert_datetime_to_utc
 from chisubmit.client import session
 from dateutil import parser
 import json
-import math
 
-class Assignment(ApiObject):
+class Assignment(CourseQualifiedApiObject):
 
-    _api_attrs = ('name', 'deadline', 'id')
+    _api_attrs = ('name', 'deadline', 'id', 'course_id')
     _primary_key = 'id'    
     _has_many = ('grade_components', 'teams')
-    _course_qualified = True
 
-    def __init__(self, **kw):
-        backendSave = kw.pop("backendSave", True)
-        
-        ApiObject.__init__(self, backendSave = False, **kw)
-
-        for attr in self._api_attrs:
-            if attr == 'deadline':
-                if hasattr(kw['deadline'], 'isoformat'):
-                    self.deadline = kw['deadline']
-                else:
-                    self.deadline = convert_datetime_to_utc(parser.parse(kw['deadline']))
-            elif attr == 'id':
-                if 'assignment_id' in kw:
-                    self.id = kw['assignment_id']
-                else:
-                    self.id = kw['id']
-            else:
-                setattr(self, attr, kw[attr])
-        
-        if backendSave:       
-            self.save()
+    def __init__(self, *args, **kwargs):
+        if kwargs.has_key("deadline"):
+            if not hasattr(kwargs["deadline"], 'isoformat'):
+                kwargs["deadline"] = convert_datetime_to_utc(parser.parse(kwargs['deadline']))
+                
+        super(Assignment, self).__init__(*args, **kwargs)
                 
     def register(self, team_name=None, partners = []):
         url = self.url() + "/register"

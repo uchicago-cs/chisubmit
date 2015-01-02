@@ -20,7 +20,7 @@ def student(ctx):
 @pass_course
 @click.pass_context
 def student_assignment_register(ctx, course, assignment_id, team_name, partner):
-    a = Assignment.from_course_and_id(course.id, assignment_id)
+    a = Assignment.from_id(course.id, assignment_id)
         
     a.register(team_name = team_name,
                partners = partner)

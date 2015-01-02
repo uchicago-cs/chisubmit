@@ -29,6 +29,7 @@
 
 from requests import exceptions, Session
 from urlparse import urlparse
+from pprint import pprint
 import json
 import sys
 from requests.exceptions import HTTPError
@@ -120,7 +121,7 @@ def __process_response(response, method, url):
                               url = url,
                               errors = error_result,
                               response = response_exc)
-        
+
     return data_json
 
 

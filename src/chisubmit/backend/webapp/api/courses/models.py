@@ -15,7 +15,7 @@ class CoursesGraders(Serializable, db.Model):
                           db.Integer,
                           db.ForeignKey('courses.id'), primary_key=True)
     grader = db.relationship("User")
-    default_fields = ['course_id', 'grader_id']
+    default_fields = ['grader', 'repo_info']
     readonly_fields = ['grader_id', 'course_id', 'repo_info']        
     course = db.relationship("Course",
                              backref=db.backref("courses_graders",
@@ -36,7 +36,7 @@ class CoursesStudents(Serializable, db.Model):
                           db.ForeignKey('courses.id'),
                           primary_key=True)
     student = db.relationship("User")
-    default_fields = ['course_id', 'student_id']
+    default_fields = ['student', 'dropped', 'repo_info']
     readonly_fields = ['student_id', 'course_id', 'repo_info']    
     course = db.relationship("Course",
                              backref=db.backref("courses_students",
@@ -55,7 +55,7 @@ class CoursesInstructors(Serializable, db.Model):
                           db.ForeignKey('courses.id'),
                           primary_key=True)
     instructor = db.relationship("User")
-    default_fields = ['instructor']
+    default_fields = ['instructor', 'repo_info']
     readonly_fields = ['instructor_id', 'course_id', 'repo_info']    
     course = db.relationship("Course",
                              backref=db.backref("courses_instructors",
@@ -72,10 +72,9 @@ class Course(ExposedModel, Serializable):
     instructors = association_proxy('courses_instructors', 'instructor')
     assignments = db.relationship("Assignment", backref="course")
     teams = db.relationship("Team", backref="course")
-    default_fields = ['name', 'options', 'students', 'instructors',
-                      'assignments', 'teams', 'graders']
-    readonly_fields = ['id', 'assignments', 'instructors', 'students',
-                       'graders', 'teams', 'options']
+    default_fields = ['name', 'assignments', 'options']
+    readonly_fields = ['id', 'options', 'graders', 'students', 'instructors',
+                       'assignments', 'teams']
     
     @staticmethod
     def from_id(course_id):

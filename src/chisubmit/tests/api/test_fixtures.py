@@ -1,4 +1,3 @@
-from chisubmit.tests.common import ChisubmitFixtureTestCase
 from chisubmit.tests.fixtures import users_and_courses, complete_course
 import unittest
 

@@ -17,11 +17,13 @@ def courses():
     if request.method == 'GET':
         # TODO: SQLAlchemy-fy this
         courses = Course.query.all()
+
         if not g.user.admin:
-            courses = [c for c in courses if g.user.is_in_course(c)]
-        return jsonify(
-            courses=[course.to_dict()
-                     for course in courses])
+            courses = [c.to_dict() for c in courses if g.user.is_in_course(c)]
+        else:
+            courses = [c.to_dict() for c in courses]
+        
+        return jsonify(courses = courses), 200
 
     check_admin_access_or_abort(g.user, 404)
 
@@ -50,6 +52,17 @@ def course(course_id):
 
     check_course_access_or_abort(g.user, course, 404)
 
+    if request.method == 'GET':
+        fields = []
+        
+        if g.user.admin:
+            fields.append("options")
+        
+        if g.user.admin or g.user.is_instructor_in(course) or g.user.is_grader_in(course):
+            fields += ['courses_graders', 'courses_students', 'courses_instructors']
+
+        return jsonify({'course': course.to_dict(show=fields)})
+    
     if request.method == 'PUT':
         input_data = request.get_json(force=True)
 
@@ -173,11 +186,11 @@ def course(course_id):
 
         db.session.commit()
 
-    return jsonify({'course': course.to_dict()})
+        return jsonify({'course': course.to_dict()})
 
 
 @api_endpoint.route('/courses/<course_id>/students/<student_id>',
-                    methods=['GET', 'PUT'])
+                    methods=['GET'])
 @require_apikey
 def course_student(course_id, student_id):
     course = Course.query.filter_by(id=course_id).first()

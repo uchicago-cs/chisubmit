@@ -44,6 +44,8 @@ def instructor_team_repo_create(ctx, course, team_id, ignore_existing, public, s
         return CHISUBMIT_FAIL
 
     conn.connect(git_credentials)
+    print team
+    print team.course_id
     conn.create_team_repository(course, team, team_access, fail_if_exists = not ignore_existing, private = not public)
 
     return CHISUBMIT_SUCCESS

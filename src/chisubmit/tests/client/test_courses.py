@@ -15,4 +15,10 @@ class CompleteCourse(ChisubmitMultiTestCase):
         course = Course.from_id("cmsc40100")
         self.assertEquals(course.name, "Introduction to Software Testing")
         
+        students = course.students
+        
+        self.assertEquals(len(students), 4)
+
+            
+        
                 

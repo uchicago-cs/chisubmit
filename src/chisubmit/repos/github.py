@@ -9,6 +9,7 @@ from chisubmit.repos import RemoteRepositoryConnectionBase
 from chisubmit.common import ChisubmitException
 import pytz
 from datetime import datetime
+import sys
 
 class GitHubConnection(RemoteRepositoryConnectionBase):
 
@@ -114,6 +115,10 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
 
             # Make sure users exist
             for s in team.students:
+                from pprint import pprint
+                pprint(course.courses_students)
+                pprint(s)
+                sys.exit(0)
                 github_student = self.__get_user(s.git_server_id)
 
                 if github_student is None:

@@ -45,11 +45,9 @@ def admin_course(ctx):
 @click.argument('name', type=str)
 @click.pass_context
 def admin_course_add(ctx, course_id, name):
-    course = Course(course_id = course_id,
+    course = Course(id = course_id,
                     name = name)
     
-    course.save()
-
     return CHISUBMIT_SUCCESS
 
 
@@ -83,19 +81,19 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
         print "INSTRUCTORS"
         print "-----------"
         for i in course.instructors:
-            print "%s: %s, %s <%s>" % (i.id, i.last_name, i.first_name, i.email)
+            print "%s: %s, %s <%s>" % (i.user.id, i.user.last_name, i.user.first_name, i.user.email)
         print
             
         print "GRADERS"
         print "-------"
         for g in course.graders:
-            print "%s: %s, %s <%s>" % (g.id, g.last_name, g.first_name, g.email)
+            print "%s: %s, %s <%s>" % (g.user.id, g.user.last_name, g.user.first_name, g.user.email)
         print
         
         print "STUDENTS"
         print "--------"
         for s in course.students:
-            print "%s: %s, %s <%s>" % (s.id, s.last_name, s.first_name, s.email)
+            print "%s: %s, %s <%s>" % (s.user.id, s.user.last_name, s.user.first_name, s.user.email)
         print
 
     if include_assignments:

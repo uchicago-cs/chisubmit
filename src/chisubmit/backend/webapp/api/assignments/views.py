@@ -40,15 +40,11 @@ def assignments(course_id):
         return jsonify(errors=form.errors), 400
 
     assignment = Assignment()
-    print form.deadline.data
     form.populate_obj(assignment)
     assignment.course_id = course_id
-    print assignment.deadline
     db.session.add(assignment)
     db.session.commit()
-    
-    print assignment.to_dict()
-    
+        
     return jsonify({'assignment': assignment.to_dict()}), 201
 
 

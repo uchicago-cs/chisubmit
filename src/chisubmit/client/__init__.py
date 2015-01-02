@@ -58,10 +58,23 @@ class AttrOverride(type):
         return new_cls
 
 
-class BaseApiObject(object):
+class JSONObject(object):
 
     __metaclass__ = AttrOverride
     _subclasses = []
+
+    def __init__(self, *args, **kwargs):
+        class_id = self.__class__.__name__.lower() + '_id'
+        for attr in self._api_attrs:
+            if attr not in kwargs:
+                kwargs[attr] = None
+                
+            super(JSONObject, self).__setattr__(attr, kwargs[attr])
+                
+            # FIXME 16JULY14: "alias" the id attribute.
+            if attr == class_id:
+                super(JSONObject, self).__setattr__("id", kwargs[attr])
+        
 
     def __getattr__(self, name):
         class_attrs = self.__class__.__dict__
@@ -81,25 +94,27 @@ class BaseApiObject(object):
                 id_field = self.singularize() + '_id'
             return getattr(self, id_field, None)
         elif '_updatable_attributes' in class_attrs and name in class_attrs['_updatable_attributes']:
-            if name in self._json_response:
-                return self._json_response[name]
+            if name in self._json:
+                return self._json[name]
             else:
                 return None
         elif '_has_one' in class_attrs and name in class_attrs['_has_one']:
-            print "BAAAAAAAR"
-            result = None
-            result = session.get(self.url())
-            item = result[self.singularize()][name]
+            attr = class_attrs['_has_one'][name]
             cls = name.title().translate(None, '_')
-            return globals()[cls].from_json(item)
- 
+            c = None
+            for subclass in ApiObject._subclasses:
+                if cls == subclass.__name__:
+                    c = subclass
+            if not c:
+                raise NameError
+            else:
+                return c.from_json(self._json[attr])
         elif '_has_many' in class_attrs and name in class_attrs['_has_many']:
-            print "FOOOOO"
+            attr = class_attrs['_has_many'][name]
             results = []
-            result = session.get(self.url())[self.singularize()]
             singular_name = "_".join( [re.sub('s$', '', subname) for subname in name.split('_') ])
             cls = singular_name.title().translate(None, '_')
-            for item in result[name]:
+            for item in self._json[attr]:
                 c = None
                 for subclass in ApiObject._subclasses:
                     if cls == subclass.__name__:
@@ -112,18 +127,6 @@ class BaseApiObject(object):
             return results
         else:
             type(self.__class__).__getattr__(self.__class__, name)
-            
-    def __setattr__(self, name, value):
-        class_attrs = self.__class__.__dict__
-        class_name = self.__class__.__name__
-
-        if '_updatable_attributes' in class_attrs and name in class_attrs['_updatable_attributes']:
-            self._api_update(name, value)
-            super(BaseApiObject, self).__setattr__(name, value)
-        elif name.startswith("_"):
-            super(BaseApiObject, self).__setattr__(name, value)
-        else:
-            raise AttributeError("%s.%s is not an updatable attribute" % (class_name, name))
 
     @classmethod
     def register_subclass(klass, cls):
@@ -138,11 +141,37 @@ class BaseApiObject(object):
         return re.sub('(?!^)([A-Z]+)', r'_\1', cls.__name__).lower()
 
     @classmethod
-    def from_json(cls, data, obj=None):
-        cls_data = data
-        if not obj:
-            obj = cls(backendSave=False, **cls_data)
-        obj._json_response = cls_data
+    def from_json(cls, data):
+        obj = cls(**data)
+        obj._json = data
+        return obj
+    
+    def __repr__(self):
+        representation = "<%s -- " % (self.__class__.__name__)
+        attrs = []
+        for attr in self._api_attrs:
+            attrs.append("%s:%s" % (attr, repr(getattr(self, attr))))
+        return representation + ', '.join(attrs) + '>'
+    
+
+class BaseApiObject(JSONObject):
+
+    def __setattr__(self, name, value):
+        class_attrs = self.__class__.__dict__
+        class_name = self.__class__.__name__
+
+        if '_updatable_attributes' in class_attrs and name in class_attrs['_updatable_attributes']:
+            self._api_update(name, value)
+            super(BaseApiObject, self).__setattr__(name, value)
+        elif name.startswith("_"):
+            super(BaseApiObject, self).__setattr__(name, value)
+        else:
+            raise AttributeError("%s.%s is not an updatable attribute" % (class_name, name))
+
+    @classmethod
+    def from_json(cls, data):
+        obj = cls(backendSave = False, **data)
+        obj._json = data
         return obj
 
     @classmethod
@@ -157,17 +186,8 @@ class BaseApiObject(object):
                 raise            
             
 
-    def __init__(self, backendSave=True, **kw):
-        class_id = self.__class__.__name__.lower() + '_id'
-        for attr in self._api_attrs:
-            if attr not in kw:
-                kw[attr] = None
-                
-            super(BaseApiObject, self).__setattr__(attr, kw[attr])
-                
-            # FIXME 16JULY14: "alias" the id attribute.
-            if attr == class_id:
-                super(BaseApiObject, self).__setattr__("id", kw[attr])
+    def __init__(self, backendSave=True, **kwargs):
+        super(BaseApiObject, self).__init__(**kwargs)
                 
         if backendSave:
             self.save()
@@ -175,21 +195,13 @@ class BaseApiObject(object):
     def _api_update(self, attr, value):
         data = json.dumps({attr: value}, default=json_default)
         result = session.put(self.url(), data=data)
-        self.__class__.from_json(result, self)
+        self._json = result
 
     def save(self):
         attributes = {'id': self.identifier}
         attributes.update({attr: getattr(self, attr) for attr in self._api_attrs})        
         data = json.dumps(attributes, default=json_default)
         session.post(self.url(with_id=False), data)
-
-    def __repr__(self):
-        representation = "<%s -- " % (self.__class__.__name__)
-        attrs = []
-        for attr in self._api_attrs:
-            attrs.append("%s:%s" % (attr, repr(getattr(self, attr))))
-        return representation + ', '.join(attrs) + '>'
-
 
 class ApiObject(BaseApiObject):
 

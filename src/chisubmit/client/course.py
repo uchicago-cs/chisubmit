@@ -31,15 +31,36 @@
 import json
 from chisubmit.client.assignment import Assignment
 from chisubmit.client.team import Team
-from chisubmit.client import session, ApiObject
+from chisubmit.client import session, ApiObject, JSONObject
+from chisubmit.client.user import User
+
+class Student(JSONObject):
+    
+    _api_attrs = ('dropped', 'repo_info')
+    _has_one = {'user': 'student'}
+
+class Instructor(JSONObject):
+    
+    _api_attrs = ('repo_info')
+    _has_one = {'user': 'instructor'}
+
+class Grader(JSONObject):
+    
+    _api_attrs = ('repo_info')
+    _has_one = {'user': 'grader'}
 
 
 class Course(ApiObject):
 
-    _api_attrs = ('id', 'name')
+    _api_attrs = ('id', 'name', 'options')
     _primary_key = 'id'    
     _updatable_attributes = ['name']
-    _has_many = ('courses_instructors', 'courses_graders', 'courses_students', 'assignments', 'teams')
+    
+    _has_many = {'instructors': 'courses_instructors',
+                 'graders': 'courses_graders',
+                 'students': 'courses_students',
+                 'assignments': 'assignments',
+                 'teams': 'teams'}
 
     def add_student(self, student):
         attrs = {'course_id': self.id, 'student_id': student.id}

@@ -1,24 +1,6 @@
 from __future__ import unicode_literals
 
-users_and_courses = \
-{ "users": { "jinstr": {"first_name": "Joe",
-                        "last_name": "Instructor",
-                        "id": "jinstr",
-                        "api_key": "jinstr"},
-             
-             "sinstr": {"first_name": "Sam",
-                        "last_name": "Instructor",
-                        "id": "sinstr",
-                        "api_key": "sinstr"},
-            },
- "courses": { "cmsc40100": {"id": "cmsc40100",
-                            "name": "Introduction to Software Testing",
-                            "instructors": ["jinstr"]},
-              "cmsc40110": {"id": "cmsc40110",
-                            "name": "Advanced Software Testing",
-                            "instructors": ["sinstr"]}
-            }
-}
+
 
 def gen_users(ninstructors, ngraders, nstudents):
     
@@ -39,6 +21,23 @@ def gen_users(ninstructors, ngraders, nstudents):
     users.update(__gen_users("student", nstudents))
     
     return users
+
+users_and_courses = \
+{ "users": gen_users(ninstructors = 2, ngraders = 4, nstudents = 8),
+ "courses": { "cmsc40100": {"id": "cmsc40100",
+                            "name": "Introduction to Software Testing",
+                            "instructors": ["instructor1"],
+                            "graders": ["grader1", "grader2"],
+                            "students": ["student1", "student2", "student3", "student4"],
+                            },
+              "cmsc40110": {"id": "cmsc40110",
+                            "name": "Advanced Software Testing",
+                            "instructors": ["instructor2"],
+                            "graders": ["grader3", "grader4"],
+                            "students": ["student5", "student6", "student7", "student8"]
+                           }
+            }
+}
 
 complete_course = \
 { "users": gen_users(ninstructors = 1, ngraders = 2, nstudents = 4),

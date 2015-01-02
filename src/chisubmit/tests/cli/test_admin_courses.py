@@ -14,7 +14,7 @@ class CLIAdminCourse(ChisubmitTestCase):
         course_id = u"cmsc12300"
         course_name = u"Foobarmentals of Foobar"
         
-        result = admin.run("admin course add", [course_id, course_name], catch_exceptions=True)
+        result = admin.run("admin course add", [course_id, course_name])
         self.assertEquals(result.exit_code, 0)
         
         course = Course.from_id(course_id)

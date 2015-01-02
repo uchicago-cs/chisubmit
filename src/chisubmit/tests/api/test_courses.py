@@ -1,10 +1,11 @@
 from chisubmit.tests.common import ChisubmitTestCase, ChisubmitMultiTestCase
 import json
 import unittest
-from chisubmit.tests.fixtures import complete_course
+from chisubmit.tests.fixtures import complete_course, users_and_courses
 from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+from pprint import pprint
 
-class Courses(ChisubmitTestCase):
+class Empty(ChisubmitTestCase):
     
     def test_get_courses(self):
         c = self.get_admin_test_client()
@@ -23,6 +24,61 @@ class Courses(ChisubmitTestCase):
         response = c.post("courses", data)
         self.assert_http_code(response, 201)
            
+
+class CoursesAndUsers(ChisubmitMultiTestCase):
+    
+    FIXTURE = users_and_courses
+    
+    def __get_courses(self, client, expected):
+        response = client.get("courses")
+        self.assert_http_code(response, 200)
+        
+        data = json.loads(response.get_data())        
+        self.assertIn("courses", data)
+        self.assertEquals(len(data["courses"]), expected)
+        
+        return data
+
+    def __get_course(self, client, course):
+        response = client.get("courses/%s" % course["id"])
+        self.assert_http_code(response, 200)
+        
+        data = json.loads(response.get_data())        
+        self.assertIn("course", data)
+        self.assertEquals(len(data), 1)
+        self.assertEquals(data["course"]["name"], course["name"])
+        
+        return data
+
+    
+    def test_get_courses_admin(self):
+        c = self.get_admin_test_client()
+        data = self.__get_courses(c, len(self.FIXTURE["courses"]))
+        
+    def test_get_courses(self):
+        c = self.get_test_client(self.FIXTURE["users"]["instructor1"])
+        data = self.__get_courses(c, 1)
+           
+        c = self.get_test_client(self.FIXTURE["users"]["grader1"])        
+        data = self.__get_courses(c, 1)
+
+        c = self.get_test_client(self.FIXTURE["users"]["student1"])        
+        data = self.__get_courses(c, 1)
+
+
+    def test_get_course_admin(self):
+        c = self.get_admin_test_client()
+        data = self.__get_course(c, self.FIXTURE["courses"]["cmsc40100"])
+        
+    def test_get_course(self):
+        c = self.get_test_client(self.FIXTURE["users"]["instructor1"])
+        data = self.__get_course(c, self.FIXTURE["courses"]["cmsc40100"])
+
+        c = self.get_test_client(self.FIXTURE["users"]["grader1"])        
+        data = self.__get_course(c, self.FIXTURE["courses"]["cmsc40100"])
+
+        c = self.get_test_client(self.FIXTURE["users"]["student1"])        
+        data = self.__get_course(c, self.FIXTURE["courses"]["cmsc40100"])
          
 class CompleteCourse(ChisubmitTestCase):
     
@@ -48,10 +104,6 @@ class CompleteCourse(ChisubmitTestCase):
                         course_id="cmsc40100").filter_by(
                         student_id="student1").first()
                         
-        print course_student.student_id
-        print course_student.repo_info
-        print course_student.dropped       
-
 
     def test_update_student2(self):
         c = self.get_admin_test_client()
@@ -72,7 +124,4 @@ class CompleteCourse(ChisubmitTestCase):
                         course_id="cmsc40100").filter_by(
                         student_id="student1").first()
                         
-        print course_student.student_id
-        print course_student.repo_info 
-        print course_student.dropped       
                 

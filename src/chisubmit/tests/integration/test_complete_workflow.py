@@ -132,12 +132,22 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
         self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
 
-        result = instructor.run("instructor user set-repo-option", 
-                                ["instructor", instructor_id, "git-username", "foobar"])
-        self.assertEquals(result.exit_code, 0)
+        if self.git_server_user is None:
+            git_username = "git" + instructor_id
+        else:
+            git_username = self.git_server_user
 
         result = instructor.run("instructor user set-repo-option", 
-                                ["grader", grader_id, "git-username", "foobar"])
+                                ["instructor", instructor_id, "git-username", git_username])
+        self.assertEquals(result.exit_code, 0)
+
+        if self.git_server_user is None:
+            git_username = "git" + grader_id
+        else:
+            git_username = self.git_server_user
+
+        result = instructor.run("instructor user set-repo-option", 
+                                ["grader", grader_id, "git-username", git_username])
         self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=23)
@@ -161,7 +171,10 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         self.assertEquals(result.exit_code, 0)
 
         for s in student:
-            git_username = "git" + s.user_id
+            if self.git_server_user is None:
+                git_username = "git" + s.user_id
+            else:
+                git_username = self.git_server_user
             result = s.run("student set-git-username", [git_username])
             self.assertEquals(result.exit_code, 0)
             

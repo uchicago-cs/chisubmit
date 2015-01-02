@@ -48,14 +48,3 @@ class User(ApiObject):
     def get_token(cls, username, password, reset=False):
         data = json.dumps({'password':password, reset:reset})
         session.post('users/%s/token' % username, data=data)            
-
-class Student(User):
-    _course_qualified = True
-
-class Grader(User):
-    _course_qualified = True
-
-class Instructor(User):
-    _course_qualified = True
-
-    _has_many = ('students', 'assignments')   

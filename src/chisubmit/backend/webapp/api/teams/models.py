@@ -19,8 +19,7 @@ class Team(Serializable, db.Model):
     assignments = association_proxy('assignments_teams', 'assignment')
     grades = db.relationship('Grade', cascade="all, delete-orphan",
                              backref='team')
-    default_fields = ['private_name', 'git_repo_created',
-                      'git_staging_repo_created', 'active',
+    default_fields = ['extensions', 'repo_info', 'active', 'course_id',
                       'students', 'assignments', 'assignments_teams', 'grades']
     readonly_fields = ['students', 'assignments', 'grades']
     

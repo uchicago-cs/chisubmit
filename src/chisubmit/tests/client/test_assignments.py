@@ -7,7 +7,7 @@ import unittest
 from chisubmit.client.session import BadRequestError
         
         
-class EmptyCourse(ChisubmitMultiTestCase, unittest.TestCase):
+class EmptyCourse(ChisubmitMultiTestCase):
     
     FIXTURE = users_and_courses
         
@@ -21,7 +21,7 @@ class EmptyCourse(ChisubmitMultiTestCase, unittest.TestCase):
                                 course_id = "cmsc40100")        
         
         
-class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
+class CompleteCourse(ChisubmitMultiTestCase):
     
     FIXTURE = complete_course
         
@@ -38,7 +38,7 @@ class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
         assignment = Assignment.from_course_and_id("cmsc40100", "pa1")
         
         
-class Registration(ChisubmitTestCase, unittest.TestCase):
+class Registration(ChisubmitTestCase):
     
     FIXTURE = complete_course
         

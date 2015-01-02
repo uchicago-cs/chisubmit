@@ -155,6 +155,29 @@ class Course(object):
         attrs = {'name': name, 'value': value}
         data = json.dumps({'options': {'update': [attrs]}})
         session.put('courses/%s' % (self.id), data=data)        
+
+    def __set_repo_option(self, user_type, user_id, name, value):
+        attrs = {'name': name, 'value': value}
+
+        data = {"%ss" % user_type: 
+                {
+                 "update": [
+                            {"%s_id" % user_type: user_id,
+                             "repo_info": [attrs]}
+                           ]
+                }
+               }        
+        data = json.dumps(data)
+        session.put('courses/%s' % (self.id), data=data) 
+ 
+    def set_instructor_repo_option(self, instructor_id, name, value):
+        self.__set_repo_option("instructor", instructor_id, name, value)
+
+    def set_grader_repo_option(self, grader_id, name, value):
+        self.__set_repo_option("grader", grader_id, name, value)
+
+    def set_student_repo_option(self, student_id, name, value):
+        self.__set_repo_option("student", student_id, name, value)
  
     # TODO 15JULY14: move this to Assignment.get() or something similar
     def get_assignment(self, assignment_id):

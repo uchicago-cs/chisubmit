@@ -27,6 +27,10 @@ admin
     
 instructor
 
+    course
+        set-user-git-username USER_TYPE USER_ID GIT_USERNAME
+        set-user-git-staging-username USER_TYPE USER_ID GIT_USERNAME
+
     assignment
         add ASSIGNMENT_ID NAME DEADLINE
         remove ASSIGNMENT_ID

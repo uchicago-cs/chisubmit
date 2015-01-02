@@ -66,6 +66,14 @@ def student_repo_check(ctx, course, team_id):
 
     return CHISUBMIT_SUCCESS
 
+@click.command(name="set-git-username")
+@click.argument('username', type=str)
+@pass_course
+@click.pass_context
+def student_set_git_username(ctx, course, username):
+    course.set_student_repo_option(None, "git-username", username)
+    
+
 def print_commit(commit):
     print "      Commit: %s" % commit.sha
     print "        Date: %s" % commit.committed_date.isoformat(sep=" ")
@@ -202,6 +210,8 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
         if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
             message = "Extensions: %i\n" % extensions_requested
                 
+            response = assignment.submit(team_id, commit_sha, extensions, dry_run=False)
+                
             if submission_tag is None:
                 conn.create_submission_tag(course, team, tag_name, message, commit.sha)
             else:
@@ -216,6 +226,7 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
 
 student.add_command(student_assignment_register)
 student.add_command(student_assignment_submit)
+student.add_command(student_set_git_username)
 student.add_command(student_repo_check)
 
 

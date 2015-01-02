@@ -1,15 +1,15 @@
 from chisubmit.tests.common import cli_test, ChisubmitCLITestClient, ChisubmitTestCase
-import unittest
-from chisubmit.backend.webapp.api.courses.models import Course
+from chisubmit.backend.webapp.api.courses.models import Course, CoursesStudents
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams
-import re
 from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local
-from datetime import timedelta
 from chisubmit.client.session import BadRequestError
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
-class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
+from datetime import timedelta
+import re
+
+class CLICompleteWorkflow(ChisubmitTestCase):
             
     def create_user(self, admin_runner, user_id):
         fname = "f_" + user_id
@@ -70,10 +70,15 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         team_name1 = "the-flaming-foobars"
         team_name2 = "the-magnificent-mallocs"
         
-        admin = ChisubmitCLITestClient(admin_id, admin_id, runner, verbose = True)
-        instructor = ChisubmitCLITestClient(instructor_id, instructor_id, runner, verbose = True, course = "cmsc40200")
-        grader = ChisubmitCLITestClient(grader_id, grader_id, runner, verbose = True, course = "cmsc40200")
-        student = [ChisubmitCLITestClient(s, s, runner, verbose = True, course = "cmsc40200") for s in student_ids]
+        if self.git_api_keys is not None and len(self.git_api_keys) > 0:
+            git_credentials = self.git_api_keys
+        else:
+            git_credentials = {}
+        
+        admin = ChisubmitCLITestClient(admin_id, admin_id, runner, git_credentials=git_credentials, verbose = True)
+        instructor = ChisubmitCLITestClient(instructor_id, instructor_id, runner, git_credentials=git_credentials,  verbose = True, course = "cmsc40200")
+        grader = ChisubmitCLITestClient(grader_id, grader_id, runner, git_credentials=git_credentials,  verbose = True, course = "cmsc40200")
+        student = [ChisubmitCLITestClient(s, s, runner, git_credentials=git_credentials,  verbose = True, course = "cmsc40200") for s in student_ids]
 
         students_team1 = student[0:2]
         students_team2 = student[2:4]
@@ -109,8 +114,8 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
             result = admin.run("admin course add-student %s %s" % (course_id, s))
             self.assertEquals(result.exit_code, 0)
 
-        git_server_connstr = "server_type=Testing;local_path=./test-fs/server"
-        git_staging_connstr = "server_type=Testing;local_path=./test-fs/staging"
+        git_server_connstr = self.git_server_connstr
+        git_staging_connstr = self.git_staging_connstr
 
         result = admin.run("admin course set-option %s git-server-connstr %s" % (course_id, git_server_connstr))
         self.assertEquals(result.exit_code, 0)
@@ -127,6 +132,13 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
         self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
 
+        result = instructor.run("instructor user set-repo-option", 
+                                ["instructor", instructor_id, "git-username", "foobar"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor user set-repo-option", 
+                                ["grader", grader_id, "git-username", "foobar"])
+        self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=23)
         deadline = convert_datetime_to_local(deadline)
@@ -147,6 +159,20 @@ class CLICompleteWorkflow(ChisubmitTestCase, unittest.TestCase):
         
         result = admin.run("admin course show", ["--include-users", "--include-assignments", course_id])
         self.assertEquals(result.exit_code, 0)
+
+        for s in student:
+            git_username = "git" + s.user_id
+            result = s.run("student set-git-username", [git_username])
+            self.assertEquals(result.exit_code, 0)
+            
+            course_student = CoursesStudents.query.filter_by(
+                course_id=course_id).filter_by(
+                student_id=s.user_id).first()
+                
+            self.assertIn("git-username", course_student.repo_info)
+            self.assertEquals(course_student.repo_info["git-username"], git_username)
+        
+        
         
         self.register_team(students_team1, team_name1, "pa1", course_id)
         self.register_team(students_team1, team_name1, "pa2", course_id)

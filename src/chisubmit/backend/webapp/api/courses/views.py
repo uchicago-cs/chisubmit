@@ -4,10 +4,11 @@ from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from chisubmit.backend.webapp.api.courses.models import Course, CoursesInstructors,\
     CoursesStudents, CoursesGraders
 from chisubmit.backend.webapp.api.assignments.models import Assignment
-from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput
+from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput,\
+    UpdateStudentInput
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
-    check_admin_access_or_abort
+    check_admin_access_or_abort, check_user_ids_equal_or_abort
 
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
@@ -58,10 +59,12 @@ def course(course_id):
         if not form.validate():
             return jsonify(errors=form.errors), 400
 
-        course.set_columns(**form.patch_data)
+        if g.user.is_instructor_in(course):
+            course.set_columns(**form.patch_data)
 
         if 'assignments' in form:
             for assignment_data in form.assignments.add:
+                check_course_access_or_abort(g.user, course, 403, roles=["instructor"])
                 new_assignment = Assignment()
                 # anonymous class to fool the populate_obj() call
                 anonymous_class = type("", (), dict(assignment=new_assignment))()
@@ -70,29 +73,103 @@ def course(course_id):
 
         if 'instructors' in form:
             for child_data in form.instructors.add:
+                check_admin_access_or_abort(g.user, 403)
                 new_child = CoursesInstructors()
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
                 db.session.add(new_child)
+                
+            for child_data in form.instructors.update:
+                instructor_id = child_data["instructor_id"].data
+                
+                if instructor_id is None:
+                    instructor_id = g.user.id
+                
+                if not g.user.admin:
+                    check_user_ids_equal_or_abort(g.user.id, instructor_id, 403)
+                
+                course_instructor = CoursesInstructors.query.filter_by(
+                        course_id=course_id).filter_by(
+                        instructor_id=instructor_id).first()
+                
+                # TODO: A more descriptive 400 would be better
+                if not course_instructor:
+                    abort(404)
+            
+                if not g.user.admin:
+                    course_instructor.set_columns(**child_data.patch_data)
+                    
+                update_options(child_data.repo_info, course_instructor.repo_info)
+                
+                db.session.add(course_instructor)                
 
         if 'students' in form:
             for child_data in form.students.add:
+                check_admin_access_or_abort(g.user, 403)
                 new_child = CoursesStudents()
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
                 db.session.add(new_child)
+                
+            for child_data in form.students.update:
+                student_id = child_data["student_id"].data
+                
+                if student_id is None:
+                    student_id = g.user.id                
+                
+                if not (g.user.admin or g.user.is_instructor_in(course)):
+                    check_user_ids_equal_or_abort(g.user.id, student_id, 403)
+                                    
+                course_student = CoursesStudents.query.filter_by(
+                        course_id=course_id).filter_by(
+                        student_id=student_id).first()
+                
+                # TODO: A more descriptive 400 would be better
+                if not course_student:
+                    abort(404)
 
+                if not (g.user.admin or g.user.is_instructor_in(course)):
+                    course_student.set_columns(**child_data.patch_data)
+                update_options(child_data.repo_info, course_student.repo_info)
+                
+                db.session.add(course_student)
+        
         if 'graders' in form:
             for child_data in form.graders.add:
+                check_admin_access_or_abort(g.user, 403)
                 new_child = CoursesGraders()
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
                 db.session.add(new_child)
+
+            for child_data in form.graders.update:
+                grader_id = child_data["grader_id"].data
+
+                if grader_id is None:
+                    grader_id = g.user.id                
                 
-        if len(form.options.update) > 0:
-            for child_data in form.options.update:
-                course.options[child_data.data["name"]] = child_data.data["value"]
-            db.session.add(course)
+                if not (g.user.admin or g.user.is_instructor_in(course)):
+                    check_user_ids_equal_or_abort(g.user.id, grader_id, 403)                
+                
+                course_grader = CoursesGraders.query.filter_by(
+                        course_id=course_id).filter_by(
+                        grader_id=grader_id).first()
+                
+                # TODO: A more descriptive 400 would be better
+                if not course_grader:
+                    abort(404)
+            
+                if not (g.user.admin or g.user.is_instructor_in(course)):
+                    course_grader.set_columns(**child_data.patch_data)
+                update_options(child_data.repo_info, course_grader.repo_info)
+                
+                db.session.add(course_grader)
+                
+        if 'options' in form:
+            if len(form.options.update) > 0:
+                check_admin_access_or_abort(g.user, 403)                
+                update_options(form.options.update, course.options)
+                db.session.add(course)
 
         db.session.commit()
 
@@ -100,7 +177,7 @@ def course(course_id):
 
 
 @api_endpoint.route('/courses/<course_id>/students/<student_id>',
-                    methods=['GET'])
+                    methods=['GET', 'PUT'])
 @require_apikey
 def course_student(course_id, student_id):
     course = Course.query.filter_by(id=course_id).first()
@@ -117,3 +194,13 @@ def course_student(course_id, student_id):
         abort(404)
 
     return jsonify({'student': course_student.student.to_dict()}), 201
+
+
+def update_options(option_update_form, d):
+    if len(option_update_form) > 0:
+        for child_data in option_update_form:
+            d[child_data.data["name"]] = child_data.data["value"]
+        return True
+    else:
+        return False
+    

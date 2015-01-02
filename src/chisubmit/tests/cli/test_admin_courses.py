@@ -5,7 +5,7 @@ import unittest
 from chisubmit.backend.webapp.api.courses.models import Course
     
     
-class CLIAdminCourse(ChisubmitTestCase, unittest.TestCase):
+class CLIAdminCourse(ChisubmitTestCase):
             
     @cli_test
     def test_admin_course_add(self, runner):
@@ -22,7 +22,7 @@ class CLIAdminCourse(ChisubmitTestCase, unittest.TestCase):
         self.assertEquals(course.name, course_name)
  
         
-class CLIAdminCourseFixture(ChisubmitMultiTestCase, unittest.TestCase):
+class CLIAdminCourseFixture(ChisubmitMultiTestCase):
     
     FIXTURE = users_and_courses
         

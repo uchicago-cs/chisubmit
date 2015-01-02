@@ -17,6 +17,7 @@ import colorama
 import git
 import functools
 from chisubmit.client.session import BadRequestError
+import unittest
 
 colorama.init()
 
@@ -45,6 +46,13 @@ class ChisubmitTestClient(object):
             datastr = data
         return self.test_client.post(self.API_PREFIX + resource, data = datastr, headers = self.headers)
 
+    def put(self, resource, data):
+        if isinstance(data, dict):
+            datastr = json.dumps(data)
+        elif isinstance(data, basestring):
+            datastr = data
+        return self.test_client.put(self.API_PREFIX + resource, data = datastr, headers = self.headers)
+
 
 def cli_test(func=None, isolated_filesystem = True):
     if func is None:
@@ -67,7 +75,7 @@ def cli_test(func=None, isolated_filesystem = True):
 class ChisubmitCLITestClient(object):
     
     def __init__(self, user_id, api_key, runner, course = None,
-                 verbose = False):
+                 git_credentials = {}, verbose = False):
         self.user_id = user_id
         self.home_dir = "test-fs/home/%s" % self.user_id
         self.conf_dir = "%s/.chisubmit-%s" % (self.home_dir, self.user_id)
@@ -75,6 +83,8 @@ class ChisubmitCLITestClient(object):
         self.runner = runner
         self.verbose = verbose
         self.course = course
+        
+        git_credentials.update({"Testing" : "testing-credentials"})
 
         os.makedirs(self.home_dir)
         os.mkdir(self.conf_dir)
@@ -82,7 +92,7 @@ class ChisubmitCLITestClient(object):
             conf = {"api-url": "NONE",
                     "api-key": api_key,
                     "git-credentials":
-                        {"Testing" : "testing-credentials"}
+                        git_credentials
                     }
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
@@ -127,7 +137,16 @@ class ChisubmitCLITestClient(object):
 
         return repo, git_path
 
-class BaseChisubmitTestCase(object):
+class BaseChisubmitTestCase(unittest.TestCase):
+    
+    def __init__(self, *args, **kwargs):
+        super(BaseChisubmitTestCase, self).__init__(*args, **kwargs)
+
+        self.git_server_connstr = "server_type=Testing;local_path=./test-fs/server"
+        self.git_staging_connstr = "server_type=Testing;local_path=./test-fs/staging"
+        self.git_server_user = None
+        self.git_staging_user = None
+        self.git_api_keys = {}
     
     @classmethod
     def setUpClass(cls):
@@ -139,6 +158,21 @@ class BaseChisubmitTestCase(object):
     def tearDownClass(cls):
         os.close(cls.db_fd)
         os.unlink(cls.db_filename)
+    
+    def set_git_server_connstr(self, connstr):
+        self.git_server_connstr = connstr
+
+    def set_git_server_user(self, user):
+        self.git_server_user = user
+
+    def set_git_staging_connstr(self, connstr):
+        self.git_staging_connstr = connstr
+
+    def set_git_staging_user(self, user):
+        self.git_staging_user = user
+        
+    def add_api_key(self, git_type, apikey):
+        self.git_api_keys[git_type] = apikey        
     
     def get_admin_test_client(self):
         return ChisubmitTestClient(self.server.app, "admin", "admin")

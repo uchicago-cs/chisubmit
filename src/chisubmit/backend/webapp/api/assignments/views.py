@@ -312,7 +312,7 @@ def assignment_submit(course_id, assignment_id):
                 team_assignment.submitted_at = now
                 
                 db.session.add(team_assignment)
-                db.commit()
+                db.session.commit()
         else:
             response["success"] = False
                 

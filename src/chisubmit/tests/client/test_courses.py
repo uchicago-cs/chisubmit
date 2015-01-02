@@ -4,7 +4,7 @@ from chisubmit.tests.fixtures import users_and_courses
 import unittest
         
         
-class CompleteCourse(ChisubmitMultiTestCase, unittest.TestCase):
+class CompleteCourse(ChisubmitMultiTestCase):
     
     FIXTURE = users_and_courses
         

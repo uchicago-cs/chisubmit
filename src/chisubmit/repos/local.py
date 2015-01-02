@@ -89,8 +89,8 @@ class LocalGitRepo(object):
     def has_tag(self, tag):
         return (self.get_tag(tag) is not None)
 
-    def create_tag(self, tag_name, commit_sha, message):
-        self.repo.create_tag(tag_name, commit_sha, message)
+    def create_tag(self, tag_name, commit_sha, message, force = False):
+        self.repo.create_tag(tag_name, commit_sha, message, force)
 
     def create_branch(self, branch, commit):
         self.repo.create_head(branch, commit)

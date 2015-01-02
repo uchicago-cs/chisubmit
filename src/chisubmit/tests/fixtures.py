@@ -49,10 +49,10 @@ complete_course = \
                             "students": ["student1", "student2", "student3", "student4"],
                             "assignments": { "pa1": {"id": "pa1",
                                                      "name": "Programming Assignment 1",
-                                                     "deadline": "2042-01-21T20:00"},
+                                                     "deadline": "2042-01-21T20:00+00:00"},
                                              "pa2": {"id": "pa2",
                                                      "name": "Programming Assignment 2",
-                                                     "deadline": "2042-01-28T20:00"}
+                                                     "deadline": "2042-01-28T20:00+00:00"}
                                             }
                             }
             }

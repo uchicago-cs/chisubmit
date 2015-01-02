@@ -83,8 +83,11 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         tag = repo.create_tag(tag_name, commit_sha, tag_message)
     
     def update_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
-        pass
-    
+        repo_path = self.__get_team_path(course, team)
+        repo = LocalGitRepo(repo_path)
+                
+        tag = repo.create_tag(tag_name, commit_sha, tag_message, force=True)
+            
     def get_submission_tag(self, course, team, tag_name):
         repo_path = self.__get_team_path(course, team)
         repo = LocalGitRepo(repo_path)

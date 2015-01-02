@@ -16,6 +16,7 @@ class CoursesGraders(Serializable, db.Model):
                           db.ForeignKey('courses.id'), primary_key=True)
     grader = db.relationship("User")
     default_fields = ['course_id', 'grader_id']
+    readonly_fields = ['grader_id', 'course_id', 'repo_info']        
     course = db.relationship("Course",
                              backref=db.backref("courses_graders",
                                                 cascade="all, delete-orphan"))
@@ -36,6 +37,7 @@ class CoursesStudents(Serializable, db.Model):
                           primary_key=True)
     student = db.relationship("User")
     default_fields = ['course_id', 'student_id']
+    readonly_fields = ['student_id', 'course_id', 'repo_info']    
     course = db.relationship("Course",
                              backref=db.backref("courses_students",
                                                 cascade="all, delete-orphan"))
@@ -54,6 +56,7 @@ class CoursesInstructors(Serializable, db.Model):
                           primary_key=True)
     instructor = db.relationship("User")
     default_fields = ['instructor']
+    readonly_fields = ['instructor_id', 'course_id', 'repo_info']    
     course = db.relationship("Course",
                              backref=db.backref("courses_instructors",
                                                 cascade="all, delete-orphan"))

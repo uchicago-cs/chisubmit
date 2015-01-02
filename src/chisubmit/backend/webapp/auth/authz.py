@@ -35,6 +35,12 @@ def check_admin_access_or_abort(user, status_code):
     else:
         abort(status_code)
 
+def check_user_ids_equal_or_abort(user1_id, user2_id, status_code):
+    if user1_id == user2_id:
+        return
+    else:
+        abort(status_code)
+
 def check_course_access_or_abort(user, course, status_code, roles = None):
     if user.admin:
         return

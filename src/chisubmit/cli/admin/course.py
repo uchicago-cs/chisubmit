@@ -170,7 +170,7 @@ def admin_course_setup_repo(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     conn.init_course(course)
 
@@ -186,7 +186,7 @@ def admin_course_unsetup_repo(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     conn.deinit_course(course)
 
@@ -202,7 +202,7 @@ def admin_course_update_repo_access(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     conn.update_instructors(course)
     conn.update_graders(course)
@@ -221,7 +221,7 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     #if team.git_repo_created and not ignore_existing:
     #    print "Repository for team %s has already been created." % team.id
@@ -231,7 +231,7 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     conn.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
 
@@ -248,7 +248,7 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     #if team.github_repo is None:
     #    print "Team %s does not have a repository." % team.id
@@ -257,7 +257,7 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
     conn = create_connection(course, ctx.obj['config'], staging = False)
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     conn.update_team_repository(team)
     return CHISUBMIT_SUCCESS
@@ -274,7 +274,7 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     #if team.github_repo is None:
     #    print "Team %s does not have a repository." % team.id

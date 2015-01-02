@@ -44,7 +44,7 @@ class AssignmentTeam(JSONObject):
 
 class Team(CourseQualifiedApiObject):
 
-    _api_attrs = ('id', 'course_id')
+    _api_attrs = ('id', 'active', 'course_id')
     _primary_key = 'id'    
     _updatable_attributes = ('active',)
     _has_many = {'students': 'students_teams',

@@ -7,6 +7,8 @@ from chisubmit.client.course import Course
 from functools import update_wrapper
 
 from dateutil.parser import parse
+import getpass
+from chisubmit.client.user import User
 
 def pass_course(f):
     @click.pass_context
@@ -28,16 +30,6 @@ def pass_course(f):
         ctx.obj["course_obj"] = course_obj
 
         return ctx.invoke(f, ctx.obj["course_obj"], *args, **kwargs)
-
-    return update_wrapper(new_func, f)
-
-
-def save_changes(f):
-    @click.pass_context
-    def new_func(ctx, *args, **kwargs):
-        #ctx.call_on_close(ctx.obj["course_obj"].save)
-
-        return ctx.invoke(f, *args, **kwargs)
 
     return update_wrapper(new_func, f)
 
@@ -132,5 +124,25 @@ def gradingrepo_pull_grading_branch(course, team, assignment, github=False, stag
             print "%s does not have a grading branch in staging" % team.id
         else:
             repo.pull_grading_branch_from_staging()
+
+    return CHISUBMIT_SUCCESS
+
+
+@click.command(name="get-access-token")
+@click.option('--user', prompt='Enter your chisubmit username', default=lambda: getpass.getuser())
+@click.option('--delete', is_flag=True)
+@click.pass_context
+def get_access_token(ctx, user, delete):
+
+    password = getpass.getpass("Enter your password: ")
+    token = User.get_token(user, password, delete)
+
+    if token:
+        ctx.obj['config']['api-token'] = token
+        click.echo("Your chisubmit access token is: %s")
+        click.echo("The token has been stored in your chisubmit configuration file.")
+        click.echo("You should now be able to use the chisubmit commands.")
+    else:
+        click.echo("Unable to create token. Incorrect username/password.")
 
     return CHISUBMIT_SUCCESS

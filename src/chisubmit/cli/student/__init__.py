@@ -1,12 +1,14 @@
 import click
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, get_access_token
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.common.utils import convert_datetime_to_utc, convert_datetime_to_local,\
-    create_connection
+    create_connection, get_datetime_now_utc
 import pytz
 from dateutil.parser import parse
+from chisubmit.repos.github import GitHubConnection
+import getpass
 
 @click.group()
 @click.pass_context
@@ -14,7 +16,7 @@ def student(ctx):
     pass
 
 
-@click.command(name="register-for-assignment")
+@click.command(name="assignment-register")
 @click.argument('assignment_id', type=str)
 @click.option('--team-name', type=str)
 @click.option('--partner', type=str, multiple=True)
@@ -27,6 +29,59 @@ def student_assignment_register(ctx, course, assignment_id, team_name, partner):
                partners = partner)
     
     return CHISUBMIT_SUCCESS
+
+@click.command(name="assignment-show-deadline")
+@click.argument('assignment_id', type=str)
+@click.option('--utc', is_flag=True)
+@pass_course
+@click.pass_context
+def student_assignment_deadline_show(ctx, course, assignment_id, utc):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
+        ctx.exit(CHISUBMIT_FAIL)
+
+    now_utc = get_datetime_now_utc()
+    now_local = convert_datetime_to_local(now_utc)
+
+    deadline_utc = assignment.get_deadline()
+    deadline_local = convert_datetime_to_local(deadline_utc)
+
+    print assignment.name
+    print
+    if utc:
+        print "      Now (Local): %s" % now_local.isoformat(" ")
+        print " Deadline (Local): %s" % deadline_local.isoformat(" ")
+        print
+        print "        Now (UTC): %s" % now_utc.isoformat(" ")
+        print "   Deadline (UTC): %s" % deadline_utc.isoformat(" ")
+    else:
+        print "      Now: %s" % now_local.isoformat(" ")
+        print " Deadline: %s" % deadline_local.isoformat(" ")
+
+    print
+
+    extensions = assignment.extensions_needed(now_utc)
+
+    if extensions == 0:
+        diff = deadline_utc - now_utc
+    else:
+        diff = now_utc - deadline_utc
+
+    days = diff.days
+    hours = diff.seconds // 3600
+    minutes = (diff.seconds//60)%60
+    seconds = diff.seconds%60
+
+    if extensions == 0:
+        print "The deadline has not yet passed"
+        print "You have %i days, %i hours, %i minutes, %i seconds left" % (days, hours, minutes, seconds)
+    else:
+        print "The deadline passed %i days, %i hours, %i minutes, %i seconds ago" % (days, hours, minutes, seconds)
+        print "If you submit your assignment now, you will need to use %i extensions" % extensions
+
+    return CHISUBMIT_SUCCESS
+
 
 @click.command(name="repo-check")
 @click.argument('team_id', type=str)
@@ -45,11 +100,11 @@ def student_repo_check(ctx, course, team_id):
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     if not conn.exists_team_repository(course, team):
         print "The repository '%s' does not exist or you do not have permission to access it." % team.github_repo
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     # TODO: Check that the user actually has push access
     print "Your repository exists and you have access to it."
@@ -75,7 +130,7 @@ def print_commit(commit):
     print "      Author: %s <%s>" % (commit.author_name, commit.author_email)        
 
 
-@click.command(name="submit-assignment")
+@click.command(name="assignment-submit")
 @click.argument('team_id', type=str)    
 @click.argument('assignment_id', type=str)
 @click.argument('commit_sha', type=str)
@@ -88,25 +143,25 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     team = course.get_team(team_id)
     if team is None:
         print "Team %s does not exist" % team_id
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     extensions_requested = extensions
     
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     commit = conn.get_commit(course, team, commit_sha)
     
     if commit is None:
         print "Commit %s does not exist in repository" % commit_sha
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
     response = assignment.submit(team_id, commit_sha, extensions, dry_run=True)
 
@@ -214,9 +269,38 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
             
         return CHISUBMIT_SUCCESS
 
+
+@click.command(name="get-git-credentials")
+@click.option('--delete', is_flag=True)
+@pass_course
+@click.pass_context
+def student_get_git_credentials(ctx, course, delete):
+    connstr = course.options["git-server-connstr"]
+
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr)
+    server_type = conn.get_server_type_name()
+    
+    username = raw_input("Enter your %s username: " % server_type)
+    password = getpass.getpass("Enter your %s password: " % server_type)
+
+    token = conn.get_credentials(username, password, delete = delete)
+
+    if token is None:
+        print "Unable to create token. Incorrect username/password."
+    else:
+        ctx.obj['config']['git-credentials'][server_type] = token
+        
+        print "The following token has been created: %s" % token
+        print "chisubmit has been configured to use this token from now on."
+
+    return CHISUBMIT_SUCCESS
+
+student.add_command(get_access_token)
+
 student.add_command(student_assignment_register)
 student.add_command(student_assignment_submit)
 student.add_command(student_set_git_username)
 student.add_command(student_repo_check)
+student.add_command(student_get_git_credentials)
 
 

@@ -40,7 +40,7 @@ class CLICompleteWorkflow(ChisubmitTestCase):
             for p in partners:
                 partner_args += ["--partner", p.user_id]
         
-            s.run("student register-for-assignment", 
+            s.run("student assignment-register", 
                   [ assignment_id, "--team-name", team_name] + partner_args)
         
         
@@ -299,42 +299,42 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                 
         
         # Try to submit without enough extensions
-        result = student[0].run("student submit-assignment", 
+        result = student[0].run("student assignment-submit", 
                                 [team_name1, "pa1", team1_commit1.hexsha, 
                                  "--extensions", "0",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Try to submit with too many extensions
-        result = student[0].run("student submit-assignment", 
+        result = student[0].run("student assignment-submit", 
                                 [team_name1, "pa1", team1_commit1.hexsha, 
                                  "--extensions", "2",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         # Submit with just the right number
-        result = student[0].run("student submit-assignment", 
+        result = student[0].run("student assignment-submit", 
                                 [team_name1, "pa1", team1_commit1.hexsha, 
                                  "--extensions", "1",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         # Try submitting an already-submitted assignment
-        result = student[0].run("student submit-assignment", 
+        result = student[0].run("student assignment-submit", 
                                 [team_name1, "pa1", team1_commit2.hexsha, 
                                  "--extensions", "1",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Submit an already-submitted assignment
-        result = student[0].run("student submit-assignment", 
+        result = student[0].run("student assignment-submit", 
                                 [team_name1, "pa1", team1_commit2.hexsha, 
                                  "--extensions", "1",
                                  "--yes", "--force"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
         
         # Try requesting more extensions than the team has
-        result = student[0].run("student submit-assignment", 
+        result = student[0].run("student assignment-submit", 
                                 [team_name1, "pa2", team1_commit2.hexsha, 
                                  "--extensions", "3",
                                  "--yes"])
@@ -342,7 +342,7 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         
         # Try submitting for a project the team is not registered for
         with self.assertRaises(BadRequestError) as cm:
-            student[2].run("student submit-assignment", 
+            student[2].run("student assignment-submit", 
                            [team_name2, "pa2", team2_commit2.hexsha, 
                            "--extensions", "0",
                            "--yes"])        

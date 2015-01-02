@@ -43,7 +43,7 @@ def shell(ctx, course):
         from IPython.config.loader import Config
         if __version__ < "1.1.0":
             print "You need IPython (>= 1.1.0) to run the chisubmit shell"
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
     except ImportError:
         print "You need IPython (>= 1.1.0) to run the chisubmit shell"
         
@@ -56,8 +56,8 @@ def shell(ctx, course):
     This is an IPython shell with the chisubmit data structures preloaded. 
     You can access the chisubmit objects through variable 'course'.
     
-    Note: Any changes you make will NOT be saved. Use course.save() to save
-    any changes you make to the chisubmit objects.
+    CAREFUL: Most changes made through the shell will be propagated to the
+             database. 
     
     """ % (course.name)
     

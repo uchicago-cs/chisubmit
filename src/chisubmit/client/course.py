@@ -118,14 +118,8 @@ class Course(ApiObject):
 
     def search_team(self, search_term):
         teams = []
-        for t in self.teams.values():
-            fields = [t.id, t.private_name]
-            for s in t.students:
-                fields += [s.first_name, s.last_name, s.github_id]
-
-            for v in fields:
-                if search_term.lower() in v.lower():
-                    teams.append(t)
-                    break
+        for t in self.teams:
+            if search_term in t._json:
+                teams.append(t)
 
         return teams

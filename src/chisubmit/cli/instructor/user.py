@@ -1,7 +1,7 @@
 import click
 from chisubmit.cli.common import pass_course
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
-from chisubmit.common import CHISUBMIT_FAIL
+from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 
 @click.group(name="user")
 @click.pass_context
@@ -24,5 +24,21 @@ def instructor_user_set_repo_option(ctx, course, user_type, user_id, option, val
         course.set_student_repo_option(user_id, option, value)
 
 
+@click.command(name="student-set-dropped")
+@click.argument('student_id', type=str)
+@pass_course
+@click.pass_context
+def instructor_student_set_dropped(ctx, course, student_id):
+    student = course.get_student(student_id)
+    if student is None:
+        print "Student %s does not exist" % student_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    student.dropped = True
+
+    return CHISUBMIT_SUCCESS
+
+
 instructor_user.add_command(instructor_user_set_repo_option)
+instructor_user.add_command(instructor_student_set_dropped)
 

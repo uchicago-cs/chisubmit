@@ -8,6 +8,7 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 from datetime import timedelta
 import re
+import os
 
 class CLICompleteWorkflow(ChisubmitTestCase):
             
@@ -163,10 +164,10 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                                 ["grader", grader_id, "git-username", git_username])
         self.assertEquals(result.exit_code, 0)
         
-        result = instructor.run("admin course update-repo-access", [course_id])
+        result = admin.run("admin course update-repo-access", [course_id])
         self.assertEquals(result.exit_code, 0)
         
-        result = instructor.run("admin course update-repo-access", [course_id, "--staging"])
+        result = admin.run("admin course update-repo-access", [course_id, "--staging"])
         self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=23)
@@ -177,12 +178,27 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                                 ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)
 
+        result = instructor.run("instructor assignment add-grade-component", 
+                                ["pa1", "tests", "The PA1 Tests", "50"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor assignment add-grade-component", 
+                                ["pa1", "design", "The PA1 Design", "50"])
+        self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=49)
         deadline = deadline.isoformat(sep=" ")
 
         result = instructor.run("instructor assignment add", 
                                 ["pa2", "Programming Assignment 2", deadline])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor assignment add-grade-component", 
+                                ["pa2", "tests", "The PA2 Tests", "50"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor assignment add-grade-component", 
+                                ["pa2", "design", "The PA2 Design", "50"])
         self.assertEquals(result.exit_code, 0)
         
         
@@ -210,26 +226,26 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         self.register_team(students_team2, team_name2, "pa1", course_id)
 
 
-        result = instructor.run("admin course team-repo-remove", [course_id, team_name1])
+        result = admin.run("admin course team-repo-remove", [course_id, team_name1])
         self.assertEquals(result.exit_code, 0)
-        result = instructor.run("admin course team-repo-remove", ["--staging", course_id, team_name1])
+        result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name1])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructor.run("admin course team-repo-remove", [course_id, team_name2])
+        result = admin.run("admin course team-repo-remove", [course_id, team_name2])
         self.assertEquals(result.exit_code, 0)
-        result = instructor.run("admin course team-repo-remove", ["--staging", course_id, team_name2])
+        result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name2])
         self.assertEquals(result.exit_code, 0)
         
 
 
-        result = instructor.run("admin course team-repo-create", [course_id, team_name1, "--public"])
+        result = admin.run("admin course team-repo-create", [course_id, team_name1, "--public"])
         self.assertEquals(result.exit_code, 0)
-        result = instructor.run("admin course team-repo-create", ["--staging", course_id, team_name1, "--public"])
+        result = admin.run("admin course team-repo-create", ["--staging", course_id, team_name1, "--public"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructor.run("admin course team-repo-create", [course_id, team_name2, "--public"])
+        result = admin.run("admin course team-repo-create", [course_id, team_name2, "--public"])
         self.assertEquals(result.exit_code, 0)
-        result = instructor.run("admin course team-repo-create", ["--staging", course_id, team_name2, "--public"])
+        result = admin.run("admin course team-repo-create", ["--staging", course_id, team_name2, "--public"])
         self.assertEquals(result.exit_code, 0)
         
         result = student[0].run("student repo-check", [team_name1])
@@ -346,8 +362,78 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                            [team_name2, "pa2", team2_commit2.hexsha, 
                            "--extensions", "0",
                            "--yes"])        
-
         bre = cm.exception
         bre.print_errors()
         
+        result = instructor.run("instructor grading set-grade", 
+                                [team_name1, "pa1", "tests", "100"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor grading set-grade", 
+                                [team_name2, "pa1",  "tests", "45"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor grading list-grades")
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor grading set-grade", 
+                                [team_name1, "pa1", "tests", "50"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor grading list-grades")
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructor.run("instructor grading create-grading-repos", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+                
+        team1_grading_repo_path = "%s/repositories/%s/%s/%s" % (instructor.conf_dir, course_id, "pa1", team_name1)
+        
+        team2_grading_repo_path = "%s/repositories/%s/%s/%s" % (instructor.conf_dir, course_id, "pa1", team_name2)
+                
+        team1_rubric = """Points:
+    The PA1 Tests:
+        Points Possible: 50
+        Points Obtained: 45
+
+    The PA1 Design:
+        Points Possible: 50
+        Points Obtained: 30
+        
+Penalties:
+    Used O(n^156) algorithm: -10
+    Submitted code in a Word document: -30
+
+Total Points: 35 / 100
+
+Comments: >
+    None"""
+    
+        team2_rubric = """Points:
+    The PA1 Tests:
+        Points Possible: 50
+        Points Obtained: 50
+
+    The PA1 Design:
+        Points Possible: 50
+        Points Obtained: 45
+
+Total Points: 95 / 100
+
+Comments: >
+    Great job!"""
+                
+        team1_rubric_path = "%s/pa1.rubric.txt" % team1_grading_repo_path 
+        team2_rubric_path = "%s/pa1.rubric.txt" % team2_grading_repo_path 
+                
+        with open(team1_rubric_path, "w") as f:
+            f.write(team1_rubric)
+
+        with open(team2_rubric_path, "w") as f:
+            f.write(team2_rubric)
+        
+        result = instructor.run("instructor grading collect-rubrics", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+        
+        result = instructor.run("instructor grading list-grades")
+        self.assertEquals(result.exit_code, 0)
         

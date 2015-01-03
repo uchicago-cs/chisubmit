@@ -72,7 +72,7 @@ class Course(ExposedModel, Serializable):
     instructors = association_proxy('courses_instructors', 'instructor')
     assignments = db.relationship("Assignment", backref="course")
     teams = db.relationship("Team", backref="course")
-    default_fields = ['name', 'assignments', 'options']
+    default_fields = ['name', 'assignments', 'teams', 'options']
     readonly_fields = ['id', 'options', 'graders', 'students', 'instructors',
                        'assignments', 'teams']
     

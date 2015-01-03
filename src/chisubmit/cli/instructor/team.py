@@ -109,28 +109,3 @@ def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
 
     return CHISUBMIT_SUCCESS
 
-
-@click.command(name="assignment-set-grade")
-@click.argument('team_id', type=str)
-@click.argument('assignment_id', type=str)
-@click.argument('grade_component', type=str)
-@click.argument('grade', type=float)
-@pass_course
-@click.pass_context
-def instructor_team_assignment_set_grade(ctx, course, team_id, assignment_id, grade_component, grade):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
-
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
-
-    grade_component = assignment.get_grade_component(grade_component)
-    if not grade_component:
-        print "Assignment %s does not have a grade component '%s'" % (assignment.id, grade_component)
-        ctx.exit(CHISUBMIT_FAIL)
-
-    team.set_assignment_grade(assignment, grade_component, grade)

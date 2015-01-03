@@ -4,6 +4,7 @@ import os.path
 from chisubmit.common import ChisubmitException
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.repos.local import LocalGitRepo
+from chisubmit.common.utils import create_connection
 
 
 class GradingGitRepo(object):
@@ -14,7 +15,9 @@ class GradingGitRepo(object):
         self.repo_path = repo_path
 
     @classmethod
-    def get_grading_repo(cls, base_dir, course, team, assignment):
+    def get_grading_repo(cls, config, course, team, assignment):
+        base_dir = config["directory"]
+        
         repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         if not os.path.exists(repo_path):
             return None
@@ -23,15 +26,17 @@ class GradingGitRepo(object):
             return cls(team, assignment, repo, repo_path)
 
     @classmethod
-    def create_grading_repo(cls, base_dir, course, team, assignment):
-        conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
-        conn_staging = RemoteRepositoryConnectionFactory.create_connection(course.git_staging_server_connection_string)
-
+    def create_grading_repo(cls, config, course, team, assignment):
+        base_dir = config["directory"]
+        
+        conn_server = create_connection(course, config)
+        conn_staging = create_connection(course, config, staging = True)
+        
         repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
-        gh_url = conn.get_repository_git_url(course, team)
+        server_url = conn_server.get_repository_git_url(course, team)
         staging_url = conn_staging.get_repository_git_url(course, team)
 
-        repo = LocalGitRepo.create_repo(repo_path, clone_from_url = gh_url, remotes = [("staging", staging_url)])
+        repo = LocalGitRepo.create_repo(repo_path, clone_from_url = server_url, remotes = [("staging", staging_url)])
         return cls(team, assignment, repo, repo_path)
 
     def sync(self):

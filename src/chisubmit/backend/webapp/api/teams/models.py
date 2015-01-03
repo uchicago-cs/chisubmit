@@ -1,9 +1,8 @@
 from chisubmit.backend.webapp.api import db
 from chisubmit.backend.webapp.api.models.json import Serializable
-from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
-from chisubmit.backend.webapp.api.assignments.models import Assignment
 from chisubmit.backend.webapp.api.types import JSONEncodedDict, UTCDateTime
+from chisubmit.backend.webapp.api.assignments.models import GradeComponent
 
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
@@ -17,8 +16,7 @@ class Team(Serializable, db.Model):
                           db.Integer, db.ForeignKey('courses.id'), primary_key=True)
     students = association_proxy('students_teams', 'student')
     assignments = association_proxy('assignments_teams', 'assignment')
-    grades = db.relationship('Grade', cascade="all, delete-orphan",
-                             backref='team')
+
     default_fields = ['extensions', 'repo_info', 'active', 'course_id',
                       'students_teams', 'assignments_teams', 'grades']
     readonly_fields = ['students', 'assignments', 'grades']
@@ -40,6 +38,7 @@ class Team(Serializable, db.Model):
         
     def get_extensions_available(self):
         return self.extensions - self.get_extensions_used()
+        
 
 class StudentsTeams(Serializable, db.Model):
     STATUS_UNCONFIRMED = 0
@@ -70,30 +69,35 @@ class StudentsTeams(Serializable, db.Model):
 class AssignmentsTeams(Serializable, db.Model):
     __tablename__ = 'assignments_teams'
 
-    extensions_used = db.Column(db.Integer, default = 0)
-    commit_sha = db.Column(db.Unicode)
-    submitted_at = db.Column(UTCDateTime)
-
     assignment_id = db.Column('assignment_id',
                            db.Integer, primary_key=True)
-    grader_id = db.Column('grader_id',
-                          db.Integer,
-                          db.ForeignKey('users.id'))
     team_id = db.Column('team_id',
                         db.Unicode, primary_key=True)
     course_id = db.Column('course_id', 
                           db.Integer, primary_key=True)
+
+    extensions_used = db.Column(db.Integer, default = 0)
+    commit_sha = db.Column(db.Unicode)
+    submitted_at = db.Column(UTCDateTime)
+    grader_id = db.Column('grader_id',
+                          db.Integer,
+                          db.ForeignKey('users.id'))
+    penalties = db.Column(JSONEncodedDict, default={})
+
+
     team = db.relationship("Team",
                            backref=db.backref("assignments_teams",
                                               cascade="all, delete-orphan"))
     assignment = db.relationship("Assignment")
     grader = db.relationship("User")
-    default_fields = ['extensions_used', 'commit_sha', 'submitted_at', 'assignment_id']
+    
+    default_fields = ['extensions_used', 'commit_sha', 'submitted_at', 'assignment_id', 
+                      'grades', 'penalties']
     readonly_fields = ['team', 'grader', 'grades']
     __table_args__ = (db.ForeignKeyConstraint([team_id, course_id],
                                               [Team.id, Team.course_id]),
                       db.ForeignKeyConstraint([assignment_id, course_id],
-                                              [Assignment.id, Assignment.course_id]),
+                                              ["assignments.id", "assignments.course_id"]),
                       {})
     
 
@@ -102,4 +106,34 @@ class AssignmentsTeams(Serializable, db.Model):
         return AssignmentsTeams.query.filter_by(course_id=course_id,
                                                 team_id=team_id,
                                                 assignment_id=assignment_id).first()
+                                                
+    def get_grade(self, gc_id):
+        grades = [g for g in self.grades if g.grade_component_id == gc_id]
+        if len(grades) == 0:
+            return None
+        else:
+            return grades[0]                                                
                                     
+class Grade(Serializable, db.Model):
+    __tablename__ = 'grades'
+
+    course_id = db.Column('course_id', db.Integer, primary_key=True)
+    assignment_id = db.Column('assignment_id', db.Integer, primary_key=True)
+    grade_component_id = db.Column('grade_component_id',
+                                     db.Unicode, primary_key=True)
+    team_id = db.Column('team_id', db.Integer, primary_key=True)
+
+    points = db.Column(db.Float, nullable=False)
+    
+    grade_component = db.relationship('GradeComponent')
+    team = db.relationship('AssignmentsTeams', backref="grades")
+    
+    default_fields = ['points', 'grade_component_id']
+    readonly_fields = ['course_id', 'team_id', 'grade_component']
+ 
+    __table_args__ = (db.ForeignKeyConstraint([team_id, assignment_id, course_id],
+                                              [AssignmentsTeams.team_id, AssignmentsTeams.assignment_id, AssignmentsTeams.course_id]),
+                      db.ForeignKeyConstraint([grade_component_id, assignment_id, course_id],
+                                              [GradeComponent.id, GradeComponent.assignment_id, GradeComponent.course_id]),
+                      {})
+        

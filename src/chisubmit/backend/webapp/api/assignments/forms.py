@@ -6,9 +6,9 @@ from wtforms.fields.core import BooleanField
 
 
 class CreateGradeComponentInput(Form):
-    name = StringField(validators=[Length(max=36), InputRequired()])
+    id = StringField(validators=[Length(max=36), InputRequired()])
+    description = StringField(validators=[Length(max=36), InputRequired()])
     points = IntegerField(validators=[InputRequired()])
-    assignment_id = StringField(validators=[Length(max=36), InputRequired()])
 
 
 class AddGradeComponents(Form):

@@ -2,6 +2,7 @@ from wtforms import Form
 from wtforms.validators import InputRequired, Optional, Length
 from wtforms.fields import StringField, IntegerField,\
     FormField, FieldList, BooleanField
+from wtforms.fields.core import FloatField
 
 
 class CreateTeamInput(Form):
@@ -23,16 +24,19 @@ class AddAssignmentsInput(Form):
     add = FieldList(FormField(LinkAssignmentInput))
 
 
-class AddGradeInput(Form):
-    team_id = StringField(InputRequired())
+class AddPenaltiesInput(Form):
     assignment_id = StringField(InputRequired())
-    grade_component_name = StringField(InputRequired())
-    points = IntegerField(InputRequired())
+    penalties = StringField(InputRequired())
+
+class AddGradeInput(Form):
+    assignment_id = StringField(InputRequired())
+    grade_component_id = StringField(InputRequired())
+    points = FloatField(InputRequired())
 
 
 class AddGradesInput(Form):
     add = FieldList(FormField(AddGradeInput))
-
+    penalties = FieldList(FormField(AddPenaltiesInput))
 
 class AddStudentsInput(Form):
     add = FieldList(FormField(LinkStudentInput))
@@ -41,7 +45,7 @@ class AddStudentsInput(Form):
 class UpdateTeamInput(Form):
     students = FormField(AddStudentsInput)
     assignments = FormField(AddAssignmentsInput)
-    git_staging_repo_created = BooleanField()
+    grades = FormField(AddGradesInput)
 
 
 class UpdateAssignmentTeamInput(Form):

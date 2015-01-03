@@ -13,8 +13,35 @@ from chisubmit.cli.common import pass_course
 
 @click.group(name="grading")
 @click.pass_context
-def admin_grading(ctx):
+def instructor_grading(ctx):
     pass
+
+
+@click.command(name="set-grade")
+@click.argument('team_id', type=str)
+@click.argument('assignment_id', type=str)
+@click.argument('grade_component_id', type=str)
+@click.argument('points', type=float)
+@pass_course
+@click.pass_context
+def instructor_grading_set_grade(ctx, course, team_id, assignment_id, grade_component_id, points):   
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    grade_component = assignment.get_grade_component(grade_component_id)
+    if not grade_component:
+        print "Assignment %s does not have a grade component '%s'" % (assignment.id, grade_component)
+        ctx.exit(CHISUBMIT_FAIL)
+    
+    team.set_assignment_grade(assignment_id, grade_component.id, points)
+
 
 @click.command(name="add-conflict")
 @click.argument('grader_id', type=str)
@@ -44,47 +71,51 @@ def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
 @click.pass_context
 def instructor_grading_list_grades(ctx, course):
     students = [s for s in course.students if not s.dropped]
-    projects = course.projects
+    assignments = course.assignments
 
-    students.sort(key=operator.attrgetter("last_name"))
-    projects.sort(key=operator.attrgetter("deadline"))
+    students.sort(key=operator.attrgetter("user.last_name"))
+    assignments.sort(key=operator.attrgetter("deadline"))
 
-    student_grades = dict([(s,dict([(p,None) for p in projects])) for s in students])
+    student_grades = dict([(s.user.id,dict([(a.id,{}) for a in assignments])) for s in students])
 
     for team in course.teams:
-        for team_project in team.projects:
+        for team_assignment in team.assignments:
+            assignment_id = team_assignment.assignment_id
             for student in team.students:
-                if student_grades.has_key(student):
-                    if student_grades[student][team_project.project] is not None:
-                        print "Warning: %s already has a grade"
-                    else:
-                        student_grades[student][team_project.project] = team_project
+                student_id = student.user.id
+                if student_grades.has_key(student_id):
+                    g = student_grades[student_id][assignment_id]
+                    for grade in team_assignment.grades:
+                        gc_id = grade.grade_component_id
+                        if g.has_key(gc_id):
+                            print "Warning: %s already has a grade for grade component %i" % (student_id, gc_id)
+                        else:
+                            g[gc_id] = grade.points
+                    g["__PENALTIES"] = team_assignment.get_total_penalties()
+                    g["__TOTAL"] = team_assignment.get_total_grade()
 
     fields = ["Last Name","First Name"]
-    for project in projects:
-        fields += ["%s - %s" % (project.id, gc.name) for gc in project.grade_components]
-        fields.append("%s - Penalties" % project.id)
-        fields.append("%s - Total" % project.id)
+    for assignment in assignments:
+        fields += ["%s - %s" % (assignment.id, gc.description) for gc in assignment.grade_components]
+        fields.append("%s - Penalties" % assignment.id)
+        fields.append("%s - Total" % assignment.id)
 
     print ",".join(fields)
 
     for student in students:
-        fields = [student.last_name, student.first_name]
-        for project in projects:
-            for gc in project.grade_components:
-                if student_grades[student][project] is None:
-                    fields.append("")
-                elif student_grades[student][project].grades is None:
-                    fields.append("")
-                elif not student_grades[student][project].grades.has_key(gc):
+        fields = [student.user.last_name, student.user.first_name]
+        for assignment in assignments:
+            for gc in assignment.grade_components:
+                grades = student_grades[student.user.id][assignment.id]
+                if not grades.has_key(gc.id):
                     fields.append("")
                 else:
-                    fields.append(str(student_grades[student][project].grades[gc]))
-            if student_grades[student][project] is None:
+                    fields.append(str(grades[gc.id]))
+            if len(grades) == 0:
                 fields += ["",""]
             else:
-                fields.append(str(student_grades[student][project].get_total_penalties()))
-                fields.append(str(student_grades[student][project].get_total_grade()))
+                fields.append(str(grades["__PENALTIES"]))
+                fields.append(str(grades["__TOTAL"]))
 
         print ",".join(fields)
 
@@ -267,18 +298,18 @@ def instructor_grading_list_submissions(ctx, course, project_id):
     return CHISUBMIT_SUCCESS
 
 @click.command(name="create-grading-repos")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_create_grading_repos(ctx, course, project_id):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist"
+def instructor_grading_create_grading_repos(ctx, course, assignment_id):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = [t for t in course.teams if t.has_project(project.id)]
+    teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
-    repos = create_grading_repos(ctx.obj['config']['directory'], course, project, teams)
+    repos = create_grading_repos(ctx.obj['config'], course, assignment, teams)
 
     if repos == None:
         ctx.exit(CHISUBMIT_FAIL)
@@ -388,57 +419,63 @@ def instructor_grading_add_rubrics(ctx, course, project_id):
 
 
 @click.command(name="collect-rubrics")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_collect_rubrics(ctx, course, project_id):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def instructor_grading_collect_rubrics(ctx, course, assignment_id):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    gcs = project.grade_components
+    gcs = assignment.grade_components
 
-    teams = [t for t in course.teams if t.has_project(project.id)]
+    teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(ctx.obj['config']['directory'], course, team, project)
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
         if repo is None:
             print "Repository for %s does not exist" % (team.id)
             ctx.exit(CHISUBMIT_FAIL)
 
-        rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+        rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.id
 
         if not os.path.exists(rubricfile):
-            print "Repository for %s does not have a rubric for project %s" % (team.id, project.id)
+            print "Repository for %s does not have a rubric for assignment %s" % (team.id, assignment.id)
             ctx.exit(CHISUBMIT_FAIL)
 
-        rubric = RubricFile.from_file(open(rubricfile), project)
+        rubric = RubricFile.from_file(open(rubricfile), assignment)
 
         points = []
         for gc in gcs:
-            if rubric.points[gc.name] is None:
-                team.get_project(project.id).grades[gc] = 0
+            grade = rubric.points[gc.description]
+            if grade is None:
+                team.set_assignment_grade(assignment.id, gc.id, 0)
                 points.append("")
             else:
-                team.get_project(project.id).set_grade(gc, rubric.points[gc.name])
-                points.append(`rubric.points[gc.name]`)
+                team.set_assignment_grade(assignment.id, gc.id, grade)
+                points.append(`grade`)
 
-        team.get_project(project.id).penalties = []
+        penalties = {}
         if rubric.penalties is not None:
             for desc, p in rubric.penalties.items():
-                team.get_project(project.id).add_penalty(desc, p)
+                penalties[desc] = p
 
-        print "%s: %s" % (team.id, team.get_project(project.id).get_total_grade())
+        team.set_assignment_penalties(assignment.id, penalties)
 
+        new_team = course.get_team(team.id)
+        assignment_team = new_team.get_assignment(assignment.id)
 
-admin_grading.add_command(instructor_grading_list_grades)
-admin_grading.add_command(instructor_grading_assign_graders)
-admin_grading.add_command(instructor_grading_list_grader_assignments)
-admin_grading.add_command(instructor_grading_list_submissions)
-admin_grading.add_command(instructor_grading_create_grading_repos)
-admin_grading.add_command(instructor_grading_create_grading_branches)
-admin_grading.add_command(instructor_grading_push_grading_branches)
-admin_grading.add_command(instructor_grading_pull_grading_branches)
-admin_grading.add_command(instructor_grading_add_rubrics)
-admin_grading.add_command(instructor_grading_collect_rubrics)
+        print "%s: %s" % (new_team.id, assignment_team.get_total_grade())
+
+instructor_grading.add_command(instructor_grading_set_grade)
+instructor_grading.add_command(instructor_grading_list_grades)
+instructor_grading.add_command(instructor_grading_assign_graders)
+instructor_grading.add_command(instructor_grading_list_grader_assignments)
+instructor_grading.add_command(instructor_grading_list_submissions)
+instructor_grading.add_command(instructor_grading_create_grading_repos)
+instructor_grading.add_command(instructor_grading_create_grading_branches)
+instructor_grading.add_command(instructor_grading_push_grading_branches)
+instructor_grading.add_command(instructor_grading_pull_grading_branches)
+instructor_grading.add_command(instructor_grading_add_rubrics)
+instructor_grading.add_command(instructor_grading_collect_rubrics)

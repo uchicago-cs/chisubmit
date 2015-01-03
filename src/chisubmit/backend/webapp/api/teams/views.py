@@ -1,6 +1,5 @@
 from chisubmit.backend.webapp.api import db
 from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams, AssignmentsTeams
-from chisubmit.backend.webapp.api.grades.models import Grade
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.teams.forms import UpdateTeamInput,\
@@ -10,6 +9,7 @@ from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
     check_team_access_or_abort
 from flask import g
 from chisubmit.backend.webapp.api.courses.models import Course
+from chisubmit.backend.webapp.api.teams.models import Grade
 
 @api_endpoint.route('/courses/<course_id>/teams', methods=['GET', 'POST'])
 @require_apikey
@@ -86,80 +86,45 @@ def team(course_id, team_id):
 
         if 'grades' in form:
             for child_data in form.grades.add:
-                new_child = Grade()
-                child_data.populate_obj(type("", (), dict(
-                    new_child=new_child))(), 'new_child')
-                db.session.add(new_child)
+                # Does the grade already exist?
+                assignment_id = child_data["assignment_id"].data
+                grade_component_id = child_data["grade_component_id"].data
+                
+                at = AssignmentsTeams.from_id(course_id, team_id, assignment_id)
+                
+                if at is None:
+                    error_msgs = ["Team %s is not registered for assignment %s" % (team_id, assignment_id)]
+                    return jsonify(errors={"grades": error_msgs}), 400
+                
+                grade = at.get_grade(grade_component_id)
+                
+                if grade is None:
+                    new_child = Grade()
+                    child_data.populate_obj(type("", (), dict(
+                        new_child=new_child))(), 'new_child')
+                    new_child.course_id = course_id
+                    new_child.team_id = team_id                    
+                    db.session.add(new_child)
+                else:
+                    grade.points = child_data["points"].data
+                    db.session.add(grade)
+                    
+            if len(form.grades.penalties) > 0:
+                penalties = form.grades.penalties.data
+                for penalty in penalties:
+                    assignment_id = penalty["assignment_id"]
+                    penalty_value = penalty["penalties"]
+
+                    at = AssignmentsTeams.from_id(course_id, team_id, assignment_id)
+                    
+                    if at is None:
+                        error_msgs = ["Team %s is not registered for assignment %s" % (team_id, assignment_id)]
+                        return jsonify(errors={"grades": error_msgs}), 400
+                                        
+                    at.penalties = penalty_value
+                    db.session.add(at)
 
         db.session.commit()
 
     return jsonify({'team': team.to_dict()})
 
-
-@api_endpoint.route('/courses/<course_id>/teams/<team_id>/assignments/<assignment_id>',
-                    methods=['GET', 'PUT'])
-@require_apikey
-def assignments_teams(course_id, team_id, assignment_id):
-    course = Course.query.filter_by(id=course_id).first()
-    
-    if course is None:
-        abort(404)    
-    
-    assignment_team = AssignmentsTeams.query.filter_by(
-        team_id=team_id).filter_by(
-        assignment_id=assignment_id).first()
-
-    if not assignment_team:
-        abort(404)
-
-    if request.method == 'PUT':
-        input_data = request.get_json(force=True)
-        if not isinstance(input_data, dict):
-            return jsonify(error='Request data must be a JSON Object'), 400
-        form = UpdateAssignmentTeamInput.from_json(input_data)
-        if not form.validate():
-            return jsonify(errors=form.errors), 400
-
-        assignment_team.set_columns(**form.patch_data)
-
-        if 'grades' in form:
-            for child_data in form.grades.add:
-                new_child = Grade()
-                child_data.populate_obj(type("", (), dict(
-                    new_child=new_child))(), 'new_child')
-                db.session.add(new_child)
-
-        db.session.commit()
-
-    return jsonify({'assignment_team': assignment_team.to_dict()}), 201
-
-
-@api_endpoint.route('/assignment_teams/<assignment_team_id>', methods=['GET', 'PUT'])
-@require_apikey
-def direct_assignments_teams(assignment_team_id):
-    assignment_team = AssignmentsTeams.query.filter_by(
-        id=assignment_team_id).first()
-
-    if not assignment_team:
-        abort(404)
-
-    if request.method == 'PUT':
-        input_data = request.get_json(force=True)
-        if not isinstance(input_data, dict):
-            return jsonify(error='Request data must be a JSON Object'), 400
-        form = UpdateAssignmentTeamInput.from_json(input_data)
-        if not form.validate():
-            return jsonify(errors=form.errors), 400
-
-        assignment_team.set_columns(**form.patch_data)
-
-        if 'grades' in form:
-            for child_data in form.grades.add:
-                new_child = Grade()
-                child_data.populate_obj(type("", (), dict(
-                    new_child=new_child))(), 'new_child')
-                db.session.add(new_child)
-
-        db.session.commit()
-
-    return jsonify({'assignment_team': assignment_team.to_dict()}), 201

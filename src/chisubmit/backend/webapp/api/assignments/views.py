@@ -1,6 +1,6 @@
 from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.assignments.models import Assignment
-from chisubmit.backend.webapp.api.grades.models import GradeComponent
+from chisubmit.backend.webapp.api.assignments.models import Assignment,\
+    GradeComponent
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.assignments.forms import UpdateAssignmentInput,\
@@ -14,6 +14,7 @@ from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams,\
     AssignmentsTeams
 from chisubmit.common.utils import get_datetime_now_utc
+from sqlalchemy.sql.ddl import CreateTable
 
 
 @api_endpoint.route('/courses/<course_id>/assignments', methods=['GET', 'POST'])
@@ -80,6 +81,8 @@ def assignment(course_id, assignment_id):
                 new_child = GradeComponent()
                 gc_data.populate_obj(
                     type("", (), dict(new_child=new_child))(), 'new_child')
+                new_child.course_id = course_id
+                new_child.assignment_id = assignment_id
                 db.session.add(new_child)
         db.session.commit()
 

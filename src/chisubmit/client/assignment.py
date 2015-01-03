@@ -28,18 +28,22 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client import ApiObject, CourseQualifiedApiObject
-from chisubmit.client.grade_component import GradeComponent
+from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.common.utils import convert_datetime_to_utc
 from chisubmit.client import session
 from dateutil import parser
 import json
 
+class GradeComponent(JSONObject):
+    
+    _api_attrs = ('id', 'description', 'points', 'assignment_id')
+
+
 class Assignment(CourseQualifiedApiObject):
 
     _api_attrs = ('name', 'deadline', 'id', 'course_id')
     _primary_key = 'id'    
-    _has_many = ('grade_components', 'teams')
+    _has_many = {'grade_components': 'grade_components'}
 
     def __init__(self, *args, **kwargs):
         if kwargs.has_key("deadline"):
@@ -69,17 +73,20 @@ class Assignment(CourseQualifiedApiObject):
         response = session.post(url, data=data)
         return response    
 
-    def get_grade_component(self, grade_component_name):
-        url = 'assignments/%s/grade_components/%s' % \
-            (self.id, grade_component_name)
-        return GradeComponent.from_uri(url)
+    def get_grade_component(self, grade_component_id):
+        gcs = [gc for gc in self.grade_components if gc.id == grade_component_id]
+        
+        if len(gcs) == 0:
+            return None
+        else:
+            return gcs[0]
 
     def add_grade_component(self, gc):
-        attrs = {'assignment_id': self.id}
+        attrs = {}
         for attr in gc._api_attrs:
             attrs[attr] = getattr(gc, attr, None)
         data = json.dumps({'grade_components': {'add': [attrs]}})
-        session.put('assignments/%s' % (self.id), data=data)
+        session.put(self.url(), data=data)
 
     def get_deadline(self):
         return self.deadline

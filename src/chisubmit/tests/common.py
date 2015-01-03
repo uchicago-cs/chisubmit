@@ -78,7 +78,7 @@ class ChisubmitCLITestClient(object):
                  git_credentials = {}, verbose = False):
         self.user_id = user_id
         self.home_dir = "test-fs/home/%s" % self.user_id
-        self.conf_dir = "%s/.chisubmit-%s" % (self.home_dir, self.user_id)
+        self.conf_dir = "%s/.chisubmit" % (self.home_dir)
         self.conf_file = self.conf_dir + "/chisubmit.conf"
         self.runner = runner
         self.verbose = verbose

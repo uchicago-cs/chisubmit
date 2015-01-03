@@ -66,15 +66,15 @@ def get_teams(course, assignment, grader = None, only = None):
     return teams
 
 
-def create_grading_repos(base_dir, course, assignment, teams, grader = None):
+def create_grading_repos(config, course, assignment, teams, grader = None):
     repos = []
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(base_dir, course, team, assignment)
+        repo = GradingGitRepo.get_grading_repo(config, course, team, assignment)
 
         if repo is None:
             print ("Creating grading repo for %s... " % team.id),
-            repo = GradingGitRepo.create_grading_repo(base_dir, course, team, assignment)
+            repo = GradingGitRepo.create_grading_repo(config, course, team, assignment)
             repo.sync()
 
             repos.append(repo)

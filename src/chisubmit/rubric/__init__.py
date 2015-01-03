@@ -66,14 +66,14 @@ class RubricFile(object):
         total_points_obtained = 0
         
         for gc in self.assignment.grade_components:
-            s += "%s%s:\n" % (" "*4, gc.name)
+            s += "%s%s:\n" % (" "*4, gc.description)
             s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_POSSIBLE, self.__format_points(gc.points))
             total_points_possible += gc.points
-            if self.points[gc.name] is None:
+            if self.points[gc.description] is None:
                 p = ""
             else:
-                total_points_obtained += self.points[gc.name]
-                p = self.__format_points(self.points[gc.name])
+                total_points_obtained += self.points[gc.description]
+                p = self.__format_points(self.points[gc.description])
                 
             s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_OBTAINED, p)
             s += "\n" 
@@ -125,36 +125,36 @@ class RubricFile(object):
         total_points_obtained = 0
         total_points_possible = 0
         for grade_component in assignment.grade_components:
-            if not rubric[RubricFile.FIELD_POINTS].has_key(grade_component.name):
-                raise ChisubmitRubricException("Rubric is missing '%s' points." % grade_component.name)
+            if not rubric[RubricFile.FIELD_POINTS].has_key(grade_component.description):
+                raise ChisubmitRubricException("Rubric is missing '%s' points." % grade_component.description)
             
-            component = rubric[RubricFile.FIELD_POINTS][grade_component.name]
+            component = rubric[RubricFile.FIELD_POINTS][grade_component.description]
             
             if not component.has_key(RubricFile.FIELD_POINTS_POSSIBLE):
-                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (grade_component.name, RubricFile.FIELD_POINTS_POSSIBLE))
+                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (grade_component.description, RubricFile.FIELD_POINTS_POSSIBLE))
 
             if not component.has_key(RubricFile.FIELD_POINTS_OBTAINED):
-                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (grade_component.name, RubricFile.FIELD_POINTS_OBTAINED))
+                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (grade_component.description, RubricFile.FIELD_POINTS_OBTAINED))
             
             points_possible = component[RubricFile.FIELD_POINTS_POSSIBLE]
             points_obtained = component[RubricFile.FIELD_POINTS_OBTAINED]
             
             if points_possible != grade_component.points:
                 raise ChisubmitRubricException("Grade component '%s' in rubric has incorrect possible points (expected %i, got %i)" %
-                                                (grade_component.name, grade_component.points, points_possible))
+                                                (grade_component.description, grade_component.points, points_possible))
                 
             if points_obtained is not None:
                 if points_obtained < 0:
                     raise ChisubmitRubricException("Grade component '%s' in rubric has negative points (%i)" %
-                                                    (grade_component.name, points_obtained))
+                                                    (grade_component.description, points_obtained))
     
                 if points_obtained > points_possible:
                     raise ChisubmitRubricException("Grade component '%s' in rubric has more than allowed points (%i > %i)" %
-                                                    (grade_component.name, points_obtained, points_possible))
+                                                    (grade_component.description, points_obtained, points_possible))
 
                 total_points_obtained += points_obtained
 
-            points[grade_component.name] = points_obtained
+            points[grade_component.description] = points_obtained
             total_points_possible += grade_component.points
 
         penalty_points = 0.0

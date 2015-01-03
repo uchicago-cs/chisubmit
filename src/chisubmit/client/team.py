@@ -32,6 +32,10 @@ from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
 import json
 
+class Grade(JSONObject):
+    
+    _api_attrs = ('points','grade_component_id')
+
 class StudentTeam(JSONObject):
     
     _api_attrs = ('status',)
@@ -39,8 +43,16 @@ class StudentTeam(JSONObject):
 
 class AssignmentTeam(JSONObject):
     
-    _api_attrs = ('extensions_used', 'commit_sha', 'submitted_at', 'assignment_id')
-    #_has_one = {'assignment': 'assignment'}
+    _api_attrs = ('extensions_used', 'commit_sha', 'submitted_at', 'assignment_id', 'penalties')
+    _has_many = {'grades': 'grades'}
+    
+    def get_total_penalties(self):
+        return sum([p for p in self.penalties.values()])
+        
+    def get_total_grade(self):
+        points = sum([g.points for g in self.grades])
+                
+        return points + self.get_total_penalties()
 
 class Team(CourseQualifiedApiObject):
 
@@ -51,25 +63,33 @@ class Team(CourseQualifiedApiObject):
                  'assignments': 'assignments_teams',
                  }
     
+    def has_assignment(self, assignment_id):        
+        return self.get_assignment(assignment_id) is not None    
+    
+    def get_assignment(self, assignment_id):
+        ats = [at for at in self.assignments if at.assignment_id == assignment_id]
+        
+        if len(ats) == 1:
+            return ats[0]
+        else:
+            return None        
+    
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
         data = json.dumps({'students': {'add': [attrs]}})
-        session.put('teams/%s' % (self.id), data=data)
-
-    def get_assignment(self, assignment_id):
-        return next(assignment_team for assignment_team in self.assignments_teams if assignment_team.assignment_id == assignment_id)
+        session.put(self.url(), data=data)
 
     def add_assignment(self, assignment):
         attrs = {'team_id': self.id, 'assignment_id': assignment.id}
         data = json.dumps({'assignments': {'add': [attrs]}})
-        session.put('teams/%s' % (self.id), data=data)
+        session.put(self.url(), data=data)
 
-    def has_assignment(self, assignment_id):
-        return session.exists('teams/%s/assignments/%s' %
-                         (self.id, assignment_id))
+    def set_assignment_grade(self, assignment_id, grade_component_id, points):
+        attrs = {'assignment_id': assignment_id, 'grade_component_id': grade_component_id, 'points': points}
+        data = json.dumps({'grades': {'add': [attrs]}})
+        session.put(self.url(), data=data)
 
-#    def set_assignment_grade(self, assignment, grade_component, points):
-#        assert(isinstance(grade_component, GradeComponent))
-#
-#        assignment_team = self.get_assignment(assignment.id)
-#        assignment_team.set_grade(grade_component, points)
+    def set_assignment_penalties(self, assignment_id, penalties):
+        attrs = {'assignment_id': assignment_id, 'penalties': penalties}
+        data = json.dumps({'grades': {'penalties': [attrs]}})
+        session.put(self.url(), data=data)

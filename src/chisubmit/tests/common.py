@@ -137,6 +137,14 @@ class ChisubmitCLITestClient(object):
 
         return repo, git_path
 
+    def get_local_git_repository(self, path):
+        git_path = "%s/%s" % (self.home_dir, path)
+                
+        repo = git.Repo(git_path)
+
+        return repo, git_path
+
+
 class BaseChisubmitTestCase(unittest.TestCase):
     
     def __init__(self, *args, **kwargs):

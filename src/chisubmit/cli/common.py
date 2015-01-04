@@ -61,12 +61,12 @@ def get_teams(course, assignment, grader = None, only = None):
         teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
         if grader is not None:
-            teams = [t for t in teams if t.get_assignment(assignment.id).get_grader().id == grader.id]
+            teams = [t for t in teams if t.get_assignment(assignment.id).grader.id == grader.user.id]
 
     return teams
 
 
-def create_grading_repos(config, course, assignment, teams, grader = None):
+def create_grading_repos(config, course, assignment, teams):
     repos = []
 
     for team in teams:
@@ -86,8 +86,8 @@ def create_grading_repos(config, course, assignment, teams, grader = None):
     return repos
 
 
-def gradingrepo_push_grading_branch(course, team, assignment, github=False, staging=False):
-    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
+def gradingrepo_push_grading_branch(config, course, team, assignment, to_students=False, to_staging=False):
+    repo = GradingGitRepo.get_grading_repo(config, course, team, assignment)
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
@@ -97,29 +97,29 @@ def gradingrepo_push_grading_branch(course, team, assignment, github=False, stag
         print "%s does not have a grading branch" % team.id
         return CHISUBMIT_FAIL
 
-    if github:
-        repo.push_grading_branch_to_github()
+    if to_students:
+        repo.push_grading_branch_to_students()
 
-    if staging:
+    if to_staging:
         repo.push_grading_branch_to_staging()
 
     return CHISUBMIT_SUCCESS
 
-def gradingrepo_pull_grading_branch(course, team, assignment, github=False, staging=False):
-    assert(not (github and staging))
-    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
+def gradingrepo_pull_grading_branch(config, course, team, assignment, from_students=False, from_staging=False):
+    assert(not (from_students and from_staging))
+    repo = GradingGitRepo.get_grading_repo(config, course, team, assignment)
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
         return CHISUBMIT_FAIL
 
-    if github:
+    if from_students:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch on GitHub" % team.id
+            print "%s does not have a grading branch on students' repository" % team.id
         else:
-            repo.pull_grading_branch_from_github()
+            repo.pull_grading_branch_from_students()
 
-    if staging:
+    if from_staging:
         if not repo.has_grading_branch_staging():
             print "%s does not have a grading branch in staging" % team.id
         else:

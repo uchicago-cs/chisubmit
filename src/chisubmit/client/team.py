@@ -30,6 +30,7 @@
 
 from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
+from chisubmit.client.user import User
 import json
 
 class Grade(JSONObject):
@@ -39,11 +40,12 @@ class Grade(JSONObject):
 class StudentTeam(JSONObject):
     
     _api_attrs = ('status',)
-    _has_one = {'user': 'student'}
+    _has_one = {'user': ('student', User)}
 
 class AssignmentTeam(JSONObject):
     
     _api_attrs = ('extensions_used', 'commit_sha', 'submitted_at', 'assignment_id', 'penalties')
+    _has_one = {'grader': ('grader', User)}
     _has_many = {'grades': 'grades'}
     
     def get_total_penalties(self):
@@ -53,7 +55,7 @@ class AssignmentTeam(JSONObject):
         points = sum([g.points for g in self.grades])
                 
         return points + self.get_total_penalties()
-
+    
 class Team(CourseQualifiedApiObject):
 
     _api_attrs = ('id', 'active', 'course_id')
@@ -93,3 +95,9 @@ class Team(CourseQualifiedApiObject):
         attrs = {'assignment_id': assignment_id, 'penalties': penalties}
         data = json.dumps({'grades': {'penalties': [attrs]}})
         session.put(self.url(), data=data)
+        
+    def set_assignment_grader(self, assignment_id, grader_id):
+        attrs = {'assignment_id': assignment_id, 'grader_id': grader_id}
+        data = json.dumps({'assignments': {'update': [attrs]}})
+        session.put(self.url(), data=data)        
+        

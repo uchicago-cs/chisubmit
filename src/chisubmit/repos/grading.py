@@ -56,7 +56,7 @@ class GradingGitRepo(object):
             if tag is None:
                 raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.assignment.id))
 
-        self.repo.create_branch(branch_name, tag.commit)
+        self.repo.create_branch(branch_name, tag.commit.sha)
         self.repo.checkout_branch(branch_name)
 
     def has_grading_branch(self):
@@ -78,13 +78,13 @@ class GradingGitRepo(object):
 
         self.repo.checkout_branch(branch_name)
 
-    def push_grading_branch_to_github(self):
+    def push_grading_branch_to_students(self):
         self.__push_grading_branch("origin")
 
     def push_grading_branch_to_staging(self):
         self.__push_grading_branch("staging", push_master = True)
 
-    def pull_grading_branch_from_github(self):
+    def pull_grading_branch_from_students(self):
         self.__pull_grading_branch("origin", pull_master = True)
 
     def pull_grading_branch_from_staging(self):

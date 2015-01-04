@@ -268,7 +268,7 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         self.assertNotEquals(result.exit_code, 0)
 
         team1_git_repo, team1_git_path = students_team1[0].create_local_git_repository(team_name1)
-        team2_git_repo, team2_git_path = students_team2[0].create_local_git_repository(team_name1)
+        team2_git_repo, team2_git_path = students_team2[0].create_local_git_repository(team_name2)
 
         team1_remote = team1_git_repo.create_remote("origin", team1_remote_repo)
         team2_remote = team2_git_repo.create_remote("origin", team2_remote_repo)
@@ -364,7 +364,22 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                            "--yes"])        
         bre = cm.exception
         bre.print_errors()
+
+        result = student[2].run("student assignment-submit", 
+                                [team_name2, "pa1", team2_commit2.hexsha, 
+                                 "--extensions", "1",
+                                 "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+
+        result = instructor.run("instructor grading list-submissions", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+                
+        result = instructor.run("instructor grading create-grading-repos", ["pa1"])
+        self.assertEquals(result.exit_code, 0)        
         
+        result = instructor.run("instructor grading create-grading-branches", ["pa1"])
+        self.assertEquals(result.exit_code, 0)        
+                
         result = instructor.run("instructor grading set-grade", 
                                 [team_name1, "pa1", "tests", "100"])
         self.assertEquals(result.exit_code, 0)
@@ -383,13 +398,40 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         result = instructor.run("instructor grading list-grades")
         self.assertEquals(result.exit_code, 0)
 
-        result = instructor.run("instructor grading create-grading-repos", ["pa1"])
+        result = instructor.run("instructor grading add-rubrics", ["pa1"])
         self.assertEquals(result.exit_code, 0)
-                
-        team1_grading_repo_path = "%s/repositories/%s/%s/%s" % (instructor.conf_dir, course_id, "pa1", team_name1)
+
+        team1_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", team_name1)
+        team2_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", team_name2)
         
-        team2_grading_repo_path = "%s/repositories/%s/%s/%s" % (instructor.conf_dir, course_id, "pa1", team_name2)
+        team1_git_repo, team1_git_path = instructor.get_local_git_repository(team1_grading_repo_path)
+        team1_git_repo.index.add(["pa1.rubric.txt"])
+        team1_git_repo.index.commit("Added grading rubric")
+  
+        team2_git_repo, team2_git_path = instructor.get_local_git_repository(team2_grading_repo_path)
+        team2_git_repo.index.add(["pa1.rubric.txt"])
+        team2_git_repo.index.commit("Added grading rubric")
+
+        result = instructor.run("instructor grading assign-graders", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+        
+        result = instructor.run("instructor grading list-grader-assignments", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+        
+        result = instructor.run("instructor grading push-grading-branches", ["--to-staging", "pa1"])
+        self.assertEquals(result.exit_code, 0)
+        
+        result = grader.run("grader create-local-grading-repos", [grader_id, "pa1"])
+        self.assertEquals(result.exit_code, 0)        
                 
+            
+        team1_git_repo, team1_git_path = grader.get_local_git_repository(team1_grading_repo_path)
+        team2_git_repo, team2_git_path = grader.get_local_git_repository(team2_grading_repo_path)
+
+        
+        team1_rubric_path = "%s/pa1.rubric.txt" % team1_git_path 
+        team2_rubric_path = "%s/pa1.rubric.txt" % team2_git_path 
+
         team1_rubric = """Points:
     The PA1 Tests:
         Points Possible: 50
@@ -407,7 +449,21 @@ Total Points: 35 / 100
 
 Comments: >
     None"""
+
+        with open(team1_rubric_path, "w") as f:
+            f.write(team1_rubric)
+
+        result = grader.run("grader validate-rubrics", [grader_id, "pa1", "--only", team_name1])
+        self.assertEquals(result.exit_code, 0)        
     
+        team1_git_repo.index.add(["pa1.rubric.txt"])
+        team1_git_repo.index.commit("Finished grading")
+        
+        
+        
+        with open("%s/bar" % team2_git_path, "a") as f:
+            f.write("Great job!\n") 
+            
         team2_rubric = """Points:
     The PA1 Tests:
         Points Possible: 50
@@ -422,18 +478,45 @@ Total Points: 95 / 100
 Comments: >
     Great job!"""
                 
-        team1_rubric_path = "%s/pa1.rubric.txt" % team1_grading_repo_path 
-        team2_rubric_path = "%s/pa1.rubric.txt" % team2_grading_repo_path 
-                
-        with open(team1_rubric_path, "w") as f:
-            f.write(team1_rubric)
-
         with open(team2_rubric_path, "w") as f:
             f.write(team2_rubric)
+
+        result = grader.run("grader validate-rubrics", [grader_id, "pa1", "--only", team_name2])
+        self.assertEquals(result.exit_code, 0)        
+
+        team2_git_repo.index.add(["pa1.rubric.txt"])
+        team2_git_repo.index.add(["bar"])
+        team2_git_repo.index.commit("Finished grading")
+
+        result = grader.run("grader validate-rubrics", [grader_id, "pa1"])
+        self.assertEquals(result.exit_code, 0)                
+
+        result = grader.run("grader push-grading-branches", [grader_id, "pa1"])
+        self.assertEquals(result.exit_code, 0)                
+
+        result = instructor.run("instructor grading pull-grading-branches", ["--from-staging", "pa1"])
+        self.assertEquals(result.exit_code, 0)
         
         result = instructor.run("instructor grading collect-rubrics", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
         result = instructor.run("instructor grading list-grades")
         self.assertEquals(result.exit_code, 0)
+                
+        result = instructor.run("instructor grading push-grading-branches", ["--to-students", "pa1"])
+        self.assertEquals(result.exit_code, 0)
+        
+    
+        team1_git_repo, team1_git_path = students_team1[0].get_local_git_repository(team_name1)
+        team1_git_repo.remote("origin").pull("pa1-grading:pa1-grading")
+        team1_git_repo.heads["pa1-grading"].checkout()        
+        self.assertTrue(os.path.exists(team1_git_path + "/pa1.rubric.txt"))
+
+        team2_git_repo, team2_git_path = students_team2[0].get_local_git_repository(team_name2)
+        team2_git_repo.remote("origin").pull("pa1-grading:pa1-grading")
+        team2_git_repo.heads["pa1-grading"].checkout()        
+        self.assertTrue(os.path.exists(team1_git_path + "/pa1.rubric.txt"))
+        self.assertIn("Great job!", open(team2_git_path+"/bar").read())
+    
+    
         

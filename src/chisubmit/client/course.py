@@ -37,18 +37,23 @@ from chisubmit.client.user import User
 class CourseStudent(JSONObject):
     
     _api_attrs = ('dropped', 'repo_info')
-    _has_one = {'user': 'student'}
+    _has_one = {'user': ('student', User)}
 
 class CourseInstructor(JSONObject):
     
     _api_attrs = ('repo_info',)
-    _has_one = {'user': 'instructor'}
+    _has_one = {'user': ('instructor', User)}
 
 class CourseGrader(JSONObject):
     
-    _api_attrs = ('repo_info',)
-    _has_one = {'user': 'grader'}
+    _api_attrs = ('repo_info','conflicts')
+    _has_one = {'user': ('grader', User)}
 
+    def get_conflicts(self):
+        if self.conflicts is None or len(self.conflicts) == 0:
+            return []
+        else:
+            return self.conflicts.split(",")
 
 class Course(ApiObject):
 
@@ -123,3 +128,14 @@ class Course(ApiObject):
                 teams.append(t)
 
         return teams
+    
+    def has_grader(self, grader_id):        
+        return self.get_grader(grader_id) is not None    
+    
+    def get_grader(self, grader_id):
+        gs = [g for g in self.graders if g.user.id == grader_id]
+        
+        if len(gs) == 1:
+            return gs[0]
+        else:
+            return None         

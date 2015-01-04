@@ -19,9 +19,13 @@ class LinkStudentInput(Form):
     team_id = StringField(InputRequired())
     student_id = StringField(InputRequired())
 
+class UpdateAssignmentTeamInput(Form):
+    assignment_id = StringField(InputRequired())
+    grader_id = StringField(Optional())
 
 class AddAssignmentsInput(Form):
     add = FieldList(FormField(LinkAssignmentInput))
+    update = FieldList(FormField(UpdateAssignmentTeamInput))
 
 
 class AddPenaltiesInput(Form):
@@ -48,6 +52,3 @@ class UpdateTeamInput(Form):
     grades = FormField(AddGradesInput)
 
 
-class UpdateAssignmentTeamInput(Form):
-    grader_id = StringField(Optional())
-    grades = FormField(AddGradesInput)

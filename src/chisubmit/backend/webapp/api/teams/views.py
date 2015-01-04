@@ -84,6 +84,17 @@ def team(course_id, team_id):
                     new_child=new_child))(), 'new_child')
                 db.session.add(new_child)
 
+            for child_data in form.assignments.update:
+                assignment_id = child_data["assignment_id"].data
+
+                at = AssignmentsTeams.from_id(course_id, team_id, assignment_id)
+
+                if at is None:
+                    error_msgs = ["Team %s is not registered for assignment %s" % (team_id, assignment_id)]
+                    return jsonify(errors={"grades": error_msgs}), 400
+
+                at.set_columns(**child_data.patch_data)
+
         if 'grades' in form:
             for child_data in form.grades.add:
                 # Does the grade already exist?

@@ -92,7 +92,7 @@ class AssignmentsTeams(Serializable, db.Model):
     grader = db.relationship("User")
     
     default_fields = ['extensions_used', 'commit_sha', 'submitted_at', 'assignment_id', 
-                      'grades', 'penalties']
+                      'grades', 'penalties', 'grader']
     readonly_fields = ['team', 'grader', 'grades']
     __table_args__ = (db.ForeignKeyConstraint([team_id, course_id],
                                               [Team.id, Team.course_id]),

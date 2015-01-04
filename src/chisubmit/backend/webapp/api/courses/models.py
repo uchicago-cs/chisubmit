@@ -15,7 +15,11 @@ class CoursesGraders(Serializable, db.Model):
                           db.Integer,
                           db.ForeignKey('courses.id'), primary_key=True)
     grader = db.relationship("User")
-    default_fields = ['grader', 'repo_info']
+    
+    # Dirty hack
+    conflicts = db.Column(db.Unicode)
+    
+    default_fields = ['grader', 'repo_info', 'conflicts']
     readonly_fields = ['grader_id', 'course_id', 'repo_info']        
     course = db.relationship("Course",
                              backref=db.backref("courses_graders",

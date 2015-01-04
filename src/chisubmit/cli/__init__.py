@@ -38,6 +38,7 @@ from chisubmit.cli.admin import admin
 from chisubmit.cli.instructor import instructor
 from chisubmit.cli.student import student
 from chisubmit.client.session import BadRequestError
+from chisubmit.cli.grader import grader
 config = None
 
 import chisubmit.common.log as log
@@ -139,6 +140,7 @@ def chisubmit_cmd_wrapper():
 chisubmit_cmd.add_command(admin)
 chisubmit_cmd.add_command(instructor)
 chisubmit_cmd.add_command(student)
+chisubmit_cmd.add_command(grader)
 
 
 from chisubmit.cli.server import server_start, server_initdb

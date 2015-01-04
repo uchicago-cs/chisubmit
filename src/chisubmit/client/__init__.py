@@ -99,16 +99,14 @@ class JSONObject(object):
             else:
                 return None
         elif '_has_one' in class_attrs and name in class_attrs['_has_one']:
-            attr = class_attrs['_has_one'][name]
-            cls = name.title().translate(None, '_')
-            c = None
-            for subclass in ApiObject._subclasses:
-                if cls == subclass.__name__:
-                    c = subclass
-            if not c:
+            attr = class_attrs['_has_one'][name][0]
+            if self._json[attr] is None:
+                return None
+            cls = class_attrs['_has_one'][name][1]
+            if not cls in ApiObject._subclasses:
                 raise NameError
             else:
-                return c.from_json(self._json[attr])
+                return cls.from_json(self._json[attr])
         elif '_has_many' in class_attrs and name in class_attrs['_has_many']:
             attr = class_attrs['_has_many'][name]
             results = []

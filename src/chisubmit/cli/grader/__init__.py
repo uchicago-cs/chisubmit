@@ -7,7 +7,7 @@ from chisubmit.cli.common import create_grading_repos,\
     get_access_token
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.rubric import RubricFile
-from chisubmit.cli.common import pass_course, save_changes
+from chisubmit.cli.common import pass_course
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
@@ -20,7 +20,6 @@ def grader(ctx):
 @click.argument('grader_id', type=str)
 @click.argument('assignment_id', type=str)
 @pass_course
-@save_changes
 @click.pass_context
 def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
     grader = course.get_grader(grader_id)
@@ -39,7 +38,7 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
         print "No teams found"
         ctx.exit(CHISUBMIT_FAIL)
 
-    repos = create_grading_repos(course, assignment, teams, grader = grader)
+    repos = create_grading_repos(ctx.obj['config'], course, assignment, teams)
 
     if not repos:
         print "There was some kind of problem creating the grading repos."
@@ -49,9 +48,10 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
         repo.set_grader_author()
 
     for team in teams:
-        print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(course, team, assignment, staging = True)
-
+        print ("Pulling grading branch for team %s... " % team.id),
+        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, assignment, from_staging = True)
+        print "done"
+        
     return CHISUBMIT_SUCCESS
 
 
@@ -60,12 +60,11 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
 @click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @pass_course
-@save_changes
 @click.pass_context
-def grader_validate_rubrics(ctx, course, team_id, assignment_id):
-    team = course.get_team(team_id)
-    if not team:
-        print "Team %s does not exist"
+def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
+    grader = course.get_grader(grader_id)
+    if not grader:
+        print "Grader %s does not exist" % grader_id
         ctx.exit(CHISUBMIT_FAIL)
 
     assignment = course.get_assignment(assignment_id)
@@ -73,20 +72,23 @@ def grader_validate_rubrics(ctx, course, team_id, assignment_id):
         print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    repo = GradingGitRepo.get_grading_repo(course, team, assignment)
-    if not repo:
-        print "Repository for %s does not exist" % (team.id)
-        ctx.exit(CHISUBMIT_FAIL)
+    teams = get_teams(course, assignment, grader = grader, only = only)
+    
+    for team in teams:
 
-    rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.id
-
-    if not os.path.exists(rubricfile):
-        print "Repository for %s does not exist have a rubric for assignment %s" % (team.id, assignment.id)
-        ctx.exit(CHISUBMIT_FAIL)
-
-    # FIXME 18DEC14: validation explicit
-    RubricFile.from_file(open(rubricfile), assignment)
-    print "Rubric OK."
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
+        if not repo:
+            print "Repository for %s does not exist" % (team.id)
+            ctx.exit(CHISUBMIT_FAIL)
+    
+        rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.id
+    
+        if not os.path.exists(rubricfile):
+            print "Repository for %s does not exist have a rubric for assignment %s" % (team.id, assignment.id)
+            ctx.exit(CHISUBMIT_FAIL)
+    
+        RubricFile.from_file(open(rubricfile), assignment)
+        print "%s: Rubric OK." % team.id
 
     return CHISUBMIT_SUCCESS
 
@@ -96,7 +98,6 @@ def grader_validate_rubrics(ctx, course, team_id, assignment_id):
 @click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @pass_course
-@save_changes
 @click.pass_context
 def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
     grader = course.get_grader(grader_id)
@@ -116,7 +117,7 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
 
     for team in teams:
         print "Pushing grading branch for team %s... " % team.id
-        gradingrepo_push_grading_branch(course, team, assignment, staging = True)
+        gradingrepo_push_grading_branch(ctx.obj['config'], course, team, assignment, to_staging = True)
 
     return CHISUBMIT_SUCCESS
 
@@ -125,7 +126,6 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
 @click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @pass_course
-@save_changes
 @click.pass_context
 def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
     grader = course.get_grader(grader_id)
@@ -145,7 +145,7 @@ def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
 
     for team in teams:
         print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(course, team, assignment, staging = True)
+        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, assignment, staging = True)
 
     return CHISUBMIT_SUCCESS
 

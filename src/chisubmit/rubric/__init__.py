@@ -191,11 +191,12 @@ class RubricFile(object):
 
     @classmethod
     def from_assignment(cls, assignment, team_assignment = None):
-        points = dict([(gc.name, None) for gc in assignment.grade_components])
+        gcs = dict([(gc.id, gc.description) for gc in assignment.grade_components])
+        points = dict([(gc.description, None) for gc in assignment.grade_components])
         
         if team_assignment is not None:
             for grade in team_assignment.grades:
-                gc = grade.grade_component
-                points[gc.name] = grade.points
+                gc_id = grade.grade_component_id
+                points[gcs[gc_id]] = grade.points
         
         return cls(assignment, points, penalties = None, comments = None)

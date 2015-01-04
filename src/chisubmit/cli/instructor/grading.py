@@ -8,8 +8,8 @@ import os.path
 from chisubmit.rubric import RubricFile
 from chisubmit.cli.common import create_grading_repos, get_teams,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
-from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.cli.common import pass_course
+from chisubmit.common.utils import create_connection
 
 @click.group(name="grading")
 @click.pass_context
@@ -121,121 +121,121 @@ def instructor_grading_list_grades(ctx, course):
 
 
 @click.command(name="assign-graders")
-@click.argument('project_id', type=str)
-@click.option('--fromproject', type=str)
-@click.option('--avoidproject', type=str)
+@click.argument('assignment_id', type=str)
+@click.option('--from-assignment', type=str)
+@click.option('--avoid-assignment', type=str)
 @click.option('--reset', is_flag=True)
 @pass_course
 @click.pass_context
-def instructor_grading_assign_graders(ctx, course, project_id, fromproject, avoidproject, reset):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, reset):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    from_project = None
-    if fromproject is not None:
-        from_project = course.get_project(fromproject)
-        if from_project is None:
-            print "Project %s does not exist" % from_project
+    from_assignment = None
+    if from_assignment is not None:
+        from_assignment = course.get_assignment(from_assignment)
+        if from_assignment is None:
+            print "Project %s does not exist" % from_assignment
             ctx.exit(CHISUBMIT_FAIL)
 
-    avoid_project = None
-    if avoidproject is not None:
-        avoid_project = course.get_project(avoidproject)
-        if avoid_project is None:
-            print "Project %s does not exist" % avoid_project
+    avoid_assignment = None
+    if avoid_assignment is not None:
+        avoid_assignment = course.get_assignment(avoid_assignment)
+        if avoid_assignment is None:
+            print "Project %s does not exist" % avoid_assignment
             ctx.exit(CHISUBMIT_FAIL)
 
-    if reset and fromproject is not None:
-        print "--reset and --fromproject are mutually exclusive"
+    if reset and from_assignment is not None:
+        print "--reset and --from_assignment are mutually exclusive"
         ctx.exit(CHISUBMIT_FAIL)
 
-    if avoidproject is not None and fromproject is not None:
-        print "--avoidproject and --fromproject are mutually exclusive"
+    if avoid_assignment is not None and from_assignment is not None:
+        print "--avoid_assignment and --from_assignment are mutually exclusive"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = [t for t in course.teams if t.has_project(project.id)]
-    graders = course.graders
+    teams = get_teams(course, assignment)
+    graders = course.graders[:]
 
-    if not graders:
+    if len(graders) == 0:
         print "There are ZERO graders in this course!"
         ctx.exit(CHISUBMIT_FAIL)
 
-    min_teams_per_grader = len(teams) / len(course.graders)
-    extra_teams = len(teams) % len(course.graders)
+    min_teams_per_grader = len(teams) / len(graders)
+    extra_teams = len(teams) % len(graders)
 
-    teams_per_grader = dict([(g.id, min_teams_per_grader) for g in course.graders])
+    teams_per_grader = dict([(g.user.id, min_teams_per_grader) for g in graders])
     random.shuffle(graders)
 
     # so many graders in this course that some will end up expecting zero
     # teams to grade. Make sure they are able to get at least one.
     for g in graders[:extra_teams]:
-        teams_per_grader[g.id] += 1
+        teams_per_grader[g.user.id] += 1
 
-    if from_project is not None:
-        common_teams = [t for t in course.teams if t.has_project(project.id) and t.has_project(from_project.id)]
+    if from_assignment is not None:
+        common_teams = [t for t in course.teams if t.has_assignment(assignment.id) and t.has_assignment(from_assignment.id)]
         for t in common_teams:
-            team_project_from = t.get_project(from_project.id)
-            team_project_to = t.get_project(project.id)
+            team_assignment_from = t.get_assignment(from_assignment.id)
+            team_assignment_to = t.get_assignment(assignment.id)
 
-            # try to assign the same grader that would grade the same team's other project
-            grader = team_project_from.get_grader()
+            # try to assign the same grader that would grade the same team's other assignment
+            grader = team_assignment_from.grader
             if grader is not None and teams_per_grader[grader.id] > 0:
-                team_project_to.grader = grader
+                team_assignment_to.grader = grader
                 teams_per_grader[grader.id] -= 1
 
     if reset:
         for t in teams:
-            t.get_project(project.id).grader = None
+            t.get_assignment(assignment.id).grader = None
 
     for g in graders:
-        if teams_per_grader[g.id] > 0:
+        if teams_per_grader[g.user.id] > 0:
             for t in teams:
-                team_project = t.get_project(project.id)
+                team_assignment = t.get_assignment(assignment.id)
 
-                if avoid_project is not None:
-                    team_project_avoid = t.get_project(avoid_project.id)
-                    if team_project_avoid.get_grader() == grader:
+                if avoid_assignment is not None:
+                    team_assignment_avoid = t.get_assignment(avoid_assignment.id)
+                    if team_assignment_avoid.grader == grader:
                         continue
-
-                team_project_grader = team_project.get_grader()
-                if team_project_grader is None:
+                
+                team_assignment_grader = team_assignment.grader
+                if team_assignment_grader is None:
                     valid = True
 
-                    # FIXME 16DEC14: grader conflicts
-                    """for s in t.students:
-                        if s in g.conflicts:
+                    for s in t.students:
+                        conflicts = g.get_conflicts()
+                        if s.user.id in conflicts:
                             valid = False
-                            break"""
+                            break
 
                     if valid:
-                        team_project.add_grader(g)
-                        teams_per_grader[g.id] -= 1
-                        if teams_per_grader[g.id] == 0:
+                        t.set_assignment_grader(assignment.id, g.user.id)
+                        teams_per_grader[g.user.id] -= 1
+                        if teams_per_grader[g.user.id] == 0:
                             break
 
     for g in graders:
-        if teams_per_grader[g.id] != 0:
-            print "Unable to assign enough teams to grader %s" % g.id
+        if teams_per_grader[g.user.id] != 0:
+            print "Unable to assign enough teams to grader %s" % g.user.id
 
     for t in teams:
-        team_project = t.get_project(project.id)
-        if team_project.get_grader() is None:
+        team_assignment = t.get_assignment(assignment.id)
+        if team_assignment.grader is None:
             print "Team %s has no grader" % (t.id)
 
     return CHISUBMIT_SUCCESS
 
 
 @click.command(name="list-grader-assignments")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.option('--grader-id', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_list_grader_assignments(ctx, course, project_id, grader_id):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def instructor_grading_list_grader_assignments(ctx, course, assignment_id, grader_id):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
     if grader_id is not None:
@@ -246,49 +246,41 @@ def instructor_grading_list_grader_assignments(ctx, course, project_id, grader_i
     else:
         grader = None
 
-    teams = [t for t in course.teams if t.has_project(project.id)]
+    teams = get_teams(course, assignment)
     teams.sort(key=operator.attrgetter("id"))
 
     for t in teams:
-        team_project = t.get_project(project.id)
+        team_assignment = t.get_assignment(assignment.id)
         if grader is None:
-            if team_project.get_grader() is None:
+            if team_assignment.grader is None:
                 grader_str = "<no-grader-assigned>"
             else:
-                grader_str = team_project.get_grader().id
+                grader_str = team_assignment.grader.id
             print t.id, grader_str
         else:
-            if grader == team_project.get_grader():
+            if grader == team_assignment.grader:
                 print t.id
 
     return CHISUBMIT_SUCCESS
 
 
 @click.command(name="list-submissions")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_list_submissions(ctx, course, project_id):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist"
+def instructor_grading_list_submissions(ctx, course, assignment_id):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = [t for t in course.teams if t.has_project(project.id)]
+    teams = get_teams(course, assignment)
     teams.sort(key=operator.attrgetter("id"))
 
-    conn = RemoteRepositoryConnectionFactory.create_connection(course.git_server_connection_string)
-    server_type = conn.get_server_type_name()
-    git_credentials = ctx.obj['config']['git-credentials']
-
-    if git_credentials is None:
-        print "You do not have %s credentials." % server_type
-        ctx.exit(CHISUBMIT_FAIL)
-
-    conn.connect(git_credentials)
+    conn = create_connection(course, ctx.obj['config'])
 
     for team in teams:
-        submission_tag = conn.get_submission_tag(course, team, project.id)
+        submission_tag = conn.get_submission_tag(course, team, assignment.id)
 
         if submission_tag is None:
             print "%25s NOT SUBMITTED" % team.id
@@ -307,7 +299,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id):
         print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = [t for t in course.teams if t.has_assignment(assignment.id)]
+    teams = get_teams(course, assignment)
 
     repos = create_grading_repos(ctx.obj['config'], course, assignment, teams)
 
@@ -318,23 +310,23 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id):
 
 
 @click.command(name="create-grading-branches")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_create_grading_branches(ctx, course, project_id, only):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist"
+def instructor_grading_create_grading_branches(ctx, course, assignment_id, only):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, project, only = only)
+    teams = get_teams(course, assignment, only = only)
 
     if teams is None:
         ctx.exit(CHISUBMIT_FAIL)
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(ctx['config']['directory'], course, team, project)
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
 
         if repo is None:
             print "%s does not have a grading repository" % team.id
@@ -347,26 +339,26 @@ def instructor_grading_create_grading_branches(ctx, course, project_id, only):
 
 
 @click.command(name="push-grading-branches")
-@click.argument('project_id', type=str)
-@click.option('--staging', is_flag=True)
-@click.option('--github', is_flag=True)
+@click.argument('assignment_id', type=str)
+@click.option('--to-staging', is_flag=True)
+@click.option('--to-students', is_flag=True)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_push_grading_branches(ctx, course, project_id, staging, github, only):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist"
+def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_staging, to_students, only):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, project, only = only)
+    teams = get_teams(course, assignment, only = only)
 
     if teams is None:
         ctx.exit(CHISUBMIT_FAIL)
 
     for team in teams:
         print ("Pushing grading branch for team %s... " % team.id),
-        gradingrepo_push_grading_branch(course, team, project, staging = staging, github = github)
+        gradingrepo_push_grading_branch(ctx.obj['config'], course, team, assignment, to_staging = to_staging, to_students = to_students)
         print "done."
 
     return CHISUBMIT_SUCCESS
@@ -374,47 +366,49 @@ def instructor_grading_push_grading_branches(ctx, course, project_id, staging, g
 
 
 @click.command(name="pull-grading-branches")
-@click.argument('project_id', type=str)
-@click.option('--staging', is_flag=True)
-@click.option('--github', is_flag=True)
+@click.argument('assignment_id', type=str)
+@click.option('--from-staging', is_flag=True)
+@click.option('--from-students', is_flag=True)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_pull_grading_branches(ctx, course, project_id, staging, github, only):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist"
+def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_staging, from_students, only):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, project, only = only)
+    teams = get_teams(course, assignment, only = only)
 
     if teams is None:
         ctx.exit(CHISUBMIT_FAIL)
 
     for team in teams:
         print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(course, team, project, staging = staging, github = github)
+        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, assignment, from_staging = from_staging, from_students = from_students)
 
     return CHISUBMIT_SUCCESS
 
 
 
 @click.command(name="add-rubrics")
-@click.argument('project_id', type=str)
+@click.argument('assignment_id', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_add_rubrics(ctx, course, project_id):
-    project = course.get_project(project_id)
-    if project is None:
-        print "Project %s does not exist" % project_id
+def instructor_grading_add_rubrics(ctx, course, assignment_id):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = [t for t in course.teams if t.has_project(project.id)]
+    teams = get_teams(course, assignment)
 
     for team in teams:
-        repo = GradingGitRepo.get_grading_repo(ctx.obj['config']['directory'], course, team, project)
-        rubric = RubricFile.from_assignment(project, team)
-        rubricfile = repo.repo_path + "/%s.rubric.txt" % project.id
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
+        team_assignment = team.get_assignment(assignment_id)
+        rubric = RubricFile.from_assignment(assignment, team_assignment)
+        rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.id
+        print rubricfile
         rubric.save(rubricfile, include_blank_comments=True)
 
 
@@ -430,7 +424,7 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id):
 
     gcs = assignment.grade_components
 
-    teams = [t for t in course.teams if t.has_assignment(assignment.id)]
+    teams = get_teams(course, assignment)
 
     for team in teams:
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)

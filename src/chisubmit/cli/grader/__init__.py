@@ -3,8 +3,7 @@ import click
 import os.path
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.cli.common import create_grading_repos,\
-    gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams,\
-    get_access_token
+    gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.rubric import RubricFile
 from chisubmit.cli.common import pass_course
@@ -148,8 +147,6 @@ def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
         gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, assignment, staging = True)
 
     return CHISUBMIT_SUCCESS
-
-grader.add_command(get_access_token)
 
 grader.add_command(grader_create_local_grading_repos)
 grader.add_command(grader_validate_rubrics)

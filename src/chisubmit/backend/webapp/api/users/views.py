@@ -4,9 +4,11 @@ from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.users.forms import CreateUserInput, UpdateUserInput,\
     GenerateAccessTokenInput
-from chisubmit.backend.webapp.auth import ldapclient
+from chisubmit.backend.webapp.auth import ldap, require_auth
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import require_admin_access
+from chisubmit.common.utils import gen_api_key
+from flask.globals import g
 
 
 @api_endpoint.route('/users', methods=['POST'])
@@ -52,29 +54,28 @@ def user(user_id):
     return jsonify({'user': user.to_dict()})
 
 
-@api_endpoint.route('/users/<user_id>/token', methods=['POST'])
-def get_token(user_id):
-    user = User.query.filter_by(id=user_id).first()
-    # TODO 11DEC14: check permissions *before* 404
-    if user is None:
-        abort(404)
-
+@api_endpoint.route('/auth', methods=['POST'])
+@require_auth
+def get_api_key():
     input_data = request.get_json(force=True)
-    app.logger.error('GOT json: %s' % input_data)
     if not isinstance(input_data, dict):
         return jsonify(error='Request data must be a JSON Object'), 400
     form = GenerateAccessTokenInput.from_json(input_data)
-    app.logger.error('Made form: %s' % form)
     if not form.validate():
         return jsonify(errors=form.errors), 400
+    
+    exists_prior = g.user.api_key is not None 
 
-    if ldapclient.authenticate(user.id, form.password.data):
-        if form.reset:
-            pass
-            # User.new_token
-        else:
-            pass
-            # User.api_key
-        return jsonify({'key': 'asdfasdf'})
+    if form.reset.data or g.user.api_key is None:
+        api_key = gen_api_key()
+        g.user.api_key = api_key
+        db.session.add(g.user)
+        db.session.commit()
+        is_new = True
     else:
-        return jsonify(errors={'credentials':['Not valid'] }), 400
+        api_key = g.user.api_key
+        is_new = False
+        
+    return jsonify({'api_key': api_key, 
+                    'exists_prior': exists_prior, 
+                    'is_new': is_new})

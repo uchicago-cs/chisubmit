@@ -127,22 +127,3 @@ def gradingrepo_pull_grading_branch(config, course, team, assignment, from_stude
 
     return CHISUBMIT_SUCCESS
 
-
-@click.command(name="get-access-token")
-@click.option('--user', prompt='Enter your chisubmit username', default=lambda: getpass.getuser())
-@click.option('--delete', is_flag=True)
-@click.pass_context
-def get_access_token(ctx, user, delete):
-
-    password = getpass.getpass("Enter your password: ")
-    token = User.get_token(user, password, delete)
-
-    if token:
-        ctx.obj['config']['api-token'] = token
-        click.echo("Your chisubmit access token is: %s")
-        click.echo("The token has been stored in your chisubmit configuration file.")
-        click.echo("You should now be able to use the chisubmit commands.")
-    else:
-        click.echo("Unable to create token. Incorrect username/password.")
-
-    return CHISUBMIT_SUCCESS

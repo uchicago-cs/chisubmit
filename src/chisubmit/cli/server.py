@@ -36,6 +36,18 @@ from chisubmit.common import CHISUBMIT_SUCCESS, ChisubmitException
 from chisubmit.backend.webapp.api import ChisubmitAPIServer
 import tempfile
 
+def set_auth(server, config_profile):
+    if config_profile.has_key("auth"):
+        if config_profile["auth"]["type"] == "testing":
+            server.set_auth_testing(config_profile["auth"]["password"])
+        elif config_profile["auth"]["type"] == "ldap":
+            server.set_auth_ldap(config_profile["auth"]["server-uri"],
+                                 config_profile["auth"]["base-dn"])      
+        else:
+            raise ChisubmitException("Unrecognized authentication type: %s" % config_profile["auth"]["type"])
+
+
+
 def get_server(config, profile):
     p = config.get_server_profile(profile)
 
@@ -50,6 +62,8 @@ def get_server(config, profile):
     elif p["db"]  == "postgres":
         server.connect_postgres()
         
+    set_auth(server, p)
+                    
     return server
 
 @click.command(name="start")
@@ -81,6 +95,8 @@ def server_start(ctx, profile, test_fixture):
             print "Fixture '%s' has been loaded on database %s" % (test_fixture, db_filename) 
         else:
             server.connect_sqlite(os.environ['CHISUBMIT_TEST_DB'])
+            
+        set_auth(server, config.get_server_profile(profile))
     else:
         server = get_server(config, profile)
 

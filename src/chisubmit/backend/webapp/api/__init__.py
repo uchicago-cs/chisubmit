@@ -9,6 +9,9 @@ from flask.app import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 import wtforms_json
+from chisubmit.backend.webapp.auth.testing import TestingAuth
+from chisubmit.backend.webapp.auth import set_auth
+from chisubmit.backend.webapp.auth.ldap import LDAPAuth
 
 wtforms_json.init()
 
@@ -42,6 +45,14 @@ class ChisubmitAPIServer(object):
         
     def connect_postgres(self):
         pass
+    
+    def set_auth_testing(self, password):
+        auth = TestingAuth(self, password)
+        set_auth(auth)
+    
+    def set_auth_ldap(self, ldap_server_uri, base_dn):
+        auth = LDAPAuth(self, ldap_server_uri, base_dn)
+        set_auth(auth)
 
     def start(self):
         self.app.run(debug = self.debug)

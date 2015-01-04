@@ -55,24 +55,26 @@ endpoint = None
 session = None
 test_client = None
 testing = False
-headers = None
+test_headers = None
 
-def connect(url, access_token):
+def connect(url, access_token = None):
     global endpoint, session, testing
     testing = False
     endpoint = url
     session = Session()
-    session.headers = {'content-type': 'application/json',
-                       "CHISUBMIT-API-KEY": access_token}
+    session.headers['content-type'] = 'application/json'
+    if access_token is not None:
+        session.headers["CHISUBMIT-API-KEY"] = access_token
     
 def connect_test(app, access_token = None):
-    global endpoint, test_client, testing, headers
+    global endpoint, test_client, testing, test_headers
     endpoint = "/api/v0/"
     test_client = app.test_client()
     testing = True
-    headers = {'content-type': 'application/json'}
+    test_headers = {'content-type': 'application/json'}
     if access_token is not None:
-        headers["CHISUBMIT-API-KEY"] = access_token
+        test_headers["CHISUBMIT-API-KEY"] = access_token
+
     return test_client
 
 def raise_for_status(response):
@@ -125,33 +127,45 @@ def __process_response(response, method, url):
     return data_json
 
 
-def get(resource, **kwargs):
+def get(resource, headers=None, **kwargs):
     url = endpoint + resource
     
     if testing:
+        if headers is None:
+            headers = test_headers
+        else:
+            headers.update(test_headers)
         response = test_client.get(url, headers=headers, **kwargs)
     else:    
-        response = session.get(url, **kwargs)
+        response = session.get(url, headers=headers, **kwargs)
         
     return __process_response(response, method = "GET", url = url) 
 
-def post(resource, data, **kwargs):
+def post(resource, data, headers=None, **kwargs):
     url = endpoint + resource
 
     if testing:
+        if headers is None:
+            headers = test_headers
+        else:
+            headers.update(test_headers)        
         response = test_client.post(url, data=data, headers=headers, **kwargs)
     else:
-        response = session.post(url, data, **kwargs)
+        response = session.post(url, data, headers=headers, **kwargs)
     
     return __process_response(response, method = "POST", url = url) 
 
-def put(resource, data, **kwargs):
+def put(resource, data, headers = None, **kwargs):
     url = endpoint + resource
     
     if testing:
+        if headers is None:
+            headers = test_headers
+        else:
+            headers.update(test_headers)        
         response = test_client.put(url, data=data, headers=headers, **kwargs)
     else:
-        response = session.put(url, data, **kwargs)
+        response = session.put(url, data, headers=headers, **kwargs)
     
     return __process_response(response, method = "PUT", url = url) 
 
@@ -162,7 +176,7 @@ def exists(obj):
     else:
         obj_endpoint = obj.url()
     if testing:
-        response = test_client.get(endpoint + obj_endpoint,  headers=headers)
+        response = test_client.get(endpoint + obj_endpoint, headers=test_headers)
     else:
         response = session.get(endpoint + obj_endpoint)
     if response.status_code == 404:

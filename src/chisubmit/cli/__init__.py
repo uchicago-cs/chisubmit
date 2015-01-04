@@ -39,6 +39,8 @@ from chisubmit.cli.instructor import instructor
 from chisubmit.cli.student import student
 from chisubmit.client.session import BadRequestError
 from chisubmit.cli.grader import grader
+import getpass
+from chisubmit.client.user import User
 config = None
 
 import chisubmit.common.log as log
@@ -142,6 +144,62 @@ chisubmit_cmd.add_command(instructor)
 chisubmit_cmd.add_command(student)
 chisubmit_cmd.add_command(grader)
 
+
+@click.command(name="chisubmit-get-credentials")
+@click.option('--conf', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--user', prompt='Enter your chisubmit username')
+@click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
+@click.option('--no-save', is_flag=True)
+@click.option('--reset', is_flag=True)
+@click.option('--testing', is_flag=True)
+@click.pass_context
+def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, no_save, reset, testing):
+    config = Config(dir, conf)
+
+    if testing:
+        from chisubmit.backend.webapp.api import app 
+        session.connect_test(app)
+    else:
+        session.connect(config['api-url'])
+    
+    try:
+        token, exists_prior, is_new = User.get_token(user, password, reset)
+    except HTTPError, he:
+        if he.response.status_code == 401:
+            print "ERROR: Incorrect username/password"
+            ctx.exit(CHISUBMIT_FAIL)
+        else:
+            print "ERROR: Unexpected error (HTTP %i)" % he.response.status_code
+            ctx.exit(CHISUBMIT_FAIL)            
+
+    if token:
+        config['api-key'] = token
+
+        if not no_save:
+            config.save()
+
+        if is_new:
+            ttype = "NEW"
+        else:
+            ttype = "EXISTING"
+        
+        click.echo("")
+        click.echo("Your %s chisubmit access token is: %s" % (ttype, token))
+        if not no_save:
+            click.echo("")
+            click.echo("The token has been stored in your chisubmit configuration file.")
+            click.echo("You should now be able to use the chisubmit commands.")
+        if exists_prior and is_new:
+            click.echo("")
+            click.echo("Your previous chisubmit access token has been cancelled.")
+            click.echo("Make sure you run chisubmit-get-credentials on any other")
+            click.echo("machines where you are using chisubmit.")
+        click.echo("")
+    else:
+        click.echo("Unable to create token. Incorrect username/password.")
+
+    return CHISUBMIT_SUCCESS
 
 from chisubmit.cli.server import server_start, server_initdb
 

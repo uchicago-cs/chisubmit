@@ -41,8 +41,8 @@ DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
 class Config(collections.MutableMapping):
 
     IMPLICIT_FIELDS = ["directory"]
-    REQUIRED_FIELDS = ["api-key", "api-url"]
-    OPTIONAL_FIELDS = ["default-course", "git-credentials", "server"]
+    REQUIRED_FIELDS = ["api-url"]
+    OPTIONAL_FIELDS = ["default-course", "git-credentials", "server", "api-key"]
 
     def __getitem__(self, key):
         if key in self.options:

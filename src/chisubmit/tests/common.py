@@ -18,6 +18,8 @@ import git
 import functools
 from chisubmit.client.session import BadRequestError
 import unittest
+import random
+import string
 
 colorama.init()
 
@@ -96,7 +98,7 @@ class ChisubmitCLITestClient(object):
                     }
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
-    def run(self, subcommands, params = [], course = None, catch_exceptions=False):
+    def run(self, subcommands, params = [], course = None, cmd=chisubmit_cmd, catch_exceptions=False, cmd_input = None):
         chisubmit_args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
         
         if course is not None:
@@ -104,7 +106,11 @@ class ChisubmitCLITestClient(object):
         elif self.course is not None:
             chisubmit_args += ['--course', self.course]
         
-        cmd_args = subcommands.split()
+        if subcommands is None:
+            cmd_args = []
+        else:
+            cmd_args = subcommands.split()
+
         cmd_args += params
         
         if self.verbose:
@@ -122,7 +128,7 @@ class ChisubmitCLITestClient(object):
             s+= colorama.Style.RESET_ALL
             print s
         
-        result = self.runner.invoke(chisubmit_cmd, chisubmit_args + cmd_args, catch_exceptions=catch_exceptions)
+        result = self.runner.invoke(cmd, chisubmit_args + cmd_args, catch_exceptions=catch_exceptions, input=cmd_input)
         
         if self.verbose and len(result.output) > 0:
             sys.stdout.write(result.output)
@@ -154,13 +160,17 @@ class BaseChisubmitTestCase(unittest.TestCase):
         self.git_staging_connstr = "server_type=Testing;local_path=./test-fs/staging"
         self.git_server_user = None
         self.git_staging_user = None
-        self.git_api_keys = {}
+        self.git_api_keys = {}        
     
     @classmethod
     def setUpClass(cls):
         cls.server = ChisubmitAPIServer(debug = True)
         cls.db_fd, cls.db_filename = tempfile.mkstemp()
         cls.server.connect_sqlite(cls.db_filename)
+        
+        password_length=random.randint(50,80)
+        cls.auth_password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(password_length))
+        cls.server.set_auth_testing(cls.auth_password)
             
     @classmethod
     def tearDownClass(cls):

@@ -31,6 +31,8 @@
 from chisubmit.client import ApiObject
 from chisubmit.client import session
 import json
+import base64
+from chisubmit.common import ChisubmitException
 
 class User(ApiObject):
 
@@ -46,5 +48,14 @@ class User(ApiObject):
     # TODO 18DEC14: handle revoking and/or replacing the token
     @classmethod
     def get_token(cls, username, password, reset=False):
-        data = json.dumps({'password':password, reset:reset})
-        session.post('users/%s/token' % username, data=data)            
+        credentials = base64.b64encode(username + ":" + password)
+        
+        headers={'Authorization': 'Basic ' + credentials}        
+        
+        data = json.dumps({"reset":reset})
+        response = session.post('auth', data=data, headers=headers)
+        
+        if not response.has_key("api_key") or response["api_key"] is None:
+            raise ChisubmitException("Chisubmit server did not return valid credentials")
+        else:
+            return (response["api_key"], response["exists_prior"], response["is_new"])

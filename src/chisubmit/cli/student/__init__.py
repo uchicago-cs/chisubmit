@@ -1,5 +1,4 @@
 import click
-from chisubmit.cli.common import pass_course, get_access_token
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
@@ -9,6 +8,7 @@ import pytz
 from dateutil.parser import parse
 from chisubmit.repos.github import GitHubConnection
 import getpass
+from chisubmit.cli.common import pass_course
 
 @click.group()
 @click.pass_context
@@ -294,8 +294,6 @@ def student_get_git_credentials(ctx, course, delete):
         print "chisubmit has been configured to use this token from now on."
 
     return CHISUBMIT_SUCCESS
-
-student.add_command(get_access_token)
 
 student.add_command(student_assignment_register)
 student.add_command(student_assignment_submit)

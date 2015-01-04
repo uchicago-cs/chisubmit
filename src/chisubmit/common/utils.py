@@ -61,7 +61,7 @@ def gen_api_key():
     h = hashlib.sha256(s)
     altchars = random.choice(string.ascii_letters) + random.choice(string.ascii_letters)
     b = base64.b64encode(h.digest(), altchars).rstrip("==")
-    return b
+    return unicode(b)
     
     
 def create_connection(course, config, staging = False):

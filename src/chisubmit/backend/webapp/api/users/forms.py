@@ -35,5 +35,4 @@ class UpdateUserInput(Form):
                                                     Optional()])
 
 class GenerateAccessTokenInput(Form):
-    password = StringField(validators=[InputRequired()])
     reset = BooleanField(validators=[Optional()])

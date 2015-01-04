@@ -67,6 +67,10 @@ class RemoteRepositoryConnectionBase(object):
 
 
     @abc.abstractmethod
+    def get_credentials(self, username, password, delete_repo = False):
+        pass
+
+    @abc.abstractmethod
     def connect(self):
         pass
 

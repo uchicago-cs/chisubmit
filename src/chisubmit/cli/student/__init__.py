@@ -271,27 +271,39 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
 
 
 @click.command(name="get-git-credentials")
-@click.option('--delete', is_flag=True)
+@click.option('--username', prompt='Enter your git username')
+@click.option('--password', prompt='Enter your git password', hide_input=True)
+@click.option('--no-save', is_flag=True)
+@click.option('--delete-permissions', is_flag=True)
 @pass_course
 @click.pass_context
-def student_get_git_credentials(ctx, course, delete):
+def student_get_git_credentials(ctx, course, username, password, no_save, delete_permissions):
+    
+    if not course.options.has_key("git-server-connstr"):
+        print "Course '%s' doesn't seem to be configured to use a Git server." % course.id
+        ctx.exit(CHISUBMIT_FAIL)
+        
     connstr = course.options["git-server-connstr"]
 
-    conn = RemoteRepositoryConnectionFactory.create_connection(connstr)
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = False)
     server_type = conn.get_server_type_name()
-    
-    username = raw_input("Enter your %s username: " % server_type)
-    password = getpass.getpass("Enter your %s password: " % server_type)
 
-    token = conn.get_credentials(username, password, delete = delete)
+    token, existing = conn.get_credentials(username, password, delete_repo = delete_permissions)
 
     if token is None:
         print "Unable to create token. Incorrect username/password."
     else:
-        ctx.obj['config']['git-credentials'][server_type] = token
+        if not no_save:
+            ctx.obj['config']['git-credentials'][server_type] = token
+            ctx.obj['config'].save()
         
-        print "The following token has been created: %s" % token
-        print "chisubmit has been configured to use this token from now on."
+        if existing:
+            print "Your existing %s access token is: %s" % (server_type, token)
+        else:
+            print "The following %s access token has been created: %s" % (server_type, token)
+
+        if not no_save:
+            print "chisubmit has been configured to use this token from now on."
 
     return CHISUBMIT_SUCCESS
 

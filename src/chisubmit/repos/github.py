@@ -31,9 +31,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def get_connstr_optional_params():
         return []
 
-
-    @staticmethod
-    def get_credentials(username, password, delete_repo = False):
+    def get_credentials(self, username, password, delete_repo = False):
         gh = Github(username, password)
         token = None
 
@@ -46,16 +44,26 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
             if delete_repo:
                 scopes.append("delete_repo")
                 note += " Has delete permissions."
-
-            auth = u.create_authorization(scopes = scopes, note = note)
+            
+            auth = None
+            for a in u.get_authorizations():
+                if a.note == note:
+                    auth = a
+                    break
+                
+            if auth is None:
+                existing = False
+                auth = u.create_authorization(scopes = scopes, note = note)
+            else:
+                existing = True
             token = auth.token
         except GithubException as ge:
             if ge.status == 401:
-                return None
+                return None, False
             else:
                 raise ChisubmitException("Unexpected error creating authorization token (%i: %s)" % (ge.status, ge.data["message"]), ge)
 
-        return token
+        return token, existing
 
 
     def connect(self, credentials):

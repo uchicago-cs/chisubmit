@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 from gitlab import Gitlab
+import gitlab.exceptions
 
 from chisubmit.repos import RemoteRepositoryConnectionBase
 from chisubmit.common import ChisubmitException
@@ -32,9 +33,19 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     def get_connstr_optional_params():
         return []
     
-    @staticmethod
-    def get_credentials(username, password, delete_repo = False):
-        pass
+    def get_credentials(self, username, password, delete_repo = False):
+        try:
+            g = Gitlab(self.gitlab_hostname)
+            rv = g.login(username, password)
+            if not rv:
+                return None, False
+            else:
+                return g.currentuser()["private_token"], True
+        except gitlab.exceptions.HttpError, he:
+            if he.message == "401 Unauthorized":
+                return None, False
+            else:
+                raise ChisubmitException("Unexpected error getting authorization token (Reason: %s)" % (he.message), he)
     
     def connect(self, credentials):
         # Credentials are a GitLab private token

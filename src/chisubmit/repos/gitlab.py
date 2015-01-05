@@ -75,47 +75,49 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         if group is None:
             new_group = self.gitlab.creategroup(course.name, course.id)
             
-            if new_group != True:
-                raise ChisubmitException("Could not create group '%s'" % course.id)
+            if isinstance(new_group, gitlab.exceptions.HttpError):
+                raise ChisubmitException("Could not create group '%s'" % course.id, new_group)
                 
-        for instructor in course.instructors.values():
-            self.__add_user_to_course_group(course, instructor.git_server_id, "owner")
-
-        for grader in course.graders.values():
-            self.__add_user_to_course_group(course, grader.git_server_id, "developer")
-
-
     def deinit_course(self, course):
-        pass
+        from pprint import pprint
+        pprint(self.gitlab.getgroups())
+        group = self.__get_group(course)
+        print group
+        if group is not None:
+            rv = self.gitlab.deletegroup(self.__get_group_id(course))
+            print rv
+        pprint(self.gitlab.getgroups())            
     
     def update_instructors(self, course):
-        for instructor in course.instructors.values():
-            self.__add_user_to_course_group(course, instructor.git_server_id, "owner")
+        for instructor in course.instructors:
+            self.__add_user_to_course_group(course, self._get_user_git_username(instructor), "owner")
 
         # TODO: Remove instructors that may have been removed
 
 
     def update_graders(self, course):
-        for grader in course.graders.values():
-            self.__add_user_to_course_group(course, grader.git_server_id, "developer")
+        for grader in course.graders:
+            self.__add_user_to_course_group(course, self._get_user_git_username(grader), "developer")
 
         # TODO: Remove instructors that may have been removed
 
     
     def create_team_repository(self, course, team, fail_if_exists=True, private=True):
         repo_name = self.__get_team_namespaced_project_name(course, team)
-        student_names = ", ".join(["%s %s" % (s.first_name, s.last_name) for s in team.students])
+        student_names = ", ".join(["%s %s" % (s.user.first_name, s.user.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
+        
+        students = [s for s in course.students if s.user in [ts.user for ts in team.students]]
         
         if not self.staging:
             gitlab_students = []
 
             # Make sure users exist
-            for s in team.students:
-                gitlab_student = self.__get_user_by_username(s.git_server_id)
+            for s in students:
+                gitlab_student = self.__get_user_by_username(self._get_user_git_username(s))
                 
                 if gitlab_student is None:
-                    raise ChisubmitException("GitLab user '%s' does not exist " % (s.git_server_id))
+                    raise ChisubmitException("GitLab user '%s' does not exist " % (self._get_user_git_username(s)))
                 
                 gitlab_students.append(gitlab_student)        
         
@@ -130,15 +132,16 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             if group is None:
                 raise ChisubmitException("Group for course '%s' does not exist" % course.id)
 
-            if private:
-                public = 0
-            else:
-                public = 1
+            # Workaround: Our GitLab server doesn't like public repositories
+            #if private:
+            #    public = 0
+            #else:
+            #    public = 1
             
             gitlab_project = self.gitlab.createproject(team.id,
                                                        namespace_id = group["id"],
                                                        description = repo_description,
-                                                       public = public)
+                                                       public = 0)
             
             if gitlab_project == False:
                 raise ChisubmitException("Could not create repository %s" % repo_name)
@@ -158,7 +161,11 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         pass
     
     def exists_team_repository(self, course, team):
-        pass
+        repo = self.__get_team_project(course, team)
+        if repo is None:
+            return False
+        else:
+            return True
     
     def get_repository_git_url(self, course, team):
         repo_name = self.__get_team_namespaced_project_name(course, team)
@@ -242,7 +249,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         if group_id == None:
             return None
         
-        group = self.gitlab.getgroups(id_ = group_id)
+        group = self.gitlab.getgroups(group_id = group_id)
         
         if group == False:
             return None

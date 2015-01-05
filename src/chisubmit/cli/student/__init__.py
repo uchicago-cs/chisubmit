@@ -103,7 +103,7 @@ def student_repo_check(ctx, course, team_id):
         ctx.exit(CHISUBMIT_FAIL)
 
     if not conn.exists_team_repository(course, team):
-        print "The repository '%s' does not exist or you do not have permission to access it." % team.github_repo
+        print "The repository for '%s' does not exist or you do not have permission to access it." % team_id
         ctx.exit(CHISUBMIT_FAIL)
 
     # TODO: Check that the user actually has push access

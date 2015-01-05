@@ -1,0 +1,87 @@
+
+# The admin subcommand does not support the "--course" option
+# A course always has to be explicitly specified as a parameter
+# and no 'default course' can be set.
+
+admin
+    user
+        add USER_ID FIRST_NAME LAST_NAME EMAIL
+        remove USER_ID
+        
+    course
+        add COURSE_ID COURSE_NAME
+        remove COURSE_ID
+        show COURSE_ID [--include-users] [--include-assignments]
+        set-option COURSE_ID OPTION_KEY OPTION_VALUE
+        list
+        add-instructor COURSE_ID USER_ID
+        remove-instructor COURSE_ID USER_ID
+        add-grader COURSE_ID USER_ID
+        remove-grader COURSE_ID USER_ID 
+        add-student COURSE_ID USER_ID
+        remove-student COURSE_ID USER_ID
+        set-student-dropped COURSE_ID USER_ID
+    
+# The following subcommands all assume that a course has been specified
+# either with '--course' or with a default course.   
+    
+instructor
+
+    course
+        set-user-git-username USER_TYPE USER_ID GIT_USERNAME
+        set-user-git-staging-username USER_TYPE USER_ID GIT_USERNAME
+
+    assignment
+        add ASSIGNMENT_ID NAME DEADLINE
+        remove ASSIGNMENT_ID
+        show ASSIGNMENT_ID
+        set-option ASSIGNMENT_ID OPTION_KEY OPTION_VALUE
+        add-grade-component ASSIGNMENT_ID NAME POINTS
+        remove-grade-component ASSIGNMENT_ID NAME
+        list [--ids] [--utc]
+        
+    grading
+        set-conflict GRADER_ID USER_ID
+        check-submissions ASSIGNMENT_ID
+        assign-graders ASSIGNMENT_ID [--from-assignment ASSIGNMENT_ID] [--avoid-assignment ASSIGNMENT_ID]
+        list-assignment-graders ASSIGNMENT_ID [--only USER_ID]
+        create-local-grading-repos ASSIGNMENT_ID
+        create-grading-branches ASSIGNMENT_ID
+        create-rubrics ASSIGNMENT_ID
+        collect-rubrics ASSIGNMENT_ID
+        pull-grading-branches ASSIGNMENT_ID [--only TEAM_ID]
+        push-grading-branches ASSIGNMENT_ID [--only TEAM_ID]
+
+        
+    team
+        add TEAM_ID
+        remove TEAM_ID
+        show TEAM_ID [--include-assignments] [--include-grades]
+        add-student TEAM_ID USER_ID
+        remove-student TEAM_ID USER_ID
+        add-assignment TEAM_ID ASSIGNMENT_ID
+        remove-assignment TEAM_ID ASSIGNMENT_ID
+        repo-create TEAM_ID [--ignore-existing] [--public] [--staging]
+        repo-update TEAM_ID
+        repo-remove TEAM_ID [--staging]
+        
+        
+
+grader
+
+    create-local-grading-repos ASSIGNMENT_ID
+    pull-grading-branches ASSIGNMENT_ID [--only TEAM_ID]
+    push-grading-branches ASSIGNMENT_ID [--only TEAM_ID]
+    validate-rubrics ASSIGNMENT_ID [--only TEAM_ID]
+
+
+student
+
+    register-for-assignment ASSIGNMENT_ID [--partners USER_ID[,USER_ID]*]
+    submit-assignment TEAM_ID ASSIGNMENT_ID COMMIT_SHA [--extensions N] [--yes] [--force]
+    list-assignments [--verbose]
+    check-repo-assignment ASSIGNMENT_ID
+    get-git-credentials
+    
+    
+    

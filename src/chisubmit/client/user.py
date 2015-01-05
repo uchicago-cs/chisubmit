@@ -28,25 +28,34 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-CHISUBMIT_SUCCESS = 0
-CHISUBMIT_FAIL = 1
+from chisubmit.client import ApiObject
+from chisubmit.client import session
+import json
+import base64
+from chisubmit.common import ChisubmitException
 
-import traceback
+class User(ApiObject):
 
-class ChisubmitException(Exception):
-    def __init__(self, message, original_exception = None):
-        Exception.__init__(self, message)
-        self.original_exception = original_exception
-        if original_exception is not None:
-            self.traceback = traceback.format_exc()
+    _api_attrs = ('id', 'first_name', 'last_name', 'email')
+    _primary_key = 'id'
+    _singularize = 'user'
+    _pluralize = 'users'
+
+    def save(self):
+        if not session.exists(self):
+            super(User, self).save()
+            
+    # TODO 18DEC14: handle revoking and/or replacing the token
+    @classmethod
+    def get_token(cls, username, password, reset=False):
+        credentials = base64.b64encode(username + ":" + password)
+        
+        headers={'Authorization': 'Basic ' + credentials}        
+        
+        data = json.dumps({"reset":reset})
+        response = session.post('auth', data=data, headers=headers)
+        
+        if not response.has_key("api_key") or response["api_key"] is None:
+            raise ChisubmitException("Chisubmit server did not return valid credentials")
         else:
-            self.traceback = None
-
-    def print_exception(self):
-        print self.traceback
-        
-def handle_unexpected_exception():
-    print "ERROR: Unexpected exception"
-    print traceback.format_exc()
-    exit(CHISUBMIT_FAIL)
-        
+            return (response["api_key"], response["exists_prior"], response["is_new"])

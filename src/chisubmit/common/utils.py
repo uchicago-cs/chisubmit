@@ -30,13 +30,14 @@
 
 import datetime
 import pytz
+import random
+import hashlib
+import base64
+import string
 from tzlocal import get_localzone
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
-def create_subparser(subparsers, name, func):
-    subparser = subparsers.add_parser(name)
-    subparser.set_defaults(func=func)
-    
-    return subparser
+localzone = get_localzone()
 
 def get_datetime_now_utc():
     return datetime.datetime.now(pytz.utc).replace(microsecond=0)
@@ -44,15 +45,42 @@ def get_datetime_now_utc():
 def set_datetime_timezone_utc(dt):
     return pytz.utc.localize(dt)
 
-def convert_timezone_to_local(dt):
-    tz = get_localzone()
-    dt = dt.astimezone(tz)
-    return tz.normalize(dt)
+def convert_datetime_to_utc(dt, default_tz = localzone):
+    if dt.tzinfo is None:
+        dt = localzone.localize(dt)
+    return dt.astimezone(pytz.utc)
+
+def convert_datetime_to_local(dt, default_tz = localzone):
+    if dt.tzinfo is None:
+        dt = localzone.localize(dt)
+    return dt.astimezone(localzone)
+
+# Based on http://jetfar.com/simple-api-key-generation-in-python/
+def gen_api_key():
+    s = str(random.getrandbits(256))
+    h = hashlib.sha256(s)
+    altchars = random.choice(string.ascii_letters) + random.choice(string.ascii_letters)
+    b = base64.b64encode(h.digest(), altchars).rstrip("==")
+    return unicode(b)
     
+    
+def create_connection(course, config, staging = False):
+    if not staging:
+        connstr = course.options["git-server-connstr"]
+    else:
+        connstr = course.options["git-staging-connstr"]
 
-def mkdatetime(datetimestr):
-    dt = datetime.datetime.strptime(datetimestr, '%Y-%m-%dT%H:%M')
-    return set_datetime_timezone_utc(dt)
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
+    server_type = conn.get_server_type_name()
+    git_credentials = config['git-credentials'].get(server_type, None)
 
+    if git_credentials is None:
+        print "You do not have %s credentials." % server_type
+        return None
+    else:
+        conn.connect(git_credentials)
+        return conn
+           
 
-
+    
+    

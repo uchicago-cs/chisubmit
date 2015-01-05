@@ -28,25 +28,42 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-CHISUBMIT_SUCCESS = 0
-CHISUBMIT_FAIL = 1
+import click
 
-import traceback
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
+from chisubmit.client.user import User
 
-class ChisubmitException(Exception):
-    def __init__(self, message, original_exception = None):
-        Exception.__init__(self, message)
-        self.original_exception = original_exception
-        if original_exception is not None:
-            self.traceback = traceback.format_exc()
-        else:
-            self.traceback = None
 
-    def print_exception(self):
-        print self.traceback
-        
-def handle_unexpected_exception():
-    print "ERROR: Unexpected exception"
-    print traceback.format_exc()
-    exit(CHISUBMIT_FAIL)
-        
+@click.group(name="user")
+@click.pass_context
+def admin_user(ctx):
+    pass
+
+@click.command(name="add")
+@click.argument('user_id', type=str)
+@click.argument('first_name', type=str)
+@click.argument('last_name', type=str)
+@click.argument('email', type=str)
+@click.pass_context
+def admin_user_add(ctx, user_id, first_name, last_name, email):
+    user = User(id = user_id,
+                first_name = first_name,
+                last_name = last_name,
+                email = email)
+
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="remove")
+@click.argument('user_id', type=str)
+@click.pass_context
+def admin_user_remove(ctx, user_id):
+    # TODO
+    print "NOT IMPLEMENTED"
+    
+    return CHISUBMIT_SUCCESS
+
+admin_user.add_command(admin_user_add)
+admin_user.add_command(admin_user_remove)
+
+
+

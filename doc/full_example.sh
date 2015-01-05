@@ -12,7 +12,7 @@ set -x # Print out each command
 # This script is also used to test the various commands in chisubmit.
 # In practice, you probably would not run all these commands individually,
 # as they are designed to be easily scriptable.
-#http://www.classes.cs.uchicago.edu/archive/2014/winter/23300-1/
+# 
 # For simplicity, the whole script runs with a single user and a
 # single github account. In reality, there would be three distinct roles:
 #
@@ -39,7 +39,8 @@ fi
 
 # We start by creating a new course:
 
-chisubmit course-create --make-default example "Example Course" 3
+chisubmit course create --make-default example "Example Course" 3
+
 
 # The above command creates a course called "example" (with
 # "Example Course" simply being a more verbose description)
@@ -52,10 +53,10 @@ chisubmit course-create --make-default example "Example Course" 3
 
 # Next, we provide the GitHub settings for this course:
 
-chisubmit course-github-settings $GITHUB_ORGANIZATION
+chisubmit course git-server $GIT_SERVER_CONNECTIONSTRING
 
 # And for the staging server
-chisubmit course-git-staging-settings $GIT_STAGING_USERNAME $GIT_STAGING_HOSTNAME
+chisubmit course git-staging-server $GIT_STAGING_SERVER_CONNECTIONSTRING
 
 
 # We only need to specify the GitHub organization that will host the 
@@ -68,7 +69,8 @@ chisubmit course-git-staging-settings $GIT_STAGING_USERNAME $GIT_STAGING_HOSTNAM
 
 # Next, we create a project:
 
-chisubmit project-create p1 "Project 1" 2042-01-14T20:00
+chisubmit project create p1 "Project 1" 2042-01-14T20:00
+
 
 # The project identifier is "p1", its description is "Project 1",
 # and the final parameter is the deadline for the project.
@@ -80,14 +82,21 @@ chisubmit project-create p1 "Project 1" 2042-01-14T20:00
 # project has a "Tests" component and a "Design" component,
 # each worth 50 points.
 
-chisubmit project-grade-component-add p1 Tests 50
-chisubmit project-grade-component-add p1 Design 50
+chisubmit project grade-component-add p1 Tests 50
+chisubmit project grade-component-add p1 Design 50
 
 # Next, we create an additional project:
 
-chisubmit project-create p2 "Project 2" 2042-01-21T20:00
-chisubmit project-grade-component-add p2 Tests 50
-chisubmit project-grade-component-add p2 Design 50
+chisubmit project create p2 "Project 2" 2042-01-21T20:00
+chisubmit project grade-component-add p2 Tests 50
+chisubmit project grade-component-add p2 Design 50
+
+
+# Add instructors to the course
+
+chisubmit instructor create instructor1 FirstA LastA instructor1@uchicago.edu $GITHUB_USERNAME $GITHUB_USERNAME
+
+
 
 # Now, we add students to the course. In practice, this information
 # could be collected through an online form or from an enrolment
@@ -97,29 +106,32 @@ chisubmit project-grade-component-add p2 Design 50
 # purposes. In practice, each student needs his/her own
 # GitHub account.
 
-chisubmit student-create student1 First1 Last1 student1@uchicago.edu $GITHUB_USERNAME
-chisubmit student-create student2 First2 Last2 student2@uchicago.edu $GITHUB_USERNAME
-chisubmit student-create student3 First3 Last3 student3@uchicago.edu $GITHUB_USERNAME
-chisubmit student-create student4 First4 Last4 student4@uchicago.edu $GITHUB_USERNAME
+chisubmit student create student1 First1 Last1 student1@uchicago.edu $GITHUB_USERNAME
+chisubmit student create student2 First2 Last2 student2@uchicago.edu $GITHUB_USERNAME
+chisubmit student create student3 First3 Last3 student3@uchicago.edu $GITHUB_USERNAME
+chisubmit student create student4 First4 Last4 student4@uchicago.edu $GITHUB_USERNAME
 
 # Next, we create teams. Each team has two students.
 
-chisubmit team-create team1
-chisubmit team-student-add team1 student1
-chisubmit team-student-add team1 student2
+chisubmit team create team1
+chisubmit team student-add team1 student1
+chisubmit team student-add team1 student2
 
-chisubmit team-create team2
-chisubmit team-student-add team2 student3
-chisubmit team-student-add team2 student4
+chisubmit team create team2
+chisubmit team student-add team2 student3
+chisubmit team student-add team2 student4
 
 # Next, we create a grader
-chisubmit grader-create graderA FirstA LastA graderA@uchicago.edu $GITHUB_USERNAME
+chisubmit grader create graderA FirstA LastA graderA@uchicago.edu $GITHUB_USERNAME $GITHUB_USERNAME
 
 
 # Once we have our teams, we create their repositories:
 
-chisubmit team-gh-repo-create team1 --ignore-existing --public
-chisubmit team-gh-repo-create team2 --ignore-existing --public
+chisubmit team repo-create team1 --ignore-existing --public
+chisubmit team repo-create team1 --ignore-existing --public --staging
+
+chisubmit team repo-create team2 --ignore-existing --public
+chisubmit team repo-create team2 --ignore-existing --public --staging
 
 
 # Note: We use the --ignore-existing option here just so this script can be
@@ -139,9 +151,8 @@ chisubmit team-gh-repo-create team2 --ignore-existing --public
 # In practice, the admin-assign-project command should be run once a project
 # has started, and all team changes have been made.
 
-chisubmit admin-assign-project p1
+chisubmit admin assign-project p1
 
-chisubmit course-generate-distributable example-dist.yaml
 
 
 # Now, we're going to simulate a few actions that a team would perform:
@@ -159,22 +170,20 @@ then
     rm -rf ~/.chisubmit-team2/
 fi
 
+mkdir -p ~/.chisubmit-team1/
+cp ~/.chisubmit/chisubmit.conf ~/.chisubmit-team1/
+
+mkdir -p ~/.chisubmit-team2/
+cp ~/.chisubmit/chisubmit.conf ~/.chisubmit-team2/
+
 TEAM1_OPTS="--dir ~/.chisubmit-team1/"
 TEAM2_OPTS="--dir ~/.chisubmit-team2/"
 
-chisubmit $TEAM1_OPTS course-install --make-default example-dist.yaml
-chisubmit $TEAM1_OPTS team-create team1
-chisubmit $TEAM1_OPTS team-gh-repo-set team1 example-team1
+chisubmit $TEAM1_OPTS course install --make-default ~/.chisubmit/courses/example.yaml
+chisubmit $TEAM2_OPTS course install --make-default ~/.chisubmit/courses/example.yaml
 
-chisubmit $TEAM2_OPTS course-install --make-default example-dist.yaml
-chisubmit $TEAM2_OPTS team-create team2
-chisubmit $TEAM2_OPTS team-gh-repo-set team2 example-team2
-
-cp ~/.chisubmit/github_token ~/.chisubmit-team1/
-chisubmit $TEAM1_OPTS team-gh-repo-check team1
-
-cp ~/.chisubmit/github_token ~/.chisubmit-team2/
-chisubmit $TEAM2_OPTS team-gh-repo-check team2
+chisubmit $TEAM1_OPTS team repo-check team1
+chisubmit $TEAM2_OPTS team repo-check team2
 
 TEAM1_REPO=`mktemp -d`
 TEAM2_REPO=`mktemp -d`
@@ -225,15 +234,15 @@ TEAM1_SHA=`git $TEAM1_GIT_OPTS rev-parse HEAD`
 TEAM2_SHA=`git $TEAM2_GIT_OPTS rev-parse HEAD`
 
 # Finally, we submit the projects
-chisubmit $TEAM1_OPTS team-project-submit team1 p1 $TEAM1_SHA 0 --yes
-chisubmit $TEAM2_OPTS team-project-submit team2 p1 $TEAM2_SHA 0 --yes
+chisubmit $TEAM1_OPTS submit team1 p1 $TEAM1_SHA 0 --yes
+chisubmit $TEAM2_OPTS submit team2 p1 $TEAM2_SHA 0 --yes
 
 # Now that the project has been submitted, the admin
 # needs to set up the repositories for grading.
 
 # First of all, we can check what projects have been submitted:
 
-chisubmit admin-list-submissions p1
+chisubmit admin list-submissions p1
 
 # Next, we get a local copy of the team repos. We refer to these
 # as "grading repos". These grading repos are placed in:
@@ -244,7 +253,7 @@ chisubmit admin-list-submissions p1
 # directory
 rm -rf ~/.chisubmit/repositories/example/p1/
 
-chisubmit admin-create-grading-repos p1
+chisubmit admin create-grading-repos p1
 
 # To make this script rerunable, we we push these repos to
 # the staging server with --force and delete any existing tags. 
@@ -266,7 +275,7 @@ git $ADMIN_TEAM2_GRADING_GIT_OPTS push staging :refs/tags/p1 :refs/tags/p2 :refs
 # This is the branch on which the graders will work (they should 
 # never mess with the master branch (or any other branch for that matter)
 
-chisubmit admin-create-grading-branches p1
+chisubmit admin create-grading-branches p1
 
 # Once we've created the grading branches, we will generate the 
 # rubrics that the graders will use to specify the grades for
@@ -274,10 +283,10 @@ chisubmit admin-create-grading-branches p1
 # (e.g., in the case of automated tests run on the submissions)
 # So, we set those scores for the teams.
 
-chisubmit team-project-set-grade team1 p1 Tests 45
-chisubmit team-project-set-grade team2 p1 Tests 50
+chisubmit team project-set-grade team1 p1 Tests 45
+chisubmit team project-set-grade team2 p1 Tests 50
 
-chisubmit admin-create-rubric-files p1
+chisubmit admin add-rubrics p1
 
 git $ADMIN_TEAM1_GRADING_GIT_OPTS add $ADMIN_TEAM1_GRADING_REPO/
 git $ADMIN_TEAM1_GRADING_GIT_OPTS commit -m "Added grading rubric"
@@ -288,15 +297,15 @@ git $ADMIN_TEAM2_GRADING_GIT_OPTS commit -m "Added grading rubric"
 # Now, we assign graders (in this case there's only one grader,
 # so she should be assigned to both teams)
 
-chisubmit admin-assign-graders p1
+chisubmit admin assign-graders p1
 
 # And we list those assignments:
 
-chisubmit admin-list-grader-assignments p1
+chisubmit admin list-grader-assignments p1
 
 # Finally, we push the grading repos (with the grading branches)
 # to the staging server. 
-chisubmit admin-push-grading-branches --staging p1
+chisubmit admin push-grading-branches --staging p1
 
 
 # The following commands would be run by a grader.
@@ -305,7 +314,7 @@ chisubmit admin-push-grading-branches --staging p1
 mkdir -p ~/.chisubmit-grader/
 mkdir -p ~/.chisubmit-grader/courses
 cp ~/.chisubmit/default_course ~/.chisubmit-grader/
-cp ~/.chisubmit/github_token ~/.chisubmit-grader/
+cp ~/.chisubmit/chisubmit.conf ~/.chisubmit-grader/
 cp ~/.chisubmit/courses/example.yaml ~/.chisubmit-grader/courses/
 GRADER_OPTS="--dir ~/.chisubmit-grader/"
 
@@ -323,7 +332,7 @@ GRADER_TEAM2_GRADING_GIT_OPTS="--git-dir=$GRADER_TEAM2_GRADING_REPO/.git --work-
 # directory
 rm -rf ~/.chisubmit-grader/repositories/example/p1/
 
-chisubmit $GRADER_OPTS grader-create-grading-repos graderA p1
+chisubmit $GRADER_OPTS grader create-grading-repos graderA p1
 
 # Now, let's do some "grading"
 
@@ -346,7 +355,7 @@ Comments: >
     None" > $GRADER_TEAM1_GRADING_REPO/p1.rubric.txt
 
 # We validate that the rubric is ok
-chisubmit $GRADER_OPTS grader-validate-rubric team1 p1
+chisubmit $GRADER_OPTS grader validate-rubric team1 p1
 
 git $GRADER_TEAM1_GRADING_GIT_OPTS add $GRADER_TEAM1_GRADING_REPO/
 git $GRADER_TEAM1_GRADING_GIT_OPTS commit -m "Graded p1"
@@ -369,7 +378,7 @@ Comments: >
     None" > $GRADER_TEAM2_GRADING_REPO/p1.rubric.txt
 
 # We validate that the rubric is ok
-chisubmit $GRADER_OPTS grader-validate-rubric team2 p1
+chisubmit $GRADER_OPTS grader validate-rubric team2 p1
 
 # Commit
 git $GRADER_TEAM2_GRADING_GIT_OPTS add $GRADER_TEAM2_GRADING_REPO/
@@ -377,16 +386,16 @@ git $GRADER_TEAM2_GRADING_GIT_OPTS commit -m "Graded p1"
 
 
 # We push the grading branches to the staging repository
-chisubmit $GRADER_OPTS grader-push-grading-branches graderA p1
+chisubmit $GRADER_OPTS grader push-grading-branch graderA p1
 
 
 # Now, the instructor pulls the grading branches
-chisubmit admin-pull-grading-branches --staging p1
+chisubmit admin pull-grading-branches --staging p1
 
 # Collects the rubrics
-chisubmit admin-collect-rubrics p1
+chisubmit admin collect-rubrics p1
 
 # And pushes the grading branches to GitHub
-chisubmit admin-push-grading-branches --github p1
+chisubmit admin push-grading-branches --github p1
 
 

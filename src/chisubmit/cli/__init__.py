@@ -28,99 +28,218 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+import click
+from chisubmit.common import ChisubmitException, CHISUBMIT_FAIL,\
+    handle_unexpected_exception, CHISUBMIT_SUCCESS
 import sys
-import traceback
-import datetime
-import os.path
+from pprint import pprint
+from requests.exceptions import HTTPError, ConnectionError
+from chisubmit.cli.admin import admin
+from chisubmit.cli.instructor import instructor
+from chisubmit.cli.student import student
+from chisubmit.client.session import BadRequestError
+from chisubmit.cli.grader import grader
+import getpass
+from chisubmit.client.user import User
+from docutils.utils.math.math2html import URL
+config = None
 
-from argparse import ArgumentParser
-
-import chisubmit.core
 import chisubmit.common.log as log
+from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.core.model import Course, Project, Student,\
-    ChisubmitModelException
-from chisubmit.cli.course import *
-from chisubmit.cli.student import *
-from chisubmit.cli.team import create_team_subparsers
-from chisubmit.cli.project import create_project_subparsers
-from chisubmit.cli.submit import create_submit_subparsers
-from chisubmit.core import ChisubmitException
-from chisubmit.common import CHISUBMIT_FAIL
-from chisubmit.cli.shell import create_shell_subparsers
-from chisubmit.cli.grader import create_grader_subparsers
-from chisubmit.cli.gh import create_gh_subparsers
-from chisubmit.cli.admin import create_admin_subparsers
-from chisubmit.cli.gradingrepo import create_gradingrepo_subparsers
+from chisubmit.client import session
 
-SUBCOMMANDS_NO_COURSE = ['course-create', 'course-install', 'gh-token-create']
+SUBCOMMANDS_NO_COURSE = [('course','create')]
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
 
-            
-def chisubmit_cmd(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-        
-    # Setup argument parser
-    parser = ArgumentParser(description="chisubmit")
-    parser.add_argument('--config', type=str, default=None)
-    parser.add_argument('--dir', type=str, default=None)
-    parser.add_argument('--noop', action="store_true")
-    parser.add_argument('--course', type=str, default=None)
-    parser.add_argument('--verbose', action="store_true")
-    parser.add_argument('--version', action='version', version="chisubmit %s" % RELEASE)
-    parser.add_argument('--debug', action="store_true")
+VERBOSE = False
+DEBUG = False 
 
-    subparsers = parser.add_subparsers(dest="subcommand")
+@click.group(name="chisubmit")
+@click.option('--conf', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--course', type=str, default=None)
+@click.option('--verbose', '-v', is_flag=True)
+@click.option('--debug', is_flag=True)
+@click.option('--testing', is_flag=True)
+@click.version_option(version=RELEASE)
+@click.pass_context
+def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
+    global VERBOSE, DEBUG
     
-    create_course_subparsers(subparsers)
-    create_project_subparsers(subparsers)
-    create_student_subparsers(subparsers)
-    create_team_subparsers(subparsers)
-    create_submit_subparsers(subparsers)
-    create_grader_subparsers(subparsers)
-    create_gradingrepo_subparsers(subparsers)
-    create_admin_subparsers(subparsers)
-    create_shell_subparsers(subparsers)
-    create_gh_subparsers(subparsers)
+    VERBOSE = verbose
+    DEBUG = debug
     
-    args = parser.parse_args(args = argv)
-    
-    chisubmit.core.init_chisubmit(args.dir, args.config)
-    log.init_logging(args.verbose, args.debug)
+    ctx.obj = {}
 
-    if args.subcommand not in SUBCOMMANDS_NO_COURSE:
-        if args.course is not None:
-            course_id = args.course
-        else:
-            course_id = chisubmit.core.get_default_course()
-        
-        if course_id is None:
-            print "ERROR: No course specified with --course and no default course in configuration file"
-            exit(CHISUBMIT_FAIL)
-        else:
-            course_obj = Course.from_course_id(course_id)
-            if course_obj is None:
-                print "ERROR: Course '%s' does not exist" % course_id
-                exit(CHISUBMIT_FAIL)
+    config = Config(dir, conf)
+    log.init_logging(verbose, debug)
+
+    if not config['api-key']:
+        raise click.BadParameter("Sorry, can't find your chisubmit api token")
+
+    if testing:
+        from chisubmit.backend.webapp.api import app 
+        session.connect_test(app, access_token = config['api-key'])
     else:
-        course_id, course_obj = None, None
+        session.connect(config['api-url'], config['api-key'])
 
-    if not args.noop:
-        try:
-            rc = args.func(course_obj, args)
-        except ChisubmitException, ce:
-            print "ERROR: %s" % ce.message
-            if args.debug:
-                ce.print_exception()
-            exit(CHISUBMIT_FAIL)
-        except ChisubmitModelException, cme:
-            print "ERROR: %s" % cme.message
-            exit(CHISUBMIT_FAIL)
-        except Exception, e:
-            handle_unexpected_exception()
+    if course:
+        course_specified = True
+        course_id = course
+    else:
+        course_specified = False
+        course_id = config['default-course']
 
-    if args.subcommand not in SUBCOMMANDS_DONT_SAVE:
-        course_obj.save()
+    ctx.obj["course_specified"] = course_specified
+    ctx.obj["course_id"] = course_id
+    ctx.obj["config"] = config
 
-    return rc
+    return CHISUBMIT_SUCCESS
+
+
+def chisubmit_cmd_wrapper():
+    try:
+        chisubmit_cmd.main()
+    except BadRequestError, he:
+        pass
+        
+    except HTTPError, he:
+        print "ERROR: chisubmit server returned an HTTP error"
+        print
+        print "URL: %s" % he.request.url
+        print "HTTP method: %s" % he.request.method
+        print "Status code: %i" % he.response.status_code
+        print "Message: %s" % he.response.reason
+        if DEBUG:
+            print
+            print "HTTP REQUEST"
+            print "------------"
+            print "%s %s" % (he.request.method, he.request.url)
+            print
+            for hname, hvalue in he.request.headers.items():
+                print "%s: %s" % (hname, hvalue) 
+            print
+            if he.request.body is not None:
+                print he.request.body
+            print
+            print "HTTP RESPONSE"
+            print "-------------"
+            for hname, hvalue in he.response.headers.items():
+                print "%s: %s" % (hname, hvalue) 
+            print
+            print he.response._content
+    except ConnectionError, ce:
+        print "ERROR: Could not connect to chisubmit server"
+        print "URL: %s" % ce.request.url
+    except ChisubmitException, ce:
+        print "ERROR: %s" % ce.message
+        if DEBUG:
+            ce.print_exception()
+        sys.exit(CHISUBMIT_FAIL)
+    except Exception, e:
+        handle_unexpected_exception()
+
+chisubmit_cmd.add_command(admin)
+chisubmit_cmd.add_command(instructor)
+chisubmit_cmd.add_command(student)
+chisubmit_cmd.add_command(grader)
+
+
+@click.command(name="chisubmit-get-credentials")
+@click.option('--conf', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--user', prompt='Enter your chisubmit username')
+@click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
+@click.option('--url', type=str)
+@click.option('--no-save', is_flag=True)
+@click.option('--reset', is_flag=True)
+@click.option('--testing', is_flag=True)
+@click.pass_context
+def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, url, no_save, reset, testing):
+    config = Config(dir, conf)
+
+    server_url = None
+    if testing:
+        from chisubmit.backend.webapp.api import app 
+        session.connect_test(app)
+    else:
+        if config['api-url'] is None and url is None:
+            print "No server URL specified. Please add it to your chisubmit.conf file"
+            print "or use the --url option"
+            ctx.exit(CHISUBMIT_FAIL)
+            
+        if url is not None:
+            server_url = url
+        else:
+            server_url = config['api-url']
+            
+        session.connect(server_url)
+            
+    try:
+        token, exists_prior, is_new = User.get_token(user, password, reset)
+    except HTTPError, he:
+        if he.response.status_code == 401:
+            print "ERROR: Incorrect username/password"
+            ctx.exit(CHISUBMIT_FAIL)
+        else:
+            print "ERROR: Unexpected error (HTTP %i)" % he.response.status_code
+            ctx.exit(CHISUBMIT_FAIL)      
+    except ConnectionError, ce:
+        print "ERROR: Could not connect to chisubmit server"
+        print "URL: %s" % server_url
+        ctx.exit(CHISUBMIT_FAIL) 
+
+    if token:
+        config['api-key'] = token
+        if config['api-url'] is None and not no_save:
+            config['api-url'] = url
+
+        if not no_save:
+            config.save()
+
+        if is_new:
+            ttype = "NEW"
+        else:
+            ttype = "EXISTING"
+        
+        click.echo("")
+        click.echo("Your %s chisubmit access token is: %s" % (ttype, token))
+        if not no_save:
+            click.echo("")
+            click.echo("The token has been stored in your chisubmit configuration file.")
+            click.echo("You should now be able to use the chisubmit commands.")
+        if exists_prior and is_new:
+            click.echo("")
+            click.echo("Your previous chisubmit access token has been cancelled.")
+            click.echo("Make sure you run chisubmit-get-credentials on any other")
+            click.echo("machines where you are using chisubmit.")
+        click.echo("")
+    else:
+        click.echo("Unable to create token. Incorrect username/password.")
+
+    return CHISUBMIT_SUCCESS
+
+from chisubmit.cli.server import server_start, server_initdb
+
+@click.group()
+@click.option('--conf', type=str, default=None)
+@click.option('--dir', type=str, default=None)
+@click.option('--verbose', '-v', is_flag=True)
+@click.option('--debug', is_flag=True)
+@click.version_option(version=RELEASE)
+@click.pass_context
+def chisubmit_server_cmd(ctx, conf, dir, verbose, debug):
+    ctx.obj = {}
+
+    config = Config(dir, conf)
+    log.init_logging(verbose, debug)
+    
+    ctx.obj["config"] = config
+        
+    return CHISUBMIT_SUCCESS
+
+
+chisubmit_server_cmd.add_command(server_start)
+chisubmit_server_cmd.add_command(server_initdb)
+

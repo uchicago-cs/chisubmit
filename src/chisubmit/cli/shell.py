@@ -28,27 +28,27 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import create_subparser
-from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.core import ChisubmitException, handle_unexpected_exception
+import click
 
-def create_shell_subparsers(subparsers):
-    create_subparser(subparsers, "shell", cli_do__shell)
-    
-    
-def cli_do__shell(course, args):
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
+from chisubmit.cli.common import pass_course
+
+
+@click.command(name="shell")
+@click.pass_context  
+@pass_course
+def shell(ctx, course):
     try:
         from IPython import embed, __version__
         from IPython.config.loader import Config
         if __version__ < "1.1.0":
             print "You need IPython (>= 1.1.0) to run the chisubmit shell"
-            return CHISUBMIT_FAIL
-    except ImportError, ie:
+            ctx.exit(CHISUBMIT_FAIL)
+    except ImportError:
         print "You need IPython (>= 1.1.0) to run the chisubmit shell"
         
-    try:
-        cfg = Config()
-        cfg.TerminalInteractiveShell.banner1 = """
+    cfg = Config()
+    cfg.TerminalInteractiveShell.banner1 = """
                       WELCOME TO THE CHISUBMIT SHELL
     
     Course: %s
@@ -56,19 +56,15 @@ def cli_do__shell(course, args):
     This is an IPython shell with the chisubmit data structures preloaded. 
     You can access the chisubmit objects through variable 'course'.
     
-    Note: Any changes you make will NOT be saved. Use course.save() to save
-    any changes you make to the chisubmit objects.
+    CAREFUL: Most changes made through the shell will be propagated to the
+             database. 
     
     """ % (course.name)
     
-        prompt_config = cfg.PromptManager
-        prompt_config.in_template = 'chisubmit> '
-        prompt_config.in2_template = '   .\\D.> '
-        prompt_config.out_template = '         > '
-        embed(config = cfg)
-    except ChisubmitException, ce:
-        raise ce # Propagate upwards, it will be handled by chisubmit_cmd
-    except Exception, e:
-        handle_unexpected_exception()
+    prompt_config = cfg.PromptManager
+    prompt_config.in_template = 'chisubmit> '
+    prompt_config.in2_template = '   .\\D.> '
+    prompt_config.out_template = '         > '
+    embed(config = cfg)
         
     return CHISUBMIT_SUCCESS

@@ -31,6 +31,8 @@ class CoursesStudents(Serializable, db.Model):
     repo_info = db.Column(JSONEncodedDict, default={})
     dropped = db.Column('dropped', db.Boolean, server_default='0',
                         nullable=False)
+    extensions = db.Column(db.Integer)    
+
     student_id = db.Column('student_id',
                            db.Unicode,
                            db.ForeignKey('users.id'),

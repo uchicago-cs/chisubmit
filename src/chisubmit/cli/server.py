@@ -33,7 +33,6 @@ import os.path
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, ChisubmitException
-from chisubmit.backend.webapp.api import ChisubmitAPIServer
 import tempfile
 
 def set_auth(server, config_profile):
@@ -49,6 +48,8 @@ def set_auth(server, config_profile):
 
 
 def get_server(config, profile):
+    from chisubmit.backend.webapp.api import ChisubmitAPIServer
+    
     p = config.get_server_profile(profile)
 
     if p is None:

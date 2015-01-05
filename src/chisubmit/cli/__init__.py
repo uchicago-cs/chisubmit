@@ -41,6 +41,7 @@ from chisubmit.client.session import BadRequestError
 from chisubmit.cli.grader import grader
 import getpass
 from chisubmit.client.user import User
+from docutils.utils.math.math2html import URL
 config = None
 
 import chisubmit.common.log as log
@@ -150,19 +151,31 @@ chisubmit_cmd.add_command(grader)
 @click.option('--dir', type=str, default=None)
 @click.option('--user', prompt='Enter your chisubmit username')
 @click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
+@click.option('--url', type=str)
 @click.option('--no-save', is_flag=True)
 @click.option('--reset', is_flag=True)
 @click.option('--testing', is_flag=True)
 @click.pass_context
-def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, no_save, reset, testing):
+def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, url, no_save, reset, testing):
     config = Config(dir, conf)
 
+    server_url = None
     if testing:
         from chisubmit.backend.webapp.api import app 
         session.connect_test(app)
     else:
-        session.connect(config['api-url'])
-    
+        if config['api-url'] is None and url is None:
+            print "No server URL specified. Please add it to your chisubmit.conf file"
+            print "or use the --url option"
+            ctx.exit(CHISUBMIT_FAIL)
+            
+        if url is not None:
+            server_url = url
+        else:
+            server_url = config['api-url']
+            
+        session.connect(server_url)
+            
     try:
         token, exists_prior, is_new = User.get_token(user, password, reset)
     except HTTPError, he:
@@ -171,10 +184,16 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, no_save, reset
             ctx.exit(CHISUBMIT_FAIL)
         else:
             print "ERROR: Unexpected error (HTTP %i)" % he.response.status_code
-            ctx.exit(CHISUBMIT_FAIL)            
+            ctx.exit(CHISUBMIT_FAIL)      
+    except ConnectionError, ce:
+        print "ERROR: Could not connect to chisubmit server"
+        print "URL: %s" % server_url
+        ctx.exit(CHISUBMIT_FAIL) 
 
     if token:
         config['api-key'] = token
+        if config['api-url'] is None and not no_save:
+            config['api-url'] = url
 
         if not no_save:
             config.save()

@@ -202,10 +202,14 @@ def assignment_register(course_id, assignment_id):
         if create_team:
             if team_name is None:
                 team_name = "-".join(sorted([s.id for s in students_in_team]))
-    
-            extensions = course.options.get("default-extensions", 0)
-    
-            team = Team(id = team_name, course_id=course_id, extensions = extensions)
+        
+            team = Team(id = team_name, course_id=course_id)
+            extension_policy = course.options.get("extension-policy", None)
+            if extension_policy == "per_team":
+                default_extensions = course.options.get("default-extensions", 0)
+                team.extensions = default_extensions
+            else:
+                team.extensions = 0                
             db.session.add(team)
             
             st = StudentsTeams(team_id = team.id, 
@@ -223,7 +227,7 @@ def assignment_register(course_id, assignment_id):
                 
             at = AssignmentsTeams(team_id = team.id,
                                   course_id = course_id,
-                                  assignment_id = assignment.id)
+                                  assignment_id = assignment.id)        
             db.session.add(at)
         
         db.session.commit()

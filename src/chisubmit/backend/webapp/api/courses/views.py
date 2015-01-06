@@ -132,7 +132,14 @@ def course(course_id):
                 
                 if git_usernames == "user_id":
                     new_child.repo_info = {"git-username": new_child.student_id}
-                
+                    
+                extension_policy = course.options.get("extension-policy", None)
+                if extension_policy == "per_student":
+                    default_extensions = course.options.get("default-extensions", 0)
+                    new_child.extensions = default_extensions
+                else:
+                    new_child.extensions = 0
+                    
                 db.session.add(new_child)
                 
             for child_data in form.students.update:

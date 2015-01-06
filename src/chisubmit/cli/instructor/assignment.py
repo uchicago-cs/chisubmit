@@ -6,6 +6,7 @@ from dateutil.parser import parse
 from chisubmit.common.utils import convert_datetime_to_utc,\
     convert_datetime_to_local
 import operator
+from chisubmit.cli.shared.course import shared_course_list
 
 
 @click.group(name="assignment")
@@ -31,29 +32,7 @@ def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="list")
-@click.option('--ids', is_flag=True)
-@click.option('--utc', is_flag=True)
-@pass_course
-@click.pass_context
-def instructor_assignment_list(ctx, course, ids, utc):
-    assignments = course.assignments[:]
-    assignments.sort(key=operator.attrgetter("deadline"))
 
-    for assignment in assignments:
-        if ids:
-            print assignment.id
-        else:
-            if utc:
-                deadline = assignment.deadline.isoformat(" ")
-            else:
-                deadline = convert_datetime_to_local(assignment.deadline).isoformat(" ")
-
-            fields = [assignment.id, deadline, assignment.name]
-
-            print "\t".join(fields)
-
-    return CHISUBMIT_SUCCESS
 
 
 
@@ -76,8 +55,9 @@ def instructor_assignment_add_grade_component(ctx, course, assignment_id, grade_
     return CHISUBMIT_SUCCESS
 
 
+instructor_assignment.add_command(shared_course_list)
+
 instructor_assignment.add_command(instructor_assignment_add)
-instructor_assignment.add_command(instructor_assignment_list)
 instructor_assignment.add_command(instructor_assignment_add_grade_component)
 
 

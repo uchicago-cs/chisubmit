@@ -7,8 +7,7 @@ from chisubmit.client.course import Course
 from functools import update_wrapper
 
 from dateutil.parser import parse
-import getpass
-from chisubmit.client.user import User
+
 
 def pass_course(f):
     @click.pass_context

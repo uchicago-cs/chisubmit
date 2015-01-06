@@ -5,6 +5,7 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from dateutil.parser import parse
 from chisubmit.common.utils import convert_datetime_to_utc,\
     convert_datetime_to_local
+import operator
 
 
 @click.group(name="assignment")
@@ -36,15 +37,13 @@ def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
 @pass_course
 @click.pass_context
 def instructor_assignment_list(ctx, course, ids, utc):
-    assignment_ids = course.assignments.keys()
-    assignment_ids.sort()
+    assignments = course.assignments[:]
+    assignments.sort(key=operator.attrgetter("deadline"))
 
-    for assignment_id in assignment_ids:
+    for assignment in assignments:
         if ids:
-            print assignment_id
+            print assignment.id
         else:
-            assignment = course.get_assignment(assignment_id)
-
             if utc:
                 deadline = assignment.deadline.isoformat(" ")
             else:

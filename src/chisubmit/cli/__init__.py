@@ -101,9 +101,21 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
 def chisubmit_cmd_wrapper():
     try:
         chisubmit_cmd.main()
-    except BadRequestError, he:
-        pass
-        
+    except BadRequestError, bre:
+        print
+        print "ERROR: There was an error processing this request"
+        print
+        print "URL: %s" % bre.request.url
+        print "HTTP method: %s" % bre.request.method
+        print "Error(s):"
+        for noun, errors in bre.errors:
+            if len(errors) == 1:
+                print "  - %s: %s" % (noun, errors[0])
+            else:
+                print "  - %s:" % noun
+                for error in errors:
+                    print "    - %s" % error
+        print        
     except HTTPError, he:
         print "ERROR: chisubmit server returned an HTTP error"
         print

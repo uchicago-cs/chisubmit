@@ -121,7 +121,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         github_instructors = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))
         github_graders = self.__get_ghteam_by_name(self.__get_graders_ghteam_name(course))
 
-        students = [s for s in course.students if s.user in [ts.user for ts in team.students]]
+        students = [s for s in course.students if s.user.id in [ts.user.id for ts in team.students]]
 
         if not self.staging:
             github_students = []

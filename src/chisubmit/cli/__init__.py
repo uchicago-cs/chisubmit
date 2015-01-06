@@ -99,8 +99,12 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
 
 
 def chisubmit_cmd_wrapper():
+    cmd_wrapper(chisubmit_cmd)
+
+
+def cmd_wrapper(cmd):
     try:
-        chisubmit_cmd.main()
+        cmd.main()
     except BadRequestError, bre:
         print
         print "ERROR: There was an error processing this request"
@@ -161,6 +165,8 @@ chisubmit_cmd.add_command(grader)
 @click.command(name="chisubmit-get-credentials")
 @click.option('--conf', type=str, default=None)
 @click.option('--dir', type=str, default=None)
+@click.option('--verbose', is_flag=True)
+@click.option('--debug', is_flag=True)
 @click.option('--user', prompt='Enter your chisubmit username')
 @click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
 @click.option('--url', type=str)
@@ -168,7 +174,12 @@ chisubmit_cmd.add_command(grader)
 @click.option('--reset', is_flag=True)
 @click.option('--testing', is_flag=True)
 @click.pass_context
-def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, url, no_save, reset, testing):
+def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, user, password, url, no_save, reset, testing):
+    global VERBOSE, DEBUG
+    
+    VERBOSE = verbose
+    DEBUG = debug
+        
     config = Config(dir, conf)
 
     server_url = None
@@ -195,8 +206,7 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, url, no_save, 
             print "ERROR: Incorrect username/password"
             ctx.exit(CHISUBMIT_FAIL)
         else:
-            print "ERROR: Unexpected error (HTTP %i)" % he.response.status_code
-            ctx.exit(CHISUBMIT_FAIL)      
+            raise    
     except ConnectionError, ce:
         print "ERROR: Could not connect to chisubmit server"
         print "URL: %s" % server_url
@@ -231,6 +241,10 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, user, password, url, no_save, 
         click.echo("Unable to create token. Incorrect username/password.")
 
     return CHISUBMIT_SUCCESS
+
+def chisubmit_get_credentials_cmd_wrapper():
+    cmd_wrapper(chisubmit_get_credentials_cmd)
+
 
 from chisubmit.cli.server import server_start, server_initdb
 

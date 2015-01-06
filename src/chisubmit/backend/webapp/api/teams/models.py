@@ -7,7 +7,7 @@ from chisubmit.backend.webapp.api.assignments.models import GradeComponent
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
     id = db.Column(db.Unicode, primary_key=True)
-    extensions = db.Column(db.Integer)    
+    extensions = db.Column(db.Integer, default=0)    
     repo_info = db.Column(JSONEncodedDict, default={})
     extras = db.Column(JSONEncodedDict, default={})
     active = db.Column('active', db.Boolean,

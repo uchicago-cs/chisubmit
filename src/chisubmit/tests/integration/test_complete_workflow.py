@@ -129,6 +129,9 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         result = admin.run("admin course set-option %s default-extensions 2" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
+        result = admin.run("admin course set-option %s extension-policy per_team" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+                
         course = Course.from_id(course_id)
         self.assertIn("git-server-connstr", course.options)
         self.assertIn("git-staging-connstr", course.options)

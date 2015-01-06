@@ -5,6 +5,7 @@ from chisubmit.common.utils import convert_datetime_to_local,\
     create_connection, get_datetime_now_utc
 from dateutil.parser import parse
 from chisubmit.cli.common import pass_course
+from chisubmit.cli.shared.assignment import shared_assignment_list
 
 
 @click.group(name="assignment")
@@ -224,6 +225,7 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
             
         return CHISUBMIT_SUCCESS
 
+student_assignment.add_command(shared_assignment_list)
 
 student_assignment.add_command(student_assignment_register)
 student_assignment.add_command(student_assignment_show_deadline)

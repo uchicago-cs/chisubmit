@@ -66,8 +66,6 @@ def student_course_set_git_username(ctx, course, username):
 
 student_course.add_command(shared_course_list)
 student_course.add_command(shared_course_set_default)
-student_course.add_command(shared_team_list)
-student_course.add_command(shared_team_show)
 
 student_course.add_command(student_course_get_git_credentials)
 student_course.add_command(student_course_set_git_username)

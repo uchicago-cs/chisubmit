@@ -10,7 +10,7 @@ from chisubmit.common import CHISUBMIT_SUCCESS
 @click.option('--utc', is_flag=True)
 @pass_course
 @click.pass_context
-def instructor_assignment_list(ctx, course, ids, utc):
+def shared_assignment_list(ctx, course, ids, utc):
     assignments = course.assignments[:]
     assignments.sort(key=operator.attrgetter("deadline"))
 

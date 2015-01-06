@@ -18,10 +18,13 @@ def teams(course_id):
     
     if course is None:
         abort(404)    
+
+    check_course_access_or_abort(g.user, course, 404)
     
     if request.method == 'GET':
         # TODO: SQLAlchemy-fy this
         teams = Team.query.all()
+
         if g.user.is_student_in(course):
             teams = [t for t in teams if g.user in t.students]
 

@@ -15,8 +15,8 @@ def shared_course_list(ctx):
     return CHISUBMIT_SUCCESS
 
 @click.command(name="set-default")
-@pass_course
+@click.argument('course_id', type=str)
 @click.pass_context
-def shared_course_set_default(ctx, course):
-    ctx.obj['config']['default-course'] = course.id
+def shared_course_set_default(ctx, course_id):
+    ctx.obj['config']['default-course'] = course_id
     ctx.obj['config'].save()

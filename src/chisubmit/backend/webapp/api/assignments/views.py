@@ -201,7 +201,7 @@ def assignment_register(course_id, assignment_id):
             
         if create_team:
             if team_name is None:
-                team_name = "_".join(sorted([s.id for s in students_in_team]))
+                team_name = "-".join(sorted([s.id for s in students_in_team]))
     
             extensions = course.options.get("default-extensions", 0)
     

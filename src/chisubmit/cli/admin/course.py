@@ -33,7 +33,6 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.user import User
 from chisubmit.client.course import Course
-from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.common.utils import create_connection
 
 @click.group(name="course")
@@ -57,6 +56,11 @@ def admin_course_add(ctx, course_id, name):
 @click.argument('course_id', type=str)
 @click.pass_context
 def admin_course_remove(ctx, course_id):
+    course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
+    
     print "NOT IMPLEMENTED"
 
     return CHISUBMIT_SUCCESS
@@ -69,6 +73,9 @@ def admin_course_remove(ctx, course_id):
 @click.pass_context
 def admin_course_show(ctx, course_id, include_users, include_assignments):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
     
     print course.id, course.name
     if len(course.options) == 0:
@@ -125,7 +132,14 @@ def admin_course_list(ctx):
 @click.pass_context
 def admin_course_add_instructor(ctx, course_id, user_id):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
+    
     user = User.from_id(user_id)
+    if course is None:
+        print "User %s does not exist" % user_id
+        ctx.exit(CHISUBMIT_FAIL)    
     
     course.add_instructor(user)
     
@@ -135,7 +149,14 @@ def admin_course_add_instructor(ctx, course_id, user_id):
 @click.pass_context
 def admin_course_add_grader(ctx, course_id, user_id):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
+
     user = User.from_id(user_id)
+    if course is None:
+        print "User %s does not exist" % user_id
+        ctx.exit(CHISUBMIT_FAIL)    
     
     course.add_grader(user)
     
@@ -145,7 +166,14 @@ def admin_course_add_grader(ctx, course_id, user_id):
 @click.pass_context
 def admin_course_add_student(ctx, course_id, user_id):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
+
     user = User.from_id(user_id)
+    if course is None:
+        print "User %s does not exist" % user_id
+        ctx.exit(CHISUBMIT_FAIL)    
     
     course.add_student(user)        
     
@@ -157,6 +185,10 @@ def admin_course_add_student(ctx, course_id, user_id):
 @click.pass_context
 def admin_course_set_option(ctx, course_id, option_name, option_value):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
+
     course.set_option(option_name, option_value)
 
 
@@ -166,6 +198,9 @@ def admin_course_set_option(ctx, course_id, option_name, option_value):
 @click.pass_context
 def admin_course_setup_repo(ctx, course_id, staging):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -182,6 +217,9 @@ def admin_course_setup_repo(ctx, course_id, staging):
 @click.pass_context
 def admin_course_unsetup_repo(ctx, course_id, staging):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -198,6 +236,9 @@ def admin_course_unsetup_repo(ctx, course_id, staging):
 @click.pass_context
 def admin_course_update_repo_access(ctx, course_id, staging):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
     
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -217,6 +258,9 @@ def admin_course_update_repo_access(ctx, course_id, staging):
 @click.pass_context
 def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, public, staging):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
 
     team = course.get_team(team_id)
     if team is None:
@@ -244,6 +288,9 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
 @click.pass_context
 def admin_course_team_repo_update(ctx, course_id, team_id):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
 
     team = course.get_team(team_id)
     if team is None:
@@ -270,6 +317,9 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
 @click.pass_context
 def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
     course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
 
     team = course.get_team(team_id)
     if team is None:

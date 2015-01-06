@@ -198,6 +198,7 @@ def admin_course_setup_repo(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
+        print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
 
     conn.init_course(course)
@@ -217,6 +218,7 @@ def admin_course_unsetup_repo(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
+        print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
 
     conn.deinit_course(course)
@@ -268,6 +270,7 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
+        print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
     
     conn.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
@@ -297,6 +300,7 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
     conn = create_connection(course, ctx.obj['config'], staging = False)
     
     if conn is None:
+        print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
 
     conn.update_team_repository(team)
@@ -326,6 +330,7 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
+        print "Could not connect to git server."
         return CHISUBMIT_FAIL
 
     conn.delete_team_repository(course, team)

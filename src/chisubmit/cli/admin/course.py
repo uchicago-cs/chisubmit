@@ -35,6 +35,7 @@ from chisubmit.client.user import User
 from chisubmit.client.course import Course
 from chisubmit.common.utils import create_connection
 from chisubmit.cli.shared.course import shared_course_list
+import operator
 
 @click.group(name="course")
 @click.pass_context
@@ -238,10 +239,47 @@ def admin_course_update_repo_access(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
+        print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
     
     conn.update_instructors(course)
     conn.update_graders(course)
+
+
+@click.command(name="create-repos")
+@click.argument('course_id', type=str)
+@click.option('--staging', is_flag=True)
+@click.pass_context
+def admin_course_create_repos(ctx, course_id, staging):
+    course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)    
+
+    teams = course.get_teams()
+
+    conn = create_connection(course, ctx.obj['config'], staging)
+    
+    if conn is None:
+        print "Could not connect to git server."
+        ctx.exit(CHISUBMIT_FAIL)
+    
+    for team in sorted(teams, key=operator.attrgetter("id")):
+        if not team.is_complete():
+            print "%-20s SKIPPING. Team registration is incomplete." % team.id
+            continue
+        
+        if conn.exists_team_repository(course, team):
+            print "%-20s SKIPPING. Already has a repository." % team.id
+            continue
+        
+        try:
+            conn.create_team_repository(course, team)
+            print "%-20s CREATED" % team.id
+        except Exception, e:
+            print "%-20s Unexpected exception %s: %s" % (team.id, e.__class__.__name__, e.message)
+
+    return CHISUBMIT_SUCCESS
 
 
 @click.command(name="team-repo-create")
@@ -351,6 +389,7 @@ admin_course.add_command(admin_course_set_option)
 admin_course.add_command(admin_course_setup_repo)
 admin_course.add_command(admin_course_unsetup_repo)
 admin_course.add_command(admin_course_update_repo_access)
+admin_course.add_command(admin_course_create_repos)
 admin_course.add_command(admin_course_team_repo_create)
 admin_course.add_command(admin_course_team_repo_update)
 admin_course.add_command(admin_course_team_repo_remove)

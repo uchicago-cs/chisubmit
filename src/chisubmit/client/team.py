@@ -101,3 +101,11 @@ class Team(CourseQualifiedApiObject):
         data = json.dumps({'assignments': {'update': [attrs]}})
         session.put(self.url(), data=data)        
         
+    def is_complete(self):
+        return all([s.status == 1 for s in self.students])
+        
+    def get_confirmed_students(self):
+        return [s for s in self.students if s.status == 1]
+    
+    def get_unconfirmed_students(self):
+        return [s for s in self.students if s.status == 0]            

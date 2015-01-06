@@ -43,6 +43,7 @@ class Config(collections.MutableMapping):
     IMPLICIT_FIELDS = ["directory"]
     REQUIRED_FIELDS = ["api-url"]
     OPTIONAL_FIELDS = ["default-course", "git-credentials", "server", "api-key"]
+    ALL_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS
 
     def __getitem__(self, key):
         if key in self.options:
@@ -53,7 +54,7 @@ class Config(collections.MutableMapping):
             raise KeyError
 
     def __setitem__(self, key, value):
-        if key in self.options:
+        if key in self.ALL_FIELDS:
             self.options[key] = value
             self.save()
         else:

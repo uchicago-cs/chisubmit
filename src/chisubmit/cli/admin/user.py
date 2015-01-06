@@ -33,7 +33,6 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.user import User
 
-
 @click.group(name="user")
 @click.pass_context
 def admin_user(ctx):
@@ -46,6 +45,12 @@ def admin_user(ctx):
 @click.argument('email', type=str)
 @click.pass_context
 def admin_user_add(ctx, user_id, first_name, last_name, email):
+    user = User.from_id(user_id)
+    
+    if user is not None:
+        print "User %s already exists." % user_id
+        ctx.exit(CHISUBMIT_FAIL)    
+    
     user = User(id = user_id,
                 first_name = first_name,
                 last_name = last_name,

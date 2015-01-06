@@ -77,6 +77,7 @@ def server_start(ctx, profile, test_fixture):
     if test_fixture is not None:
         from chisubmit.tests.fixtures import fixtures
         from chisubmit.tests.common import load_fixture
+        from chisubmit.backend.webapp.api import ChisubmitAPIServer
         
         if not fixtures.has_key(test_fixture):
             raise ChisubmitException("Test fixture '%s' does not exist" % test_fixture)

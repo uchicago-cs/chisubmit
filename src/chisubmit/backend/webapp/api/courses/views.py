@@ -90,6 +90,12 @@ def course(course_id):
                 new_child = CoursesInstructors()
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
+                
+                git_usernames = course.options.get("git-usernames", None)
+
+                if git_usernames == "user_id":
+                    new_child.repo_info = {"git-username": new_child.instructor_id}
+                
                 db.session.add(new_child)
                 
             for child_data in form.instructors.update:
@@ -122,6 +128,12 @@ def course(course_id):
                 new_child = CoursesStudents()
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
+
+                git_usernames = course.options.get("git-usernames", None)
+                
+                if git_usernames == "user_id":
+                    new_child.repo_info = {"git-username": new_child.student_id}
+                
                 db.session.add(new_child)
                 
             for child_data in form.students.update:
@@ -153,6 +165,12 @@ def course(course_id):
                 new_child = CoursesGraders()
                 anonymous_class = type("", (), dict(child=new_child))()
                 child_data.populate_obj(anonymous_class, 'child')
+
+                git_usernames = course.options.get("git-usernames", None)
+                
+                if git_usernames == "user_id":
+                    new_child.repo_info = {"git-username": new_child.grader_id}
+                
                 db.session.add(new_child)
 
             for child_data in form.graders.update:

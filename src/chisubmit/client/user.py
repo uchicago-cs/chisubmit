@@ -40,11 +40,7 @@ class User(ApiObject):
     _primary_key = 'id'
     _singularize = 'user'
     _pluralize = 'users'
-
-    def save(self):
-        if not session.exists(self):
-            super(User, self).save()
-            
+           
     # TODO 18DEC14: handle revoking and/or replacing the token
     @classmethod
     def get_token(cls, username, password, reset=False):

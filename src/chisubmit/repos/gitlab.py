@@ -79,14 +79,9 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                 raise ChisubmitException("Could not create group '%s'" % course.id, new_group)
                 
     def deinit_course(self, course):
-        from pprint import pprint
-        pprint(self.gitlab.getgroups())
         group = self.__get_group(course)
-        print group
         if group is not None:
             rv = self.gitlab.deletegroup(self.__get_group_id(course))
-            print rv
-        pprint(self.gitlab.getgroups())            
     
     def update_instructors(self, course):
         for instructor in course.instructors:
@@ -107,7 +102,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         student_names = ", ".join(["%s %s" % (s.user.first_name, s.user.last_name) for s in team.students])
         repo_description = "%s: Team %s (%s)" % (course.name, team.id, student_names)
         
-        students = [s for s in course.students if s.user in [ts.user for ts in team.students]]
+        students = [s for s in course.students if s.user.id in [ts.user.id for ts in team.students]]
         
         if not self.staging:
             gitlab_students = []
@@ -115,14 +110,12 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             # Make sure users exist
             for s in students:
                 gitlab_student = self.__get_user_by_username(self._get_user_git_username(s))
-                
                 if gitlab_student is None:
                     raise ChisubmitException("GitLab user '%s' does not exist " % (self._get_user_git_username(s)))
                 
                 gitlab_students.append(gitlab_student)        
-        
+
         project = self.__get_team_project(course, team)
-        
         if project is not None and fail_if_exists:
             raise ChisubmitException("Repository %s already exists" % repo_name)
         

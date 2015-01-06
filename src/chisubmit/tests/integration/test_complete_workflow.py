@@ -41,8 +41,10 @@ class CLICompleteWorkflow(ChisubmitTestCase):
             for p in partners:
                 partner_args += ["--partner", p.user_id]
         
-            s.run("student assignment-register", 
+            s.run("student assignment register", 
                   [ assignment_id, "--team-name", team_name] + partner_args)
+
+            s.run("student team show", [team_name])
         
         
         students_in_team = [User.from_id(s.user_id) for s in student_clients]
@@ -210,7 +212,7 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                 git_username = "git" + s.user_id
             else:
                 git_username = self.git_server_user
-            result = s.run("student set-git-username", [git_username])
+            result = s.run("student course set-git-username", [git_username])
             self.assertEquals(result.exit_code, 0)
             
             course_student = CoursesStudents.query.filter_by(
@@ -224,8 +226,26 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         self.register_team(students_team1, team_name1, "pa2", course_id)
 
         self.register_team(students_team2, team_name2, "pa1", course_id)
+        
+        result = student[0].run("student team list")
+        self.assertEquals(result.exit_code, 0)
+        self.assertIn(team_name1, result.output)
+        self.assertNotIn(team_name2, result.output)
 
+        result = student[2].run("student team list")
+        self.assertEquals(result.exit_code, 0)
+        self.assertIn(team_name2, result.output)
+        self.assertNotIn(team_name1, result.output)
+        
+        result = student[0].run("student team show", [team_name2])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
 
+        result = student[2].run("student team show", [team_name1])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
+
+        result = instructor.run("instructor team list")
+        self.assertEquals(result.exit_code, 0)
+        
         result = admin.run("admin course team-repo-remove", [course_id, team_name1])
         self.assertEquals(result.exit_code, 0)
         result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name1])
@@ -248,23 +268,23 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         result = admin.run("admin course team-repo-create", ["--staging", course_id, team_name2, "--public"])
         self.assertEquals(result.exit_code, 0)
         
-        result = student[0].run("student repo-check", [team_name1])
+        result = student[0].run("student team repo-check", [team_name1])
         self.assertEquals(result.exit_code, 0)
         
         r = re.findall(r"^Repository URL: (.*)$", result.output, flags=re.MULTILINE)
-        self.assertEquals(len(r), 1, "student repo-check didn't produce the expected output")
+        self.assertEquals(len(r), 1, "student team repo-check didn't produce the expected output")
         team1_remote_repo = r[0]
         
-        result = student[2].run("student repo-check", [team_name2])
+        result = student[2].run("student team repo-check", [team_name2])
         self.assertEquals(result.exit_code, 0)
 
         r = re.findall(r"^Repository URL: (.*)$", result.output, flags=re.MULTILINE)
-        self.assertEquals(len(r), 1, "student repo-check didn't produce the expected output")
+        self.assertEquals(len(r), 1, "student team repo-check didn't produce the expected output")
         team2_remote_repo = r[0]
 
-        result = student[0].run("student repo-check", [team_name2])
+        result = student[0].run("student team repo-check", [team_name2])
         self.assertNotEquals(result.exit_code, 0)
-        result = student[2].run("student repo-check", [team_name1])
+        result = student[2].run("student team repo-check", [team_name1])
         self.assertNotEquals(result.exit_code, 0)
 
         team1_git_repo, team1_git_path = students_team1[0].create_local_git_repository(team_name1)
@@ -315,42 +335,42 @@ class CLICompleteWorkflow(ChisubmitTestCase):
                 
         
         # Try to submit without enough extensions
-        result = student[0].run("student assignment-submit", 
+        result = student[0].run("student assignment submit", 
                                 [team_name1, "pa1", team1_commit1.hexsha, 
                                  "--extensions", "0",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Try to submit with too many extensions
-        result = student[0].run("student assignment-submit", 
+        result = student[0].run("student assignment submit", 
                                 [team_name1, "pa1", team1_commit1.hexsha, 
                                  "--extensions", "2",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         # Submit with just the right number
-        result = student[0].run("student assignment-submit", 
+        result = student[0].run("student assignment submit", 
                                 [team_name1, "pa1", team1_commit1.hexsha, 
                                  "--extensions", "1",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         # Try submitting an already-submitted assignment
-        result = student[0].run("student assignment-submit", 
+        result = student[0].run("student assignment submit", 
                                 [team_name1, "pa1", team1_commit2.hexsha, 
                                  "--extensions", "1",
                                  "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Submit an already-submitted assignment
-        result = student[0].run("student assignment-submit", 
+        result = student[0].run("student assignment submit", 
                                 [team_name1, "pa1", team1_commit2.hexsha, 
                                  "--extensions", "1",
                                  "--yes", "--force"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
         
         # Try requesting more extensions than the team has
-        result = student[0].run("student assignment-submit", 
+        result = student[0].run("student assignment submit", 
                                 [team_name1, "pa2", team1_commit2.hexsha, 
                                  "--extensions", "3",
                                  "--yes"])
@@ -358,14 +378,14 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         
         # Try submitting for a project the team is not registered for
         with self.assertRaises(BadRequestError) as cm:
-            student[2].run("student assignment-submit", 
+            student[2].run("student assignment submit", 
                            [team_name2, "pa2", team2_commit2.hexsha, 
                            "--extensions", "0",
                            "--yes"])        
         bre = cm.exception
         bre.print_errors()
 
-        result = student[2].run("student assignment-submit", 
+        result = student[2].run("student assignment submit", 
                                 [team_name2, "pa1", team2_commit2.hexsha, 
                                  "--extensions", "1",
                                  "--yes"])

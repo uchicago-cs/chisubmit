@@ -117,7 +117,7 @@ def assignment_register(course_id, assignment_id):
             return jsonify(errors=form.errors), 400
         
         team_name = form.team_name.data
-        if len(team_name) == 0:
+        if team_name is None or len(team_name) == 0:
             team_name = None
 
         partners = []

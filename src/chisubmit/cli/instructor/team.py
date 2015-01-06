@@ -6,47 +6,21 @@ from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 import pprint
 import operator
+from chisubmit.cli.shared.team import shared_team_list, shared_team_show
 
 @click.group(name="team")
 @click.pass_context
 def instructor_team(ctx):
     pass
 
-@click.command(name="list")
-@click.option('--ids', is_flag=True)
-@pass_course
-@click.pass_context
-def instructor_team_list(ctx, course, ids):
-    teams = course.teams[:]
-    teams.sort(key=operator.attrgetter("id"))
 
-    for team in teams:
-        if ids:
-            print team.id
-        else:
-            fields = [team.id, `team.active`]
-
-            print "\t".join(fields)
-
-    return CHISUBMIT_SUCCESS
-
-
-@click.command(name="show")
-@click.option('--search', is_flag=True)
+@click.command(name="search")
 @click.option('--verbose', is_flag=True)
 @click.argument('team_id', type=str)
 @pass_course
 @click.pass_context
-def instructor_team_show(ctx, course, search, verbose, team_id):
-    if not search:
-        team = course.get_team(team_id)
-        if team is None:
-            print "Team %s does not exist" % team_id
-            ctx.exit(CHISUBMIT_FAIL)
-
-        teams = [team]
-    else:
-        teams = course.search_team(team_id)
+def instructor_team_search(ctx, course, verbose, team_id):
+    teams = course.search_team(team_id)
 
     pp = pprint.PrettyPrinter(indent=4, depth=6)
 
@@ -108,4 +82,13 @@ def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
     team.add_assignment(assignment)
 
     return CHISUBMIT_SUCCESS
+
+
+instructor_team.add_command(shared_team_list)
+instructor_team.add_command(shared_team_show)
+
+instructor_team.add_command(instructor_team_search)
+instructor_team.add_command(instructor_team_student_add)
+instructor_team.add_command(instructor_team_assignment_add)
+
 

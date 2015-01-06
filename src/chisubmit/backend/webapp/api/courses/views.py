@@ -10,7 +10,6 @@ from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
     check_admin_access_or_abort, check_user_ids_equal_or_abort
 
-
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
 @require_apikey
 def courses():
@@ -59,7 +58,7 @@ def course(course_id):
             fields.append("options")
         
         if g.user.admin or g.user.is_instructor_in(course) or g.user.is_grader_in(course):
-            fields += ['courses_graders', 'courses_students', 'courses_instructors']
+            fields += ['teams', 'courses_graders', 'courses_students', 'courses_instructors']
 
         return jsonify({'course': course.to_dict(show=fields)})
     

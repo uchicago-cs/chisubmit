@@ -34,6 +34,7 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.user import User
 from chisubmit.client.course import Course
 from chisubmit.common.utils import create_connection
+from chisubmit.cli.shared.course import shared_course_list
 
 @click.group(name="course")
 @click.pass_context
@@ -116,15 +117,7 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="list")
-@click.pass_context
-def admin_course_list(ctx):
-    courses = Course.all()
-    
-    for course in courses:
-        print course.id, course.name
 
-    return CHISUBMIT_SUCCESS
 
 @click.command(name="add-instructor")
 @click.argument('course_id', type=str)
@@ -340,10 +333,12 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
     return CHISUBMIT_SUCCESS
 
 
+admin_course.add_command(shared_course_list)
+
+
 admin_course.add_command(admin_course_add)
 admin_course.add_command(admin_course_remove)
 admin_course.add_command(admin_course_show)
-admin_course.add_command(admin_course_list)
 admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)

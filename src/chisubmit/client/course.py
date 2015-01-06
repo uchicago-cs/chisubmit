@@ -121,6 +121,9 @@ class Course(ApiObject):
     def get_team(self, team_id):
         return Team.from_id(self.id, team_id) 
 
+    def get_teams(self):
+        return Team.all(self.id)
+
     def search_team(self, search_term):
         teams = []
         for t in self.teams:

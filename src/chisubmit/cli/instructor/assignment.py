@@ -7,6 +7,7 @@ from chisubmit.common.utils import convert_datetime_to_utc,\
     convert_datetime_to_local
 import operator
 from chisubmit.cli.shared.course import shared_course_list
+from chisubmit.cli.shared.assignment import shared_assignment_list
 
 
 @click.group(name="assignment")
@@ -55,7 +56,7 @@ def instructor_assignment_add_grade_component(ctx, course, assignment_id, grade_
     return CHISUBMIT_SUCCESS
 
 
-instructor_assignment.add_command(shared_course_list)
+instructor_assignment.add_command(shared_assignment_list)
 
 instructor_assignment.add_command(instructor_assignment_add)
 instructor_assignment.add_command(instructor_assignment_add_grade_component)

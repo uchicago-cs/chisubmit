@@ -35,6 +35,9 @@ class User(UniqueModel, Serializable, db.Model):
     def is_grader_in(self, course):
         return self in course.graders        
 
+    def has_instructor_or_grader_permissions(self, course):
+        return self.is_instructor_in(course) or self.is_grader_in(course) or self.admin
+
     def is_in_course(self, course):
         return self.is_instructor_in(course) or self.is_student_in(course) or self.is_grader_in(course)
     

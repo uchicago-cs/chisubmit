@@ -23,9 +23,9 @@ def teams(course_id):
     
     if request.method == 'GET':
         # TODO: SQLAlchemy-fy this
-        teams = Team.query.all()
+        teams = Team.query.filter_by(course_id=course_id).all()
 
-        if g.user.is_student_in(course):
+        if not g.user.has_instructor_or_grader_permissions(course):
             teams = [t for t in teams if g.user in t.students]
 
         return jsonify(teams=[team.to_dict() for team in teams])

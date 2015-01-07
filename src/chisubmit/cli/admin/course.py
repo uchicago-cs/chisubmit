@@ -273,6 +273,21 @@ def admin_course_create_repos(ctx, course_id, staging):
             print "%-20s SKIPPING. Already has a repository." % team.id
             continue
         
+        students = [s for s in course.students if s.user.id in [ts.user.id for ts in team.students]]
+        if staging:
+            option = "git-staging-username"
+        else:
+            option = "git-username"
+            
+        missing = []
+        for s in students:
+            if not hasattr(s, "repo_info") or s.repo_info is None or not s.repo_info.has_key(option):
+                missing.append(s.user.id)
+                
+        if len(missing) > 0:
+            print "%-20s SKIPPING. These students haven't set their git usernames: %s" % (team.id, ",".join(missing))
+            continue
+        
         try:
             conn.create_team_repository(course, team)
             print "%-20s CREATED" % team.id

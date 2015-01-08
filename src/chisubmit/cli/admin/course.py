@@ -356,7 +356,7 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
         print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
 
-    conn.update_team_repository(team)
+    conn.update_team_repository(course, team)
     return CHISUBMIT_SUCCESS
 
 

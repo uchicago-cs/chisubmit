@@ -2,7 +2,7 @@
 # Needed so we can import from the global "github" package
 from __future__ import absolute_import
 
-from github import Github, InputGitAuthor
+from github import Github, InputGitAuthor, NamedUser
 from github.GithubException import GithubException
 
 from chisubmit.repos import RemoteRepositoryConnectionBase, GitCommit, GitTag
@@ -137,7 +137,6 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
                 github_students.append(github_student)
 
         github_repo = self.__get_repository(repo_name)
-
         if github_repo is None:
             try:
                 github_repo = self.organization.create_repo(repo_name, description=repo_description, private=private)
@@ -164,7 +163,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
 
             for github_student in github_students:
                 try:
-                    github_team.add_to_members(github_student)
+                    self.__pygithub_add_membership(github_team, github_student)
                 except GithubException as ge:
                     raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (username, ge.status, ge.data["message"]), ge)
 
@@ -172,11 +171,13 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def update_team_repository(self, course, team):
         github_team = self.__get_ghteam_by_name(self.__get_team_ghteam_name(course, team))
 
-        for s in team.students:
+        students = [s for s in course.students if s.user.id in [ts.user.id for ts in team.students]]
+
+        for s in students:
             username = self._get_user_git_username(s)
             github_student = self.__get_user(username)
             try:
-                github_team.add_to_members(github_student)
+                self.__pygithub_add_membership(github_team, github_student)
             except GithubException as ge:
                 raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (username, ge.status, ge.data["message"]))
 
@@ -320,9 +321,23 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
             raise ChisubmitException("GitHub user '%s' does not exist " % github_id)
 
         try:
-            ghteam.add_to_members(github_user)
+            self.__pygithub_add_membership(self, ghteam, github_user)
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (github_id, ge.status, ge.data["message"]), ge)
+
+    # This is a workaround until PyGithub fixes this:
+    # https://github.com/jacquev6/PyGithub/issues/280
+    def __pygithub_add_membership(self, team, member):
+        """
+        :calls: `PUT /teams/:id/memberships/:user <http://developer.github.com/v3/orgs/teams>`_
+        :param member: :class:`github.Nameduser.NamedUser`
+        :rtype: None
+        """
+        assert isinstance(member, NamedUser.NamedUser), member
+        headers, data = team._requester.requestJsonAndCheck(
+            "PUT",
+            team.url + "/memberships/" + member._identity
+        )
 
     def __add_user_to_ghteam_by_name(self, github_id, ghteam_name):
         ghteam = self.__get_ghteam_by_name(ghteam_name)

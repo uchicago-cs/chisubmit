@@ -114,7 +114,7 @@ def course(course_id):
                 if not course_instructor:
                     abort(404)
             
-                if not g.user.admin:
+                if g.user.admin or g.user.is_instructor_in(course):
                     course_instructor.set_columns(**child_data.patch_data)
                     
                 update_options(child_data.repo_info, course_instructor.repo_info)
@@ -144,7 +144,6 @@ def course(course_id):
                 
             for child_data in form.students.update:
                 student_id = child_data["student_id"].data
-                
                 if student_id is None:
                     student_id = g.user.id                
                 
@@ -159,7 +158,7 @@ def course(course_id):
                 if not course_student:
                     abort(404)
 
-                if not (g.user.admin or g.user.is_instructor_in(course)):
+                if g.user.admin or g.user.is_instructor_in(course):
                     course_student.set_columns(**child_data.patch_data)
                 update_options(child_data.repo_info, course_student.repo_info)
                 
@@ -196,7 +195,7 @@ def course(course_id):
                 if not course_grader:
                     abort(404)
             
-                if not (g.user.admin or g.user.is_instructor_in(course)):
+                if g.user.admin or g.user.is_instructor_in(course):
                     course_grader.set_columns(**child_data.patch_data)
                 update_options(child_data.repo_info, course_grader.repo_info)
                 

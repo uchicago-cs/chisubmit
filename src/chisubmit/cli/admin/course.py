@@ -258,19 +258,27 @@ def admin_course_create_repos(ctx, course_id, staging):
 
     teams = course.get_teams()
 
+    max_len = max([len(t.id) for t in teams])
+
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
         print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
     
+    v = ctx.obj["verbose"]
+    already_has_repository = 0
+    warning = 0
+    created = 0
     for team in sorted(teams, key=operator.attrgetter("id")):
         if not team.is_complete():
-            print "%-20s SKIPPING. Team registration is incomplete." % team.id
+            warning += 1
+            print "%-*s  WARNING. Team registration is incomplete." % (max_len, team.id)
             continue
         
         if conn.exists_team_repository(course, team):
-            print "%-20s SKIPPING. Already has a repository." % team.id
+            already_has_repository += 1
+            if v: print "%-*s  SKIPPING. Already has a repository." % (max_len, team.id)
             continue
         
         students = [s for s in course.students if s.user.id in [ts.user.id for ts in team.students]]
@@ -285,14 +293,21 @@ def admin_course_create_repos(ctx, course_id, staging):
                 missing.append(s.user.id)
                 
         if len(missing) > 0:
-            print "%-20s SKIPPING. These students haven't set their git usernames: %s" % (team.id, ",".join(missing))
+            warning += 1
+            print "%-20s WARNING. These students haven't set their git usernames: %s" % (team.id, ",".join(missing))
             continue
         
         try:
             conn.create_team_repository(course, team)
+            created += 1
             print "%-20s CREATED" % team.id
         except Exception, e:
             print "%-20s Unexpected exception %s: %s" % (team.id, e.__class__.__name__, e.message)
+
+    print
+    print "Existing: %i" % already_has_repository
+    print "Created : %i" % created
+    print "Warnings: %i" % warning
 
     return CHISUBMIT_SUCCESS
 

@@ -118,6 +118,26 @@ class Course(ApiObject):
     def get_assignment(self, assignment_id):
         return Assignment.from_id(self.id, assignment_id)
 
+    def get_student(self, student_id):
+        ss = [s for s in self.students if s.user.id == student_id]
+        
+        if len(ss) == 1:
+            return ss[0]
+        else:
+            return None             
+        
+    def set_student_dropped(self, student_id, dropped = True):
+        data = {"students": 
+                {
+                 "update": [
+                            {"student_id": student_id,
+                             "dropped": 1}
+                           ]
+                }
+               }
+        data = json.dumps(data)
+        session.put('courses/%s' % (self.id), data=data)         
+        
     def get_team(self, team_id):
         return Team.from_id(self.id, team_id) 
 

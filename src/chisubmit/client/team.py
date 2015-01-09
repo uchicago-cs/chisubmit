@@ -75,6 +75,17 @@ class Team(CourseQualifiedApiObject):
             return ats[0]
         else:
             return None        
+        
+    def has_submitted(self, assignment_id):
+        assignment = self.get_assignment(assignment_id)
+        if assignment is None:
+            return False
+        else:
+            if assignment.submitted_at is not None:
+                return True
+            else:
+                return False        
+        
     
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}

@@ -34,7 +34,7 @@ def instructor_student_set_dropped(ctx, course, student_id):
         print "Student %s does not exist" % student_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    student.dropped = True
+    course.set_student_dropped(student_id)
 
     return CHISUBMIT_SUCCESS
 

@@ -1,29 +1,30 @@
-import git
 import os.path
 
 from chisubmit.common import ChisubmitException
-from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.repos.local import LocalGitRepo
 from chisubmit.common.utils import create_connection
 
 
 class GradingGitRepo(object):
-    def __init__(self, team, assignment, repo, repo_path):
+    def __init__(self, team, assignment, repo, repo_path, commit_sha):
         self.team = team
         self.assignment = assignment
         self.repo = repo
         self.repo_path = repo_path
+        self.commit_sha = commit_sha
 
     @classmethod
     def get_grading_repo(cls, config, course, team, assignment):
         base_dir = config["directory"]
+        
+        ta = team.get_assignment(assignment.id)
         
         repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         if not os.path.exists(repo_path):
             return None
         else:
             repo = LocalGitRepo(repo_path)
-            return cls(team, assignment, repo, repo_path)
+            return cls(team, assignment, repo, repo_path, ta.commit_sha)
 
     @classmethod
     def create_grading_repo(cls, config, course, team, assignment):
@@ -36,8 +37,10 @@ class GradingGitRepo(object):
         server_url = conn_server.get_repository_git_url(course, team)
         staging_url = conn_staging.get_repository_git_url(course, team)
 
+        ta = team.get_assignment(assignment.id)
+
         repo = LocalGitRepo.create_repo(repo_path, clone_from_url = server_url, remotes = [("staging", staging_url)])
-        return cls(team, assignment, repo, repo_path)
+        return cls(team, assignment, repo, repo_path, ta.commit_sha)
 
     def sync(self):
         self.repo.fetch("origin")
@@ -49,14 +52,14 @@ class GradingGitRepo(object):
         if self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository already has a %s branch" % (self.team.id, branch_name))
 
-        tag = self.repo.get_tag(self.assignment.id)
-        if tag is None:
+        commit = self.repo.get_commit(self.commit_sha)
+        if commit is None:
             self.sync()
-            tag = self.repo.get_tag(self.assignment.id)
-            if tag is None:
-                raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.assignment.id))
+            commit = self.repo.get_commit(self.commit_sha)
+            if commit is None:
+                raise ChisubmitException("%s repository does not have a commit %s" % (self.team.id, self.commit_sha))
 
-        self.repo.create_branch(branch_name, tag.commit.sha)
+        self.repo.create_branch(branch_name, self.commit_sha)
         self.repo.checkout_branch(branch_name)
 
     def has_grading_branch(self):

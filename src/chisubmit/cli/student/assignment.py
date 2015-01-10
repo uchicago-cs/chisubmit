@@ -134,6 +134,12 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
 
     extensions_available = response["team"]["extensions_available"]
 
+    if response["prior_submission"]["submitted_at"] is not None:    
+        prior_submitted_at_utc = parse(response["prior_submission"]["submitted_at"])
+        prior_submitted_at_local = convert_datetime_to_local(prior_submitted_at_utc)
+    prior_commit_sha = response["prior_submission"]["commit_sha"]
+    prior_extensions_used = response["prior_submission"]["extensions_used"]
+
     deadline_local = convert_datetime_to_local(deadline_utc)
     submitted_at_local = convert_datetime_to_local(submitted_at_utc)
         
@@ -162,16 +168,13 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
         print
 
         ctx.exit(CHISUBMIT_FAIL)
-    else:
-        tag_name = assignment.id
-        submission_tag = conn.get_submission_tag(course, team, tag_name)
-                
-        if submission_tag is not None:
-            submission_commit = submission_tag.commit
+    else:             
+        if prior_commit_sha is not None:
+            submission_commit = conn.get_commit(course, team, prior_commit_sha)
             if not force:
                 print        
-                print "Submission tag '%s' already exists" % tag_name
-                print "It currently points to this commit:"
+                print "You have already submitted assignment %s" % assignment.id
+                print "You submitted the following commit on %s:" % prior_submitted_at_local
                 print
                 print_commit(submission_commit)
                 print
@@ -179,13 +182,13 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
                 ctx.exit(CHISUBMIT_FAIL)
             else:
                 print
-                print "WARNING: Submission tag '%s' already exists and you have requested that it be overwritten" % tag_name
-                print "It currently points to this commit:"
+                print "WARNING: You have already submitted assignment %s and you" % assignment.id 
+                print "are about to overwrite the previous submission of the following commit:"
                 print
                 print_commit(submission_commit)
                 print
     
-        if submission_tag is not None and force:
+        if prior_commit_sha is not None and force:
             msg = "THE ABOVE SUBMISSION FOR %s (%s) WILL BE CANCELLED." % (assignment.id, assignment.name)
             
             print "!"*len(msg)
@@ -211,17 +214,21 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
             print 'y'
         
         if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
-            message = "Extensions: %i\n" % extensions_requested
-                
             response = assignment.submit(team_id, commit_sha, extensions, dry_run=False)
-                
-            if submission_tag is None:
-                conn.create_submission_tag(course, team, tag_name, message, commit.sha)
-            else:
-                conn.update_submission_tag(course, team, tag_name, message, commit.sha)
+              
+            # TODO: Can't do this until GitLab supports updating tags
+            #    
+            # message = "Extensions: %i\n" % extensions_requested
+            # if submission_tag is None:
+            #     conn.create_submission_tag(course, team, tag_name, message, commit.sha)
+            # else:
+            #     conn.update_submission_tag(course, team, tag_name, message, commit.sha)
                 
             print
-            print "Your submission has been completed."
+            if response["success"]:
+                print "Your submission has been completed."
+            else:
+                print "ERROR: Your submission was not completed."
             
         return CHISUBMIT_SUCCESS
 

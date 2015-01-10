@@ -280,13 +280,17 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
     conn = create_connection(course, ctx.obj['config'])
 
     for team in teams:
-        submission_tag = conn.get_submission_tag(course, team, assignment.id)
+        ta = team.get_assignment(assignment.id)
 
-        if submission_tag is None:
+        if ta.submitted_at is None:
             print "%25s NOT SUBMITTED" % team.id
         else:
-            print "%25s SUBMITTED" % team.id
-
+            submission_commit = conn.get_commit(course, team, ta.commit_sha)
+            if submission_commit is not None:
+                print "%25s SUBMITTED" % team.id
+            else:
+                print "%25s ERROR: Submitted but commit %s not found in repository" % (team.id, ta.commit_sha)
+    
     return CHISUBMIT_SUCCESS
 
 @click.command(name="create-grading-repos")

@@ -267,12 +267,15 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
         return tag
 
 
-    def delete_team_repository(self, course, team):
+    def delete_team_repository(self, course, team, fail_if_not_exists=True):
         ghrepo_name = self.__get_team_ghrepo_name(course, team)
-        try:
-            github_repo = self.organization.get_repo(ghrepo_name)
-        except GithubException as ge:
-            raise ChisubmitException("Unexpected exception fetching repository %s (%i: %s)" % (ghrepo_name, ge.status, ge.data["message"]), ge)
+        github_repo = self.__get_repository(ghrepo_name)
+        
+        if github_repo is None:
+            if fail_if_not_exists:
+                raise ChisubmitException("Trying to delete a repository that doesn't exist (%s)" % (ghrepo_name))
+            else:
+                return 
 
         try:
             github_repo.delete()
@@ -321,7 +324,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
             raise ChisubmitException("GitHub user '%s' does not exist " % github_id)
 
         try:
-            self.__pygithub_add_membership(self, ghteam, github_user)
+            self.__pygithub_add_membership(ghteam, github_user)
         except GithubException as ge:
             raise ChisubmitException("Unexpected exception adding user %s to team (%i: %s)" % (github_id, ge.status, ge.data["message"]), ge)
 

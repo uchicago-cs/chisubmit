@@ -249,18 +249,16 @@ class CLICompleteWorkflow(ChisubmitTestCase):
         result = instructor.run("instructor team list")
         self.assertEquals(result.exit_code, 0)
         
-        result = admin.run("admin course team-repo-remove", [course_id, team_name1])
+        result = admin.run("admin course team-repo-remove", [course_id, team_name1, "--ignore-non-existing"])
         self.assertEquals(result.exit_code, 0)
-        result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name1])
+        result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name1, "--ignore-non-existing"])
         self.assertEquals(result.exit_code, 0)
 
-        result = admin.run("admin course team-repo-remove", [course_id, team_name2])
+        result = admin.run("admin course team-repo-remove", [course_id, team_name2, "--ignore-non-existing"])
         self.assertEquals(result.exit_code, 0)
-        result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name2])
+        result = admin.run("admin course team-repo-remove", ["--staging", course_id, team_name2, "--ignore-non-existing"])
         self.assertEquals(result.exit_code, 0)
         
-
-
         result = admin.run("admin course team-repo-create", [course_id, team_name1, "--public"])
         self.assertEquals(result.exit_code, 0)
         result = admin.run("admin course team-repo-create", ["--staging", course_id, team_name1, "--public"])

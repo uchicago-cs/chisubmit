@@ -330,18 +330,17 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
         print "Team %s does not exist" % team_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    #if team.git_repo_created and not ignore_existing:
-    #    print "Repository for team %s has already been created." % team.id
-    #    print "Maybe you meant to run team-repo-update?"
-    #    return CHISUBMIT_FAIL
-
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
         print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
     
-    conn.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
+    if conn.exists_team_repository(course, team) and not ignore_existing:
+        print "Team %s already has a repository" % team_id
+        ctx.exit(CHISUBMIT_FAIL)
+    else:
+        conn.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
 
     return CHISUBMIT_SUCCESS
 
@@ -378,9 +377,10 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
 @click.command(name="team-repo-remove")
 @click.argument('course_id', type=str)
 @click.argument('team_id', type=str)
+@click.option('--ignore-non-existing', is_flag=True)
 @click.option('--staging', is_flag=True)
 @click.pass_context
-def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
+def admin_course_team_repo_remove(ctx, course_id, team_id, ignore_non_existing, staging):
     course = Course.from_id(course_id)
     if course is None:
         print "Course %s does not exist" % course_id
@@ -391,17 +391,17 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, staging):
         print "Team %s does not exist" % team_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    #if team.github_repo is None:
-    #    print "Team %s does not have a repository." % team.id
-    #    return CHISUBMIT_FAIL
-
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
         print "Could not connect to git server."
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
 
-    conn.delete_team_repository(course, team)
+    if not conn.exists_team_repository(course, team) and not ignore_non_existing:
+        print "WARNING: Cannot delete repository because it doesn't exist"
+        ctx.exit(CHISUBMIT_FAIL)
+    else:
+        conn.delete_team_repository(course, team, fail_if_not_exists = not ignore_non_existing)
 
     return CHISUBMIT_SUCCESS
 

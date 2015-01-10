@@ -102,7 +102,7 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         else:
             return tag
     
-    def delete_team_repository(self, course, team):
+    def delete_team_repository(self, course, team, fail_if_not_exists=True):
         pass
     
     def __get_team_path(self, course, team):

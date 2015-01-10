@@ -60,7 +60,7 @@ def student_repo_pristine_clone(ctx, course, team_id):
         print "The repository for '%s' does not exist or you do not have permission to access it." % team_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    tempdir = tempfile.mkdtemp(prefix="%s-%s" % (course.id, team.id))
+    tempdir = tempfile.mkdtemp(prefix="%s-%s-" % (course.id, team.id))
     
     repo_url = conn.get_repository_git_url(course, team)
     

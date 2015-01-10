@@ -16,15 +16,6 @@ class Assignment(Serializable):
                       'grade_components']
     readonly_fields = ['id', 'grade_components', 'course_id']
 
-    def extensions_needed(self, submission_time):
-        delta = (submission_time - self.deadline).total_seconds()
-
-        extensions_needed = math.ceil(delta / (3600.0 * 24))
-
-        if extensions_needed <= 0:
-            return 0
-        else:
-            return int(extensions_needed)
         
 class GradeComponent(Serializable, db.Model):
     __tablename__ = 'grade_components'

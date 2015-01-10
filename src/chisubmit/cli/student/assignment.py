@@ -2,7 +2,7 @@ import click
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import convert_datetime_to_local,\
-    create_connection, get_datetime_now_utc
+    create_connection, get_datetime_now_utc, compute_extensions_needed
 from dateutil.parser import parse
 from chisubmit.cli.common import pass_course
 from chisubmit.cli.shared.assignment import shared_assignment_list
@@ -42,7 +42,7 @@ def student_assignment_show_deadline(ctx, course, assignment_id, utc):
     now_utc = get_datetime_now_utc()
     now_local = convert_datetime_to_local(now_utc)
 
-    deadline_utc = assignment.get_deadline()
+    deadline_utc = assignment.deadline
     deadline_local = convert_datetime_to_local(deadline_utc)
 
     print assignment.name
@@ -59,7 +59,7 @@ def student_assignment_show_deadline(ctx, course, assignment_id, utc):
 
     print
 
-    extensions = assignment.extensions_needed(now_utc)
+    extensions = compute_extensions_needed(now_utc, deadline_utc)
 
     if extensions == 0:
         diff = deadline_utc - now_utc

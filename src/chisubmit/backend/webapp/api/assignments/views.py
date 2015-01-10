@@ -13,7 +13,8 @@ from flask import g
 from chisubmit.backend.webapp.api.users.models import User
 from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams,\
     AssignmentsTeams
-from chisubmit.common.utils import get_datetime_now_utc
+from chisubmit.common.utils import get_datetime_now_utc,\
+    compute_extensions_needed
 from sqlalchemy.sql.ddl import CreateTable
 
 
@@ -295,7 +296,7 @@ def assignment_submit(course_id, assignment_id):
         response["submission"]["submitted_at"] = now
         response["submission"]["deadline"] = assignment.deadline
         
-        extensions_needed = assignment.extensions_needed(submission_time = now)
+        extensions_needed = compute_extensions_needed(submission_time = now, deadline = assignment.deadline)
         extensions_available = team.get_extensions_available()
 
         response["submission"]["extensions_requested"] = extensions_requested

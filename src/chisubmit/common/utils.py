@@ -36,6 +36,7 @@ import base64
 import string
 from tzlocal import get_localzone
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+import math
 
 localzone = get_localzone()
 
@@ -54,6 +55,16 @@ def convert_datetime_to_local(dt, default_tz = localzone):
     if dt.tzinfo is None:
         dt = localzone.localize(dt)
     return dt.astimezone(localzone)
+
+def compute_extensions_needed(submission_time, deadline):
+    delta = (submission_time - deadline).total_seconds()
+
+    extensions_needed = math.ceil(delta / (3600.0 * 24))
+
+    if extensions_needed <= 0:
+        return 0
+    else:
+        return int(extensions_needed)
 
 # Based on http://jetfar.com/simple-api-key-generation-in-python/
 def gen_api_key():

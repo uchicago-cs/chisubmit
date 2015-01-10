@@ -72,6 +72,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
          
     student_dict = {s.user.id: s.user for s in course.students if not s.dropped}
     students = set(student_dict.keys())
+    dropped = set([s.user.id for s in course.students if s.dropped])
     
     teams_unconfirmed = []
     nteams = 0
@@ -89,13 +90,14 @@ def instructor_assignment_stats(ctx, course, assignment_id):
             unconfirmed = False
             for student in team.students:
                 student_id = student.user.id
-                try:
-                    students.remove(student_id)
-                    nstudents_assignment += 1
-                    if student.status == 0: # Unconfirmed
-                        unconfirmed = True
-                except KeyError, ke:
-                    print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (team.id)
+                if student_id not in dropped:
+                    try:
+                        students.remove(student_id)
+                        nstudents_assignment += 1
+                        if student.status == 0: # Unconfirmed
+                            unconfirmed = True
+                    except KeyError, ke:
+                        print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (student_id, team.id)
                 
             if unconfirmed:
                 teams_unconfirmed.append(team)

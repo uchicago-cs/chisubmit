@@ -130,7 +130,7 @@ def instructor_grading_list_grades(ctx, course):
 def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, reset):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     from_assignment = None
@@ -235,7 +235,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
 def instructor_grading_list_grader_assignments(ctx, course, assignment_id, grader_id):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     if grader_id is not None:
@@ -300,7 +300,7 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
 def instructor_grading_create_grading_repos(ctx, course, assignment_id):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment)
@@ -321,7 +321,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id):
 def instructor_grading_create_grading_branches(ctx, course, assignment_id, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, only = only)
@@ -352,7 +352,7 @@ def instructor_grading_create_grading_branches(ctx, course, assignment_id, only)
 def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_staging, to_students, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, only = only)
@@ -379,7 +379,7 @@ def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_stag
 def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_staging, from_students, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, only = only)
@@ -402,7 +402,7 @@ def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_st
 def instructor_grading_add_rubrics(ctx, course, assignment_id):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment)
@@ -423,7 +423,7 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id):
 def instructor_grading_collect_rubrics(ctx, course, assignment_id):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     gcs = assignment.grade_components

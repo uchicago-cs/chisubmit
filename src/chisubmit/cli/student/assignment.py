@@ -36,7 +36,7 @@ def student_assignment_register(ctx, course, assignment_id, team_name, partner):
 def student_assignment_show_deadline(ctx, course, assignment_id, utc):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     now_utc = get_datetime_now_utc()

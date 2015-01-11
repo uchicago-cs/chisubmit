@@ -28,7 +28,7 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
 
     assignment = course.get_assignment(assignment_id)
     if not assignment:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, grader = grader)
@@ -68,7 +68,7 @@ def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
 
     assignment = course.get_assignment(assignment_id)
     if not assignment:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, grader = grader, only = only)
@@ -106,7 +106,7 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
 
     assignment = course.get_assignment(assignment_id)
     if not assignment:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, grader = grader, only = only)
@@ -134,7 +134,7 @@ def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
 
     assignment = course.get_assignment(assignment_id)
     if not assignment:
-        print "Assignment %s does not exist"
+        print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
     teams = get_teams(course, assignment, grader = grader, only = only)

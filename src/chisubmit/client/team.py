@@ -32,6 +32,8 @@ from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
 from chisubmit.client.user import User
 import json
+from chisubmit.common.utils import convert_datetime_to_utc
+from dateutil import parser
 
 class Grade(JSONObject):
     
@@ -48,6 +50,13 @@ class AssignmentTeam(JSONObject):
     _has_one = {'grader': ('grader', User)}
     _has_many = {'grades': 'grades'}
     
+    def __init__(self, *args, **kwargs):
+        if kwargs.has_key("submitted_at"):
+            if kwargs["submitted_at"] is not None and not hasattr(kwargs["submitted_at"], 'isoformat'):
+                kwargs["submitted_at"] = convert_datetime_to_utc(parser.parse(kwargs['submitted_at']))
+                
+        super(AssignmentTeam, self).__init__(*args, **kwargs)    
+    
     def get_total_penalties(self):
         return sum([p for p in self.penalties.values()])
         
@@ -58,12 +67,12 @@ class AssignmentTeam(JSONObject):
     
 class Team(CourseQualifiedApiObject):
 
-    _api_attrs = ('id', 'active', 'course_id')
+    _api_attrs = ('id', 'active', 'course_id', 'extensions_available')
     _primary_key = 'id'    
     _updatable_attributes = ('active',)
     _has_many = {'students': 'students_teams',
                  'assignments': 'assignments_teams',
-                 }
+                 }    
     
     def has_assignment(self, assignment_id):        
         return self.get_assignment(assignment_id) is not None    

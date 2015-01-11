@@ -11,7 +11,8 @@ from unittest.runner import TextTestRunner
 from chisubmit.tests import api
 from chisubmit.tests import client
 from chisubmit.tests import cli
-from chisubmit.tests.integration.test_complete_workflow import CLICompleteWorkflow
+from chisubmit.tests.integration.test_complete1 import CLICompleteWorkflowExtensionsPerTeam
+from chisubmit.tests.integration.test_complete2 import CLICompleteWorkflowExtensionsPerStudent
 
 api_tests = unittest.TestLoader().loadTestsFromModule(api)
 client_tests = unittest.TestLoader().loadTestsFromModule(client)
@@ -23,7 +24,8 @@ unit_tests = {"api": api_tests,
 
 all_unittests = unittest.TestSuite(unit_tests.values())
 
-integration_tests = {"complete_workflow": CLICompleteWorkflow}
+integration_tests = {"complete1": CLICompleteWorkflowExtensionsPerTeam,
+                     "complete2": CLICompleteWorkflowExtensionsPerStudent}
 
 @click.command()
 @click.option("--failfast", "-f", is_flag=True)

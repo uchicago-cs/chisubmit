@@ -140,5 +140,10 @@ def team(course_id, team_id):
 
         db.session.commit()
 
-    return jsonify({'team': team.to_dict()})
+    
+    extension_policy = course.options.get("extension-policy", None)
+    t = team.to_dict()
+    t["extensions_available"] = team.get_extensions_available(extension_policy)
+
+    return jsonify({'team': t})
 

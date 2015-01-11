@@ -1,14 +1,14 @@
 from chisubmit.tests.common import ChisubmitMultiTestCase, cli_test,\
     ChisubmitCLITestClient, ChisubmitTestCase
 from chisubmit.tests.fixtures import users_and_courses
-import unittest
-from chisubmit.backend.webapp.api.courses.models import Course
     
     
 class CLIAdminCourse(ChisubmitTestCase):
             
     @cli_test
     def test_admin_course_add(self, runner):
+        from chisubmit.backend.webapp.api.courses.models import Course
+
         admin = ChisubmitCLITestClient("admin", "admin", runner)
         
         course_id = u"cmsc12300"

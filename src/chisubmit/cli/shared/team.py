@@ -42,7 +42,8 @@ def shared_team_show(ctx, course, team_id):
         ctx.exit(CHISUBMIT_FAIL)
         
     print "Team name: %s" % team.id
-    
+    print
+    print "Extensions available: %i" % team.extensions_available 
     print
     
     if len(team.students) == 0:
@@ -72,7 +73,8 @@ def shared_team_show(ctx, course, team_id):
             print "Name: %s" % assignment.name
             print "Deadline: %s" % convert_datetime_to_local(assignment.deadline).isoformat(" ")        
             if ta.submitted_at is not None:
-                print "Last submitted at: " % convert_datetime_to_local(ta.submitted_at).isoformat(" ")
+                print "Last submitted at: %s" % convert_datetime_to_local(ta.submitted_at).isoformat(" ")
+                print "Extensions used: %i" % ta.extensions_used
             else:
                 print "NOT SUBMITTED"    
             print    

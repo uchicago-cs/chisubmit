@@ -132,6 +132,7 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
     extensions_needed = response["submission"]["extensions_needed"]
     extensions_requested = response["submission"]["extensions_requested"]    
 
+    extensions_available_before = response["team"]["extensions_available_before"]
     extensions_available = response["team"]["extensions_available"]
 
     if response["prior_submission"]["submitted_at"] is not None:    
@@ -204,6 +205,16 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
         print_commit(commit)
         print
         print "PLEASE VERIFY THIS IS THE EXACT COMMIT YOU WANT TO SUBMIT"
+        print
+        print "Your team currently has %i extensions" % (extensions_available_before)
+        print
+        if prior_commit_sha is not None:
+            print "You used %i extensions in your previous submission of this assignment." % prior_extensions_used
+            print "and you are going to use %i additional extensions now." % (extensions_needed - prior_extensions_used)
+        else:
+            print "You are going to use %i extensions on this submission." % extensions_needed
+        print
+        print "You will have %i extensions left after this submission." % extensions_available
         print 
         print "Are you sure you want to continue? (y/n): ", 
         

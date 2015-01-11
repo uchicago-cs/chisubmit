@@ -1,8 +1,8 @@
 from chisubmit.backend.webapp.api import db
 from chisubmit.backend.webapp.api.models.json import Serializable
-from sqlalchemy.ext.associationproxy import association_proxy
 from chisubmit.backend.webapp.api.types import JSONEncodedDict, UTCDateTime
 from chisubmit.backend.webapp.api.assignments.models import GradeComponent
+from sqlalchemy.ext.associationproxy import association_proxy
 
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
@@ -22,6 +22,10 @@ class Team(Serializable, db.Model):
     readonly_fields = ['students', 'assignments', 'grades']
     
     @staticmethod
+    def from_id(course_id, team_id):
+        return Team.query.filter_by(course_id=course_id,id=team_id).first()        
+    
+    @staticmethod
     def find_teams_with_students(course_id, students):
         q = Team.query.filter(Team.course_id == course_id,
                 Team.students.any(
@@ -36,9 +40,20 @@ class Team(Serializable, db.Model):
             extensions += at.extensions_used
         return extensions 
         
-    def get_extensions_available(self):
-        return self.extensions - self.get_extensions_used()
-        
+    def get_extensions_available(self, extension_policy):
+        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+
+        if extension_policy == "per_team":
+            return self.extensions - self.get_extensions_used()    
+        elif extension_policy == "per_student":
+            student_extensions_available = []
+            for student in self.students:
+                cs = CoursesStudents.from_id(self.course_id, student.id)
+                a = cs.get_extensions_available()
+                student_extensions_available.append(a)
+            return min(student_extensions_available)
+        else:
+            return 0        
 
 class StudentsTeams(Serializable, db.Model):
     STATUS_UNCONFIRMED = 0

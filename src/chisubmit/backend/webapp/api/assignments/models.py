@@ -15,7 +15,7 @@ class Assignment(Serializable):
     default_fields = ['id', 'name', 'deadline', 'course_id', 
                       'grade_components']
     readonly_fields = ['id', 'grade_components', 'course_id']
-
+    
         
 class GradeComponent(Serializable, db.Model):
     __tablename__ = 'grade_components'

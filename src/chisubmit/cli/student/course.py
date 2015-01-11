@@ -43,6 +43,8 @@ def student_course_get_git_credentials(ctx, course, username, password, no_save,
         print "Unable to create token. Incorrect username/password."
     else:
         if not no_save:
+            if ctx.obj['config']['git-credentials'] is None:
+                ctx.obj['config']['git-credentials'] = {}
             ctx.obj['config']['git-credentials'][server_type] = token
             ctx.obj['config'].save()
         

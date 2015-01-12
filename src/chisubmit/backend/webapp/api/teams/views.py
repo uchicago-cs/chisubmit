@@ -28,8 +28,16 @@ def teams(course_id):
 
         if not g.user.has_instructor_or_grader_permissions(course):
             teams = [t for t in teams if g.user in t.students]
+            
+        teams_dict = []
+        
+        for team in teams:
+            extension_policy = course.options.get("extension-policy", None)
+            t = team.to_dict()
+            t["extensions_available"] = team.get_extensions_available(extension_policy)
+            teams_dict.append(t)
 
-        return jsonify(teams=[team.to_dict() for team in teams])
+        return jsonify(teams=teams_dict)
 
     check_course_access_or_abort(g.user, course, 404, roles = ["instructor"])
 

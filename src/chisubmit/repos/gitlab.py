@@ -70,15 +70,21 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
     def init_course(self, course, fail_if_exists=True):
         group = self.__get_group(course)
-        
+        group_name = self.__get_group_name(course)
         if fail_if_exists and group is not None:
-            raise ChisubmitException("Course '%s' already has a GitLab group" % course.id)
+            raise ChisubmitException("Course '%s' already has a GitLab group" % group_name)
         
         if group is None:
-            new_group = self.gitlab.creategroup(course.name, course.id)
-            
+            if self.staging:
+                course_name = course.name + " - STAGING"
+            else:
+                course_name = course.name
+
+            group_name = self.__get_group_name(course)
+            new_group = self.gitlab.creategroup(course_name, group_name)
             if isinstance(new_group, gitlab.exceptions.HttpError):
-                raise ChisubmitException("Could not create group '%s'" % course.id, new_group)
+                print new_group.__dict__
+                raise ChisubmitException("Could not create group '%s'" % self.__get_group_name(course), new_group)
                 
     def deinit_course(self, course):
         group = self.__get_group(course)
@@ -233,7 +239,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
     def delete_team_repository(self, course, team, fail_if_not_exists):
         project_name = self.__get_team_namespaced_project_name(course, team)
-        project_api_id = self.__get_team_project_api_id(course, team)
+        project_api_id = self.__get_teayJey8z_D6AP-oMaTxu2qm_project_api_id(course, team)
         
         repo = self.__get_team_project(course, team)
         
@@ -244,11 +250,17 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                 return 
         
         self.gitlab.deleteproject(project_api_id)
-        
+    
+    def __get_group_name(self, course):
+        if self.staging:
+            return course.id + "-staging"
+        else:
+            return course.id    
     
     def __get_group_id(self, course):
-        if self.gitlab_group_id.has_key(course.id):
-            return self.gitlab_group_id[course.id]
+        group_name = self.__get_group_name(course)
+        if self.gitlab_group_id.has_key(group_name):
+            return self.gitlab_group_id[group_name]
         else:
             # TODO: Paginations
             groups = self.gitlab.getgroups()
@@ -259,8 +271,8 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             for group in groups:
                 self.gitlab_group_id[group["path"]] = group["id"]
 
-            if self.gitlab_group_id.has_key(course.id):
-                return self.gitlab_group_id[course.id]
+            if self.gitlab_group_id.has_key(group_name):
+                return self.gitlab_group_id[group_name]
             else:
                 return None
 
@@ -313,7 +325,8 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             return group
         
     def __get_team_namespaced_project_name(self, course, team):
-        return "%s/%s" % (course.id, team.id)      
+        group_name = self.__get_group_name(course)
+        return "%s/%s" % (group_name, team.id)      
     
     def __get_team_project_api_id(self, course, team):
         project_name = self.__get_team_namespaced_project_name(course, team)
@@ -330,15 +343,16 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             return project      
         
     def __add_user_to_course_group(self, course, username, access_level):
+        group_name = self.__get_group_name(course)
+
         user = self.__get_user_by_username(username)
-        
         if user is None:
-            raise ChisubmitException("Couldn't add user '%s' to group '%s'. User does not exist" % (username, course.id))
+            raise ChisubmitException("Couldn't add user '%s' to group '%s'. User does not exist" % (username, group_name))
         
         group_id = self.__get_group_id(course)
 
         if group_id is None:
-            raise ChisubmitException("Couldn't add user '%s' to group '%s'. Course group does not exist" % (username, course.id))
+            raise ChisubmitException("Couldn't add user '%s' to group '%s'. Course group does not exist" % (username, group_name))
                 
         self.gitlab.addgroupmember(group_id, user["id"], access_level)
         

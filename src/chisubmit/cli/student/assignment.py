@@ -113,6 +113,7 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:
+        print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
     
     commit = conn.get_commit(course, team, commit_sha)

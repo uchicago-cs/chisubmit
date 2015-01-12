@@ -1,12 +1,14 @@
 import click
-from chisubmit.cli.common import pass_course, DATETIME
-from chisubmit.client.assignment import Assignment
-from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+from chisubmit.cli.common import pass_course, get_teams
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL,\
+    ChisubmitException
 
 import pprint
-import operator
 from chisubmit.cli.shared.team import shared_team_list, shared_team_show
+import os
+from chisubmit.repos.local import LocalGitRepo
+from chisubmit.common.utils import create_connection
+from git.exc import InvalidGitRepositoryError, GitCommandError
 
 @click.group(name="team")
 @click.pass_context
@@ -34,6 +36,54 @@ def instructor_team_search(ctx, course, verbose, team_id):
             tdict["students"] = [vars(s) for s in tdict["students"]]
 
         pp.pprint(tdict)
+
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="pull-repos")
+@click.argument('assignment_id', type=str)
+@click.argument('directory', type=str)
+@click.option('--only', type=str)
+@pass_course
+@click.pass_context
+def instructor_team_pull_repos(ctx, course, assignment_id, directory, only):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    conn = create_connection(course, ctx.obj['config'])
+    
+    if conn is None:
+        print "Could not connect to git server."
+        ctx.exit(CHISUBMIT_FAIL)
+
+    teams = get_teams(course, assignment, only = only)
+
+    directory = os.path.expanduser(directory)
+    
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    for team in [t for t in teams if t.active]:
+        team_dir = "%s/%s" % (directory, team.id)
+        team_git_url = conn.get_repository_git_url(course, team)
+        if not os.path.exists(team_dir):
+            print "Cloning repo for %s" % team.id
+            LocalGitRepo.create_repo(team_dir, clone_from_url=team_git_url)
+        else:
+            try:
+                r = LocalGitRepo(team_dir)
+                r.checkout_branch("master")
+                r.pull("origin", "master")
+                print "Pulled latest changes for %s" % team.id
+            except ChisubmitException, ce:
+                print "ERROR: Could not checkout or pull master branch for %s (%s)" % (team.id, ce.message)
+            except GitCommandError, gce:
+                print "ERROR: Could not checkout or pull master branch for %s" % (team.id)
+                print gce
+            except InvalidGitRepositoryError, igre:
+                print "ERROR: Directory %s exists but does not contain a valid git repository"
+    
 
     return CHISUBMIT_SUCCESS
 
@@ -132,6 +182,7 @@ instructor_team.add_command(shared_team_list)
 instructor_team.add_command(shared_team_show)
 
 instructor_team.add_command(instructor_team_search)
+instructor_team.add_command(instructor_team_pull_repos)
 instructor_team.add_command(instructor_team_student_add)
 instructor_team.add_command(instructor_team_assignment_add)
 instructor_team.add_command(instructor_team_set_active)

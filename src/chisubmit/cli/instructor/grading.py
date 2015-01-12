@@ -278,6 +278,10 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
     teams.sort(key=operator.attrgetter("id"))
 
     conn = create_connection(course, ctx.obj['config'])
+    
+    if conn is None:
+        print "Could not connect to git server."
+        ctx.exit(CHISUBMIT_FAIL)
 
     for team in teams:
         ta = team.get_assignment(assignment.id)

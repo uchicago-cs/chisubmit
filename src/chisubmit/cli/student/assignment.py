@@ -177,7 +177,10 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
                 print "You have already submitted assignment %s" % assignment.id
                 print "You submitted the following commit on %s:" % prior_submitted_at_local
                 print
-                print_commit(submission_commit)
+                if submission_commit is None:
+                    print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+                else:
+                    print_commit(submission_commit)
                 print
                 print "If you want to submit again, please use the --force option"
                 ctx.exit(CHISUBMIT_FAIL)
@@ -186,7 +189,10 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
                 print "WARNING: You have already submitted assignment %s and you" % assignment.id 
                 print "are about to overwrite the previous submission of the following commit:"
                 print
-                print_commit(submission_commit)
+                if submission_commit is None:
+                    print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+                else:
+                    print_commit(submission_commit)
                 print
     
         if prior_commit_sha is not None and force:

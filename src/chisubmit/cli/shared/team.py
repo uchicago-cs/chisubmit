@@ -7,13 +7,30 @@ from chisubmit.common.utils import convert_datetime_to_local
 
 @click.command(name="list")
 @click.option('--ids', is_flag=True)
+@click.option('--assignment', type=str)
+@click.option('--include-inactive', is_flag=True)
 @pass_course
 @click.pass_context
-def shared_team_list(ctx, course, ids):
+def shared_team_list(ctx, course, ids, assignment, include_inactive):
     teams = course.get_teams()
     teams.sort(key=operator.attrgetter("id"))
 
+    assignment_id = assignment
+    assignment = None
+    if assignment_id is not None:
+        assignment = course.get_assignment(assignment_id)
+        if assignment is None:
+            print "Assignment %s does not exist" % assignment_id
+            ctx.exit(CHISUBMIT_FAIL)
+
     for team in teams:
+        if assignment is not None:
+            if not team.has_assignment(assignment.id):
+                continue
+            
+        if not (team.active or include_inactive):
+            continue
+        
         if ids:
             print team.id
         else:

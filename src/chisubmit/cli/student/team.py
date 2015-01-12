@@ -68,6 +68,7 @@ def student_repo_pristine_clone(ctx, course, team_id):
         LocalGitRepo.create_repo(tempdir, clone_from_url=repo_url)
     except Exception, e:
         print "Unable to create a clone of repository %s" % repo_url
+        ctx.exit(CHISUBMIT_FAIL)
         
     print "A pristine clone of your repository has been created in %s" % tempdir    
 

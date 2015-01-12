@@ -67,7 +67,7 @@ class AssignmentTeam(JSONObject):
     
 class Team(CourseQualifiedApiObject):
 
-    _api_attrs = ('id', 'active', 'course_id', 'extensions_available')
+    _api_attrs = ('id', 'active', 'course_id', 'extensions_available', 'extras')
     _primary_key = 'id'    
     _updatable_attributes = ('active',)
     _has_many = {'students': 'students_teams',
@@ -129,3 +129,9 @@ class Team(CourseQualifiedApiObject):
     
     def get_unconfirmed_students(self):
         return [s for s in self.students if s.status == 0]            
+    
+    def set_extra(self, name, value):
+        data = {"extras": [ {'name': name, 'value': value} ] }
+        data = json.dumps(data)
+        session.put(self.url(), data=data) 
+    

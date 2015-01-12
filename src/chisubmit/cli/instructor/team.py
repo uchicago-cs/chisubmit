@@ -83,6 +83,50 @@ def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
 
     return CHISUBMIT_SUCCESS
 
+@click.command(name="set-active")
+@click.argument('team_id', type=str)
+@pass_course
+@click.pass_context
+def instructor_team_set_active(ctx, course, team_id):
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    team.active = True
+
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="set-inactive")
+@click.argument('team_id', type=str)
+@pass_course
+@click.pass_context
+def instructor_team_set_inactive(ctx, course, team_id):
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    team.active = False
+
+    return CHISUBMIT_SUCCESS
+
+@click.command(name="set-attribute")
+@click.argument('team_id', type=str)
+@click.argument('name', type=str)
+@click.argument('value', type=str)
+@pass_course
+@click.pass_context
+def instructor_team_set_attribute(ctx, course, team_id, name, value):
+    team = course.get_team(team_id)
+    if team is None:
+        print "Team %s does not exist" % team_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    team.set_extra(name, value)
+
+    return CHISUBMIT_SUCCESS
+
 
 instructor_team.add_command(shared_team_list)
 instructor_team.add_command(shared_team_show)
@@ -90,5 +134,8 @@ instructor_team.add_command(shared_team_show)
 instructor_team.add_command(instructor_team_search)
 instructor_team.add_command(instructor_team_student_add)
 instructor_team.add_command(instructor_team_assignment_add)
+instructor_team.add_command(instructor_team_set_active)
+instructor_team.add_command(instructor_team_set_inactive)
+instructor_team.add_command(instructor_team_set_attribute)
 
 

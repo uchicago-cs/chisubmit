@@ -96,8 +96,22 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
         result = students_team[1][0].run("student team show", [teams[0]])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
 
+
+        result = instructors[0].run("instructor team set-attribute", [teams[0], "alias", "foobar "+teams[0]])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team set-attribute", [teams[1], "alias", "foobar "+teams[1]])
+        self.assertEquals(result.exit_code, 0)
+
         result = instructors[0].run("instructor team list")
         self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team show", [teams[0]])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team show", [teams[1]])
+        self.assertEquals(result.exit_code, 0)
+
         
         team_git_paths, team_git_repos, team_commits = self.create_team_repos(admin, course_id, teams, students_team)
         

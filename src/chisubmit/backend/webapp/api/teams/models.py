@@ -17,9 +17,9 @@ class Team(Serializable, db.Model):
     students = association_proxy('students_teams', 'student')
     assignments = association_proxy('assignments_teams', 'assignment')
 
-    default_fields = ['extensions', 'repo_info', 'active', 'course_id',
+    default_fields = ['extensions', 'repo_info', 'active', 'course_id', 'extras',
                       'students_teams', 'assignments_teams', 'grades']
-    readonly_fields = ['students', 'assignments', 'grades']
+    readonly_fields = ['students', 'assignments', 'grades', 'extras']
     
     @staticmethod
     def from_id(course_id, team_id):

@@ -67,3 +67,13 @@ class MutableDict(Mutable, dict):
         self.changed()
         
 MutableDict.associate_with(JSONEncodedDict)        
+
+
+def update_options(option_update_form, d):
+    if len(option_update_form) > 0:
+        for child_data in option_update_form:
+            d[child_data.data["name"]] = child_data.data["value"]
+        return True
+    else:
+        return False
+    

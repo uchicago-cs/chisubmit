@@ -10,6 +10,7 @@ from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
 from flask import g
 from chisubmit.backend.webapp.api.courses.models import Course
 from chisubmit.backend.webapp.api.teams.models import Grade
+from chisubmit.backend.webapp.api.types import update_options
 
 @api_endpoint.route('/courses/<course_id>/teams', methods=['GET', 'POST'])
 @require_apikey
@@ -137,6 +138,11 @@ def team(course_id, team_id):
                                         
                     at.penalties = penalty_value
                     db.session.add(at)
+                    
+        if 'extras' in form:
+            if len(form.extras) > 0:
+                update_options(form.extras, team.extras)
+                db.session.add(team)                    
 
         db.session.commit()
 

@@ -46,6 +46,12 @@ def shared_team_show(ctx, course, team_id):
     print "Extensions available: %i" % team.extensions_available 
     print
     
+    if len(team.extras) > 0:
+        print "Attributes:"
+        for k,v in team.extras.items():
+            print " - %s: %s" % (k,v)
+        print
+    
     if len(team.students) == 0:
         print "No students in this team"
     else:

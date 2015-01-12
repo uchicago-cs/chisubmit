@@ -45,11 +45,15 @@ class AddGradesInput(Form):
 class AddStudentsInput(Form):
     add = FieldList(FormField(LinkStudentInput))
 
+class SetOptionInput(Form):
+    name = StringField(validators=[InputRequired()])
+    value = StringField(validators=[InputRequired()])
 
 class UpdateTeamInput(Form):
     students = FormField(AddStudentsInput)
     assignments = FormField(AddAssignmentsInput)
     grades = FormField(AddGradesInput)
+    extras = FieldList(FormField(SetOptionInput))
     active = BooleanField(validators=[Optional()])
 
 

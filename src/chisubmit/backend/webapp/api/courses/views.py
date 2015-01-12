@@ -9,6 +9,7 @@ from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, Create
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
     check_admin_access_or_abort, check_user_ids_equal_or_abort
+from chisubmit.backend.webapp.api.types import update_options
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
 @require_apikey
@@ -231,12 +232,3 @@ def course_student(course_id, student_id):
 
     return jsonify({'student': course_student.student.to_dict()}), 201
 
-
-def update_options(option_update_form, d):
-    if len(option_update_form) > 0:
-        for child_data in option_update_form:
-            d[child_data.data["name"]] = child_data.data["value"]
-        return True
-    else:
-        return False
-    

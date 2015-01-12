@@ -50,5 +50,6 @@ class UpdateTeamInput(Form):
     students = FormField(AddStudentsInput)
     assignments = FormField(AddAssignmentsInput)
     grades = FormField(AddGradesInput)
+    active = BooleanField(validators=[Optional()])
 
 

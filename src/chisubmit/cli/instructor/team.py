@@ -42,10 +42,11 @@ def instructor_team_search(ctx, course, verbose, team_id):
 @click.command(name="pull-repos")
 @click.argument('assignment_id', type=str)
 @click.argument('directory', type=str)
+@click.option('--reset', is_flag=True)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_team_pull_repos(ctx, course, assignment_id, directory, only):
+def instructor_team_pull_repos(ctx, course, assignment_id, directory, reset, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
@@ -73,9 +74,17 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only):
         else:
             try:
                 r = LocalGitRepo(team_dir)
-                r.checkout_branch("master")
-                r.pull("origin", "master")
-                print "Pulled latest changes for %s" % team.id
+                if reset:
+                    r.fetch("origin")
+                    r.reset_branch("origin", "master")
+                    print "Reset %s to match origin/master" % team.id
+                else:
+                    if r.repo.is_dirty():
+                        print "ERROR: Cannot pull %s. It has unstaged changes." % team.id
+                        continue
+                    r.checkout_branch("master")
+                    r.pull("origin", "master")
+                    print "Pulled latest changes for %s" % team.id
             except ChisubmitException, ce:
                 print "ERROR: Could not checkout or pull master branch for %s (%s)" % (team.id, ce.message)
             except GitCommandError, gce:
@@ -83,6 +92,8 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only):
                 print gce
             except InvalidGitRepositoryError, igre:
                 print "ERROR: Directory %s exists but does not contain a valid git repository"
+            except Exception, e:
+                print "ERROR: Unexpected exception when trying to checkout/pull %s" % team.id
     
 
     return CHISUBMIT_SUCCESS

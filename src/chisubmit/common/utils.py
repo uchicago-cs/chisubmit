@@ -83,7 +83,10 @@ def create_connection(course, config, staging = False):
 
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()
-    git_credentials = config['git-credentials'].get(server_type, None)
+    
+    git_credentials = None
+    if config['git-credentials'] is not None:
+        git_credentials = config['git-credentials'].get(server_type, None)
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type

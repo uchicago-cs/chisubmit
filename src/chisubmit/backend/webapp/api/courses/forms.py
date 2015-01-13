@@ -40,6 +40,7 @@ class UpdateInstructorInput(Form):
 class UpdateGraderInput(Form):
     grader_id = StringField(default = None)
     repo_info = FieldList(FormField(SetOptionInput))
+    conflicts = StringField(validators=[Optional()])
 
 
 class LinkInstructorInput(Form):

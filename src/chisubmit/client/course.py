@@ -54,6 +54,12 @@ class CourseGrader(JSONObject):
             return []
         else:
             return self.conflicts.split(",")
+        
+    def add_conflict(self, student_id):
+        conflicts = self.get_conflicts()
+        conflicts.append(student_id)
+        conflicts_str = ",".join(conflicts)
+        self.conflicts = conflicts_str
 
 class Course(ApiObject):
 
@@ -137,6 +143,21 @@ class Course(ApiObject):
                }
         data = json.dumps(data)
         session.put('courses/%s' % (self.id), data=data)         
+        
+    def add_grader_conflict(self, grader, student_id):
+        grader.add_conflict(student_id)
+        data = {"graders": 
+                {
+                 "update": [
+                            {"grader_id": grader.user.id,
+                             "conflicts": grader.conflicts}
+                           ]
+                }
+               }
+        from pprint import pprint
+        pprint(data)
+        data = json.dumps(data)
+        session.put('courses/%s' % (self.id), data=data)           
         
     def get_team(self, team_id):
         return Team.from_id(self.id, team_id) 

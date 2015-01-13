@@ -16,8 +16,8 @@ class AddGradeComponents(Form):
 
 
 class UpdateAssignmentInput(Form):
-    id = StringField(validators=[Length(max=36, min=10), Optional()])
-    name = StringField(validators=[Length(max=36, min=10), Optional()])
+    id = StringField(validators=[Length(max=36, min=2), Optional()])
+    name = StringField(validators=[Length(max=36, min=2), Optional()])
     deadline = ISODateTimeField(validators=[Optional()])
     grade_components = FormField(AddGradeComponents)
 
@@ -26,23 +26,23 @@ class CreateAssignmentInput(Form):
     id = StringField(validators=[Length(max=36), InputRequired()])
     deadline = ISODateTimeField(validators=[InputRequired()])
     name = StringField('name',
-                       validators=[Length(max=36, min=5),
+                       validators=[Length(max=36, min=2),
                                    InputRequired()])
 
 
 class SearchAssignmentInput(Form):
     assignment_id = StringField('assignment_id',
-                             validators=[Length(max=36, min=5),
+                             validators=[Length(max=36, min=2),
                                          InputRequired()])
-    name = StringField('name', validators=[Length(max=36, min=5), Optional()])
+    name = StringField('name', validators=[Length(max=36, min=2), Optional()])
 
 
 class RegisterAssignmentInput(Form):
-    team_name = StringField(validators=[Length(max=36, min=4), Optional()])
+    team_name = StringField(validators=[Length(max=36, min=2), Optional()])
     partners = FieldList(StringField())
     
 class SubmitAssignmentInput(Form):
-    team_id = StringField(validators=[Length(max=36, min=4),InputRequired()])
+    team_id = StringField(validators=[Length(max=36, min=2),InputRequired()])
     commit_sha = StringField(validators=[Length(max=40, min=20),InputRequired()])
     extensions = IntegerField(default=0)
     dry_run = BooleanField(default=False)

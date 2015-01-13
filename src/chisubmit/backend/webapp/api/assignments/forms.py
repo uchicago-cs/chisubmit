@@ -2,13 +2,13 @@ from wtforms import Form
 from wtforms.validators import InputRequired, Optional, Length
 from wtforms.fields import StringField, IntegerField, FormField, FieldList
 from chisubmit.backend.webapp.api.forms import ISODateTimeField
-from wtforms.fields.core import BooleanField
+from wtforms.fields.core import BooleanField, FloatField
 
 
 class CreateGradeComponentInput(Form):
     id = StringField(validators=[Length(max=36), InputRequired()])
     description = StringField(validators=[Length(max=36), InputRequired()])
-    points = IntegerField(validators=[InputRequired()])
+    points = FloatField(validators=[InputRequired()])
 
 
 class AddGradeComponents(Form):

@@ -25,7 +25,7 @@ class GradeComponent(Serializable, db.Model):
 
     order = db.Column(db.Integer)
     description = db.Column(db.Unicode)
-    points = db.Column('points', db.Integer)
+    points = db.Column('points', db.Float)
     
     default_fields = ['id', 'description', 'order', 'points', 'assignment_id']
     readonly_fields = ['id', 'course_id', 'assignment_id']

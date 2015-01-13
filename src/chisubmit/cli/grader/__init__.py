@@ -5,9 +5,8 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch, get_teams
 from chisubmit.repos.grading import GradingGitRepo
-from chisubmit.rubric import RubricFile
+from chisubmit.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import pass_course
-from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 @click.group()
@@ -86,8 +85,11 @@ def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
             print "Repository for %s does not exist have a rubric for assignment %s" % (team.id, assignment.id)
             ctx.exit(CHISUBMIT_FAIL)
     
-        RubricFile.from_file(open(rubricfile), assignment)
-        print "%s: Rubric OK." % team.id
+        try:
+            RubricFile.from_file(open(rubricfile), assignment)
+            print "%s: Rubric OK." % team.id
+        except ChisubmitRubricException, cre:
+            print "%s: Rubric ERROR: %s" % (team.id, cre.message)
 
     return CHISUBMIT_SUCCESS
 
@@ -144,7 +146,7 @@ def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
 
     for team in teams:
         print "Pulling grading branch for team %s... " % team.id
-        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, assignment, staging = True)
+        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, assignment, from_staging = True)
 
     return CHISUBMIT_SUCCESS
 

@@ -41,7 +41,7 @@ def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
 @click.argument('assignment_id', type=str)
 @click.argument('grade_component_id', type=str)
 @click.argument('description', type=str)
-@click.argument('points', type=int)
+@click.argument('points', type=float)
 @pass_course
 @click.pass_context
 def instructor_assignment_add_grade_component(ctx, course, assignment_id, grade_component_id, description, points):

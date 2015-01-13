@@ -60,7 +60,7 @@ def get_teams(course, assignment, grader = None, only = None):
         teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
         if grader is not None:
-            teams = [t for t in teams if t.get_assignment(assignment.id).grader.id == grader.user.id]
+            teams = [t for t in teams if getattr(t.get_assignment(assignment.id).grader, "id", None) == grader.user.id]
 
     return teams
 

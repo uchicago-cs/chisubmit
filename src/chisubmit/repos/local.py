@@ -112,6 +112,14 @@ class LocalGitRepo(object):
 
     def pull(self, remote_name, branch):
         self.remotes[remote_name].pull("%s" % (branch))
+        
+    def commit(self, files, commit_message):
+        self.repo.index.add(files)
+        if self.repo.is_dirty():
+            self.repo.index.commit(commit_message)
+            return True
+        else:
+            return False        
 
     def __create_tag_object(self, tag):
         return GitTag(name = tag.name,

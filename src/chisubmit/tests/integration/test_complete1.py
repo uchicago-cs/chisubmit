@@ -183,6 +183,10 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
                 
         result = instructors[0].run("instructor grading set-grade", 
                                 [teams[0], "pa1", "tests", "100"])
+        self.assertEquals(result.exit_code, 1)
+
+        result = instructors[0].run("instructor grading set-grade", 
+                                [teams[0], "pa1", "tests", "40"])
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor grading set-grade", 
@@ -199,19 +203,8 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
         result = instructors[0].run("instructor grading list-grades")
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor grading add-rubrics", ["pa1"])
+        result = instructors[0].run("instructor grading add-rubrics", ["pa1", "--commit"])
         self.assertEquals(result.exit_code, 0)
-
-        team1_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", teams[0])
-        team2_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", teams[1])
-        
-        team_git_repos[0], team_git_paths[0] = instructors[0].get_local_git_repository(team1_grading_repo_path)
-        team_git_repos[0].index.add(["pa1.rubric.txt"])
-        team_git_repos[0].index.commit("Added grading rubric")
-  
-        team_git_repos[1], team_git_paths[1] = instructors[0].get_local_git_repository(team2_grading_repo_path)
-        team_git_repos[1].index.add(["pa1.rubric.txt"])
-        team_git_repos[1].index.commit("Added grading rubric")
 
         result = instructors[0].run("instructor grading assign-graders", ["pa1"])
         self.assertEquals(result.exit_code, 0)
@@ -225,6 +218,8 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
         result = graders[0].run("grader create-local-grading-repos", [graders[0].user_id, "pa1"])
         self.assertEquals(result.exit_code, 0)        
                 
+        team1_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", teams[0])
+        team2_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", teams[1])
             
         team_git_repos[0], team_git_paths[0] = graders[0].get_local_git_repository(team1_grading_repo_path)
         team_git_repos[1], team_git_paths[1] = graders[0].get_local_git_repository(team2_grading_repo_path)

@@ -52,15 +52,16 @@ class GradingGitRepo(object):
         if self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository already has a %s branch" % (self.team.id, branch_name))
 
-        commit = self.repo.get_commit(self.commit_sha)
-        if commit is None:
-            self.sync()
+        if self.commit_sha is not None:
             commit = self.repo.get_commit(self.commit_sha)
             if commit is None:
-                raise ChisubmitException("%s repository does not have a commit %s" % (self.team.id, self.commit_sha))
+                self.sync()
+                commit = self.repo.get_commit(self.commit_sha)
+                if commit is None:
+                    raise ChisubmitException("%s repository does not have a commit %s" % (self.team.id, self.commit_sha))
 
-        self.repo.create_branch(branch_name, self.commit_sha)
-        self.repo.checkout_branch(branch_name)
+            self.repo.create_branch(branch_name, self.commit_sha)
+            self.repo.checkout_branch(branch_name)
 
     def has_grading_branch(self):
         branch_name = self.assignment.get_grading_branch_name()
@@ -123,8 +124,13 @@ class GradingGitRepo(object):
             self.repo.fetch(remote_name, branch_name)
             self.repo.checkout_branch(branch_name)
 
+    def commit(self, files, commit_message):
+        return self.repo.commit(files, commit_message)
+
     @staticmethod
     def get_grading_repo_path(base_dir, course, team, assignment):
         # TODO 18DEC14: This code could be a problem
         # The base_dir is passed from far away
         return "%s/repositories/%s/%s/%s" % (base_dir, course.id, assignment.id, team.id)
+    
+    

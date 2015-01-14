@@ -7,6 +7,7 @@ from chisubmit.cli.common import create_grading_repos,\
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import pass_course
+from chisubmit.cli.shared.course import shared_course_get_git_credentials
 
 
 @click.group()
@@ -154,3 +155,5 @@ grader.add_command(grader_create_local_grading_repos)
 grader.add_command(grader_validate_rubrics)
 grader.add_command(grader_push_grading_branches)
 grader.add_command(grader_pull_grading_branches)
+grader.add_command(shared_course_get_git_credentials)
+

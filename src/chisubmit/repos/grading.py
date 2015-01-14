@@ -31,7 +31,12 @@ class GradingGitRepo(object):
         base_dir = config["directory"]
         
         conn_server = create_connection(course, config)
+        if conn_server is None:
+            raise ChisubmitException("Could not connect to git server")
+        
         conn_staging = create_connection(course, config, staging = True)
+        if conn_server is None:
+            raise ChisubmitException("Could not connect to git staging server")        
         
         repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         server_url = conn_server.get_repository_git_url(course, team)

@@ -7,6 +7,7 @@ from chisubmit.client.course import Course
 from functools import update_wrapper
 
 from dateutil.parser import parse
+import operator
 
 
 def pass_course(f):
@@ -61,6 +62,8 @@ def get_teams(course, assignment, grader = None, only = None):
 
         if grader is not None:
             teams = [t for t in teams if getattr(t.get_assignment(assignment.id).grader, "id", None) == grader.user.id]
+
+    teams.sort(key=operator.attrgetter("id"))
 
     return teams
 

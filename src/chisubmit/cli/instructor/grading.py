@@ -546,17 +546,27 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit):
 
 @click.command(name="collect-rubrics")
 @click.argument('assignment_id', type=str)
+@click.option('--dry-run', is_flag=True)
+@click.option('--grader-id', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_collect_rubrics(ctx, course, assignment_id):
+def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grader_id):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
+    if grader_id is not None:
+        grader = course.get_grader(grader_id)
+        if grader is None:
+            print "Grader %s does not exist" % grader_id
+            ctx.exit(CHISUBMIT_FAIL)
+    else:
+        grader = None
+
     gcs = assignment.grade_components
 
-    teams = get_teams(course, assignment)
+    teams = get_teams(course, assignment, grader=grader)
 
     for team in teams:
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
@@ -576,23 +586,42 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id):
         for gc in gcs:
             grade = rubric.points[gc.description]
             if grade is None:
-                team.set_assignment_grade(assignment.id, gc.id, 0)
-                points.append("")
+                if not dry_run:
+                    team.set_assignment_grade(assignment.id, gc.id, 0)
+                points.append(0.0)
             else:
-                team.set_assignment_grade(assignment.id, gc.id, grade)
-                points.append(`grade`)
+                if not dry_run:
+                    team.set_assignment_grade(assignment.id, gc.id, grade)
+                points.append(grade)
 
         penalties = {}
+        total_penalties = 0.0
         if rubric.penalties is not None:
             for desc, p in rubric.penalties.items():
                 penalties[desc] = p
+                total_penalties += p
 
-        team.set_assignment_penalties(assignment.id, penalties)
+        if not dry_run:
+            team.set_assignment_penalties(assignment.id, penalties)
 
-        new_team = course.get_team(team.id)
-        assignment_team = new_team.get_assignment(assignment.id)
+        if ctx.obj["verbose"]:
+            print team.id
+            print "+ %s" % points
+            print "- %.2f" % total_penalties
 
-        print "%s: %s" % (new_team.id, assignment_team.get_total_grade())
+        if not dry_run:
+            new_team = course.get_team(team.id)
+            assignment_team = new_team.get_assignment(assignment.id)
+            total_grade = assignment_team.get_total_grade()
+        else:
+            total_grade = sum(points) - total_penalties
+            
+        if ctx.obj["verbose"]:
+            print "TOTAL: %.2f" % total_grade
+            print
+        else:
+            print "%-40s %.2f" % (team.id, total_grade)
+            
 
 instructor_grading.add_command(instructor_grading_set_grade)
 instructor_grading.add_command(instructor_grading_load_grades)

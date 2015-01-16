@@ -5,7 +5,7 @@ import operator
 import random
 from chisubmit.repos.grading import GradingGitRepo
 import os.path
-from chisubmit.rubric import RubricFile
+from chisubmit.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import create_grading_repos, get_teams,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
 from chisubmit.cli.common import pass_course
@@ -580,7 +580,10 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grad
             print "Repository for %s does not have a rubric for assignment %s" % (team.id, assignment.id)
             ctx.exit(CHISUBMIT_FAIL)
 
-        rubric = RubricFile.from_file(open(rubricfile), assignment)
+        try:
+            rubric = RubricFile.from_file(open(rubricfile), assignment)
+        except ChisubmitRubricException, cre:
+            print "ERROR: Rubric for %s does not validate (%s)" % (team.id, cre.message)
 
         points = []
         for gc in gcs:

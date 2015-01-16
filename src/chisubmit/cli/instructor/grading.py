@@ -614,7 +614,7 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grad
             assignment_team = new_team.get_assignment(assignment.id)
             total_grade = assignment_team.get_total_grade()
         else:
-            total_grade = sum(points) - total_penalties
+            total_grade = sum(points) + total_penalties
             
         if ctx.obj["verbose"]:
             print "TOTAL: %.2f" % total_grade

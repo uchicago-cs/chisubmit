@@ -4,7 +4,8 @@ from chisubmit.backend.webapp.api.assignments.models import Assignment,\
 from chisubmit.backend.webapp.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
 from chisubmit.backend.webapp.api.assignments.forms import UpdateAssignmentInput,\
-    CreateAssignmentInput, RegisterAssignmentInput, SubmitAssignmentInput
+    CreateAssignmentInput, RegisterAssignmentInput, SubmitAssignmentInput,\
+    CancelSubmitAssignmentInput
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
     check_team_access_or_abort
@@ -281,6 +282,11 @@ def assignment_submit(course_id, assignment_id):
             msg = "Team '%s' is not registered for assignment '%s'" % (team.id, assignment.id)
             return jsonify(errors={"team":msg}), 400
         
+        if team_assignment.is_ready_for_grading():
+            msg = "You cannot re-submit assignment %s." % (assignment.id)
+            msg = " You made a submission before the deadline, and the deadline has passed."
+            return jsonify(errors={"submit":msg}), 400
+        
         response = {}
 
         response["dry_run"] = dry_run
@@ -334,4 +340,59 @@ def assignment_submit(course_id, assignment_id):
         response["team"]["extensions_available"] = extensions_available
         
         return jsonify(response)
+        
+        
+@api_endpoint.route('/courses/<course_id>/assignments/<assignment_id>/cancel', methods=['POST'])
+@require_apikey
+def assignment_cancel_submit(course_id, assignment_id):
+    course = Course.query.filter_by(id=course_id).first()
+    
+    if course is None:
+        abort(404)
+        
+    check_course_access_or_abort(g.user, course, 404, roles=["student"])    
+    
+    assignment = Assignment.query.filter_by(id=assignment_id, course_id=course_id).first()
+    # TODO 12DEC14: check permissions *before* 404
+    if assignment is None:
+        abort(404)
+
+    if not g.user.is_student_in(course):
+        error_msg = "You are not a student in course '%s'" % (course_id)
+        return jsonify(errors={"register": error_msg}), 400
+
+    if request.method == 'POST':       
+        input_data = request.get_json(force=True)
+        if not isinstance(input_data, dict):
+            return jsonify(error='Request data must be a JSON Object'), 400
+        form = CancelSubmitAssignmentInput.from_json(input_data)
+        if not form.validate():
+            return jsonify(errors=form.errors), 400
+        
+        team_id = form.team_id.data
+        
+        team = Team.query.filter_by(id=team_id).first()
+        if team is None:
+            abort(404)
+
+        check_team_access_or_abort(g.user, team, 404)
+        
+        team_assignment = AssignmentsTeams.from_id(course.id,team.id,assignment.id)
+        if team_assignment is None:
+            msg = "Team '%s' is not registered for assignment '%s'" % (team.id, assignment.id)
+            return jsonify(errors={"team":msg}), 400
+        
+        if team_assignment.is_ready_for_grading():
+            msg = "You cannot cancel this submission for assignment %s." % (assignment.id)
+            msg = " You made a submission before the deadline, and the deadline has passed."
+            return jsonify(errors={"submit":msg}), 400        
+
+        team_assignment.extensions_used = 0
+        team_assignment.commit_sha = None
+        team_assignment.submitted_at = None
+
+        db.session.add(team_assignment)
+        db.session.commit()
+        
+        return jsonify(success=True)
         

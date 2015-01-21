@@ -16,6 +16,10 @@ class Assignment(Serializable):
                       'grade_components']
     readonly_fields = ['id', 'grade_components', 'course_id']
     
+    @staticmethod
+    def from_id(course_id, assignment_id):
+        return Assignment.query.filter_by(id=assignment_id, course_id=course_id).first()    
+    
         
 class GradeComponent(Serializable, db.Model):
     __tablename__ = 'grade_components'

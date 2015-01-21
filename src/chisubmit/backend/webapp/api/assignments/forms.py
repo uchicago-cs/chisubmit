@@ -47,3 +47,6 @@ class SubmitAssignmentInput(Form):
     extensions = IntegerField(default=0)
     dry_run = BooleanField(default=False)
         
+class CancelSubmitAssignmentInput(Form):
+    team_id = StringField(validators=[Length(max=36, min=2),InputRequired()])
+

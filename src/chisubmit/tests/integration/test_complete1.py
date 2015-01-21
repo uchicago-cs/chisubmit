@@ -158,13 +158,11 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Try submitting for a project the team is not registered for
-        with self.assertRaises(BadRequestError) as cm:
-            students_team[1][0].run("student assignment submit", 
-                                    [teams[1], "pa2", team_commits[1][1].hexsha, 
-                                     "--extensions", "0",
-                                     "--yes"])        
-        bre = cm.exception
-        bre.print_errors()
+        result = students_team[1][0].run("student assignment submit", 
+                                         [teams[1], "pa2", team_commits[1][1].hexsha, 
+                                          "--extensions", "0",
+                                          "--yes"])        
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         result = students_team[1][0].run("student assignment submit", 
                                          [teams[1], "pa1", team_commits[1][1].hexsha, 

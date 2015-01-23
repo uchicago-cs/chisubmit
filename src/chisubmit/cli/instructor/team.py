@@ -96,7 +96,7 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready
                     r.checkout_branch("master")
                     r.pull("origin", "master")
                     msg = "Pulled latest changes"
-            if only_submitted:
+            if only_ready_for_grading:
                 r.checkout_commit(ta.commit_sha)
                 msg += " and checked out commit %s" % (ta.commit_sha)               
             print "%-*s  %s" % (max_len, team.id, msg)

@@ -114,15 +114,11 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
         print "Team %s is not registered for assignment %s" % (team_id, assignment_id)
         ctx.exit(CHISUBMIT_FAIL)
         
-    if ta.submitted_at is not None:
-        now = get_datetime_now_utc()
-        deadline = assignment.deadline + timedelta(days=ta.extensions_used)
-        
-        if now > deadline:
-            print "You cannot re-submit this assignment."
-            print "You made a submission before the deadline, and the deadline has passed."
+    if team.has_assignment_ready_for_grading(assignment):
+        print "You cannot re-submit this assignment."
+        print "You made a submission before the deadline, and the deadline has passed."
 
-            ctx.exit(CHISUBMIT_FAIL)
+        ctx.exit(CHISUBMIT_FAIL)
         
     conn = create_connection(course, ctx.obj['config'])
     

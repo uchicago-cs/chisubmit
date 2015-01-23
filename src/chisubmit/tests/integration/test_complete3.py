@@ -1,5 +1,5 @@
 from chisubmit.tests.common import cli_test, ChisubmitIntegrationTestCase
-from chisubmit.common.utils import get_datetime_now_utc
+from chisubmit.common.utils import get_datetime_now_utc, set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 from datetime import timedelta
@@ -32,16 +32,12 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitIntegrationTestCase):
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)
         
-        deadline = get_datetime_now_utc() - timedelta(hours=23, minutes=59, seconds=55)
-        deadline = deadline.isoformat(sep=" ")        
+        deadline = get_datetime_now_utc() - timedelta(hours=23)
+        deadline = deadline.isoformat(sep=" ")
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)
-
-        deadline = get_datetime_now_utc() - timedelta(hours=23)
-        deadline = deadline.isoformat(sep=" ")
-
         
         teams = [u"the-flaming-foobars", 
                  u"the-magnificent-mallocs"]        
@@ -99,11 +95,12 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitIntegrationTestCase):
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         
-        
-        # The deadline "passes"
+        # Let the deadline "pass"
+        new_now = get_datetime_now_utc() + timedelta(hours=2)
+        set_testing_now(new_now)
+
         print
-        print "Waiting for deadline to pass.."
-        time.sleep(5)
+        print "~~~ Time has moved 'forward' by two hours ~~~"
         print
         
         # Team 0 submits and is successful because they cancelled their previous submission

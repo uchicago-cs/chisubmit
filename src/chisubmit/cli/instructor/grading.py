@@ -245,14 +245,11 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
     
     random.seed(course.id + assignment_id)
     random.shuffle(graders)
-    print graders
-    print teams_per_grader
-    print extra_teams
+
     # so many graders in this course that some will end up expecting zero
     # teams to grade. Make sure they are able to get at least one.
     for g in graders[:extra_teams]:
         teams_per_grader[g.user.id] += 1
-    print teams_per_grader
 
     team_grader = {t.id: None for t in teams}
     ta = {t.id: t.get_assignment(assignment.id) for t in teams}
@@ -279,13 +276,13 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
                 teams_per_grader[grader_id] -= 1
                 teams_per_grader_assigned[grader_id] += 1
 
-    not_submitted = []
+    not_ready_for_grading = []
     ta_avoid = {}
     for g in graders:
         if teams_per_grader[g.user.id] > 0:
             for t in teams:
-                if ta[t.id].submitted_at is None:
-                    not_submitted.append(t.id)
+                if not t.has_assignment_ready_for_grading(assignment):
+                    not_ready_for_grading.append(t.id)
                     continue
                 
                 if avoid_assignment is not None:
@@ -312,13 +309,14 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
 
     for t in teams:
         if team_grader[t.id] is None:
-            if t.id not in not_submitted:
+            if t.id not in not_ready_for_grading:
                 print "Team %s has no grader" % (t.id)
             else:
-                print "Team %s hasn't submitted the assignment yet" % (t.id)
+                print "Team %s's submission isn't ready for grading yet" % (t.id)
         else:
             t.set_assignment_grader(assignment.id, team_grader[t.id])
 
+    print 
     for grader_id, assigned in teams_per_grader_assigned.items():
         if teams_per_grader[grader_id] != 0:
             print grader_id, assigned, "(still needs to be assigned %i more assignments)" % (teams_per_grader[g.user.id])
@@ -392,7 +390,10 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
         else:
             submission_commit = conn.get_commit(course, team, ta.commit_sha)
             if submission_commit is not None:
-                print "%25s SUBMITTED" % team.id
+                if team.has_assignment_ready_for_grading(assignment):
+                    print "%25s SUBMITTED (READY for grading)" % team.id
+                else:
+                    print "%25s SUBMITTED (NOT READY for grading)" % team.id
             else:
                 print "%25s ERROR: Submitted but commit %s not found in repository" % (team.id, ta.commit_sha)
     
@@ -400,15 +401,16 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
 
 @click.command(name="create-grading-repos")
 @click.argument('assignment_id', type=str)
+@click.option('--all-teams', is_flag=True)
 @pass_course
 @click.pass_context
-def instructor_grading_create_grading_repos(ctx, course, assignment_id):
+def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_teams):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment)
+    teams = get_teams(course, assignment, only_ready_for_grading=not all_teams)
 
     repos = create_grading_repos(ctx.obj['config'], course, assignment, teams)
 
@@ -420,16 +422,17 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id):
 
 @click.command(name="create-grading-branches")
 @click.argument('assignment_id', type=str)
+@click.option('--all-teams', is_flag=True)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_create_grading_branches(ctx, course, assignment_id, only):
+def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_teams, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment, only = only)
+    teams = get_teams(course, assignment, only = only, only_ready_for_grading=not all_teams)
 
     if teams is None:
         ctx.exit(CHISUBMIT_FAIL)
@@ -456,29 +459,25 @@ def instructor_grading_create_grading_branches(ctx, course, assignment_id, only)
 @click.argument('assignment_id', type=str)
 @click.option('--to-staging', is_flag=True)
 @click.option('--to-students', is_flag=True)
+@click.option('--all-teams', is_flag=True)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_staging, to_students, only):
+def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_staging, to_students, all_teams, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment, only = only)
+    teams = get_teams(course, assignment, only = only, only_ready_for_grading=not all_teams)
 
     if teams is None:
         ctx.exit(CHISUBMIT_FAIL)
 
     for team in teams:
-        ta = team.get_assignment(assignment.id)
-
-        if ta.submitted_at is None:
-            print "Skipping grading branch. %s has not submitted." % team.id
-        else:        
-            print ("Pushing grading branch for team %s... " % team.id),
-            gradingrepo_push_grading_branch(ctx.obj['config'], course, team, assignment, to_staging = to_staging, to_students = to_students)
-            print "done."
+        print ("Pushing grading branch for team %s... " % team.id),
+        gradingrepo_push_grading_branch(ctx.obj['config'], course, team, assignment, to_staging = to_staging, to_students = to_students)
+        print "done."
 
     return CHISUBMIT_SUCCESS
 
@@ -513,35 +512,33 @@ def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_st
 @click.command(name="add-rubrics")
 @click.argument('assignment_id', type=str)
 @click.option('--commit', is_flag=True)
+@click.option('--all-teams', is_flag=True)
 @pass_course
 @click.pass_context
-def instructor_grading_add_rubrics(ctx, course, assignment_id, commit):
+def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment)
+    teams = get_teams(course, assignment, only_ready_for_grading=not all_teams)
 
     for team in teams:
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
         team_assignment = team.get_assignment(assignment_id)
-        if team_assignment.submitted_at is not None:
-            rubric = RubricFile.from_assignment(assignment, team_assignment)
-            rubricfile = "%s.rubric.txt" % assignment.id
-            rubricfilepath = "%s/%s" % (repo.repo_path, rubricfile)
-            rubric.save(rubricfilepath, include_blank_comments=True)
-            
-            if commit:
-                rv = repo.commit([rubricfile], "Added grading rubric")
-                if rv:
-                    print rubricfile, "(COMMITTED)"
-                else:
-                    print rubricfile, "(NO CHANGES - Not committed)"
+        rubric = RubricFile.from_assignment(assignment, team_assignment)
+        rubricfile = "%s.rubric.txt" % assignment.id
+        rubricfilepath = "%s/%s" % (repo.repo_path, rubricfile)
+        rubric.save(rubricfilepath, include_blank_comments=True)
+        
+        if commit:
+            rv = repo.commit([rubricfile], "Added grading rubric")
+            if rv:
+                print rubricfile, "(COMMITTED)"
             else:
-                print rubricfilepath
+                print rubricfile, "(NO CHANGES - Not committed)"
         else:
-            print "Skipping %s (not submitted)" % (team.id)
+            print rubricfilepath
 
 
 @click.command(name="collect-rubrics")

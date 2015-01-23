@@ -46,7 +46,7 @@ class DateTimeParamType(click.ParamType):
 DATETIME = DateTimeParamType()
 
 
-def get_teams(course, assignment, grader = None, only = None):
+def get_teams(course, assignment, only_ready_for_grading = False, grader = None, only = None):
     if only is not None:
         team = course.get_team(only)
         if team is None:
@@ -58,7 +58,10 @@ def get_teams(course, assignment, grader = None, only = None):
 
         teams = [team]
     else:
-        teams = [t for t in course.teams if t.has_assignment(assignment.id)]
+        if only_ready_for_grading:
+            teams = [t for t in course.teams if t.has_assignment_ready_for_grading(assignment)]
+        else:
+            teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
         if grader is not None:
             teams = [t for t in teams if getattr(t.get_assignment(assignment.id).grader, "id", None) == grader.user.id]

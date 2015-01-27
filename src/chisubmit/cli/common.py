@@ -97,10 +97,13 @@ def gradingrepo_push_grading_branch(config, course, team, assignment, to_student
     if repo is None:
         print "%s does not have a grading repository" % team.id
         return CHISUBMIT_FAIL
-
+    
     if not repo.has_grading_branch():
         print "%s does not have a grading branch" % team.id
         return CHISUBMIT_FAIL
+
+    if repo.is_dirty():
+        print "Warning: %s grading repo has uncommitted changes."
 
     if to_students:
         repo.push_grading_branch_to_students()
@@ -116,6 +119,10 @@ def gradingrepo_pull_grading_branch(config, course, team, assignment, from_stude
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
+        return CHISUBMIT_FAIL
+
+    if repo.is_dirty():
+        print "%s grading repo has uncommited changes. Cannot pull."
         return CHISUBMIT_FAIL
 
     if from_students:

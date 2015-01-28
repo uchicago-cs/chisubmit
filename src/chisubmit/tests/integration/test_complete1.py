@@ -137,19 +137,25 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
+        result = students_team[0][0].run("student team show", [teams[0]])
+        self.assertEquals(result.exit_code, 0)
+
         # Try submitting an already-submitted assignment
         result = students_team[0][0].run("student assignment submit", 
                                          [teams[0], "pa1", team_commits[0][1].hexsha, 
                                           "--extensions", "1",
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-        
+
         # Submit an already-submitted assignment
         result = students_team[0][0].run("student assignment submit", 
                                          [teams[0], "pa1", team_commits[0][1].hexsha, 
                                           "--extensions", "1",
                                           "--yes", "--force"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
+        
+        result = students_team[0][0].run("student team show", [teams[0]])
+        self.assertEquals(result.exit_code, 0)
         
         # Try requesting more extensions than the team has
         result = students_team[0][0].run("student assignment submit", 

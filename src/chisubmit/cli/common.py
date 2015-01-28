@@ -103,7 +103,7 @@ def gradingrepo_push_grading_branch(config, course, team, assignment, to_student
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "Warning: %s grading repo has uncommitted changes."
+        print "Warning: %s grading repo has uncommitted changes." % team.id
 
     if to_students:
         repo.push_grading_branch_to_students()

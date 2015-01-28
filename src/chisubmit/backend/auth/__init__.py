@@ -37,7 +37,7 @@ def authenticate():
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        from chisubmit.backend.webapp.api.users.models import User
+        from chisubmit.backend.api.users.models import User
 
         global auth_obj
 

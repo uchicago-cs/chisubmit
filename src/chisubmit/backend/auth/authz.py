@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import request, abort, g
-from chisubmit.backend.webapp.api.users.models import User
+from chisubmit.backend.api.users.models import User
 
 
 def require_admin_access(view_function):

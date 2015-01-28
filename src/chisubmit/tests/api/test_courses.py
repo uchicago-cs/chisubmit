@@ -82,7 +82,7 @@ class CompleteCourse(ChisubmitTestCase):
     FIXTURE = complete_course
         
     def test_update_student1(self):
-        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+        from chisubmit.backend.api.courses.models import CoursesStudents
 
         c = self.get_admin_test_client()
         
@@ -105,7 +105,7 @@ class CompleteCourse(ChisubmitTestCase):
                         
 
     def test_update_student2(self):
-        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+        from chisubmit.backend.api.courses.models import CoursesStudents
 
         c = self.get_admin_test_client()
         

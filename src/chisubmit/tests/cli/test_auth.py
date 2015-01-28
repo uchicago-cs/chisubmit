@@ -2,7 +2,7 @@ from chisubmit.tests.common import ChisubmitTestCase, ChisubmitCLITestClient,\
     cli_test
 from chisubmit.tests.fixtures import complete_course
 from chisubmit.cli import chisubmit_get_credentials_cmd
-from chisubmit.backend.webapp.api.users.models import User
+from chisubmit.backend.api.users.models import User
     
 class CLIGetChisubmitCredentials(ChisubmitTestCase):
             

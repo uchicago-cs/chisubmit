@@ -1,4 +1,4 @@
-from chisubmit.backend.webapp.api import db
+from chisubmit.backend.api import db
 from sqlalchemy import not_
 from flask.json import JSONEncoder
 from datetime import datetime

@@ -1,4 +1,4 @@
-from chisubmit.backend.webapp.auth import Auth
+from chisubmit.backend.auth import Auth
 
 
 class TestingAuth(Auth):

@@ -79,7 +79,7 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
         raise click.BadParameter("Sorry, can't find your chisubmit api token")
 
     if testing:
-        from chisubmit.backend.webapp.api import app 
+        from chisubmit.backend.api import app 
         session.connect_test(app, access_token = config['api-key'])
     else:
         session.connect(config['api-url'], config['api-key'])
@@ -186,7 +186,7 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, user, password
 
     server_url = None
     if testing:
-        from chisubmit.backend.webapp.api import app 
+        from chisubmit.backend.api import app 
         session.connect_test(app)
     else:
         if config['api-url'] is None and url is None:

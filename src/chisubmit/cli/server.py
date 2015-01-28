@@ -48,7 +48,7 @@ def set_auth(server, config_profile):
 
 
 def get_server(config, profile):
-    from chisubmit.backend.webapp.api import ChisubmitAPIServer
+    from chisubmit.backend.api import ChisubmitAPIServer
     
     p = config.get_server_profile(profile)
 
@@ -77,7 +77,7 @@ def server_start(ctx, profile, test_fixture):
     if test_fixture is not None:
         from chisubmit.tests.fixtures import fixtures
         from chisubmit.tests.common import load_fixture
-        from chisubmit.backend.webapp.api import ChisubmitAPIServer
+        from chisubmit.backend.api import ChisubmitAPIServer
         
         if not fixtures.has_key(test_fixture):
             raise ChisubmitException("Test fixture '%s' does not exist" % test_fixture)

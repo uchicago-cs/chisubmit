@@ -1,7 +1,7 @@
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.models.json import Serializable
+from chisubmit.backend.api import db
+from chisubmit.backend.api.models.json import Serializable
 import math
-from chisubmit.backend.webapp.api.types import UTCDateTime
+from chisubmit.backend.api.types import UTCDateTime
 
 class Assignment(Serializable):
     __tablename__ = 'assignments'

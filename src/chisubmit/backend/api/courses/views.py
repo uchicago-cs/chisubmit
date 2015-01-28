@@ -1,15 +1,15 @@
 from flask import jsonify, request, abort, g
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.blueprints import api_endpoint
-from chisubmit.backend.webapp.api.courses.models import Course, CoursesInstructors,\
+from chisubmit.backend.api import db
+from chisubmit.backend.api.blueprints import api_endpoint
+from chisubmit.backend.api.courses.models import Course, CoursesInstructors,\
     CoursesStudents, CoursesGraders
-from chisubmit.backend.webapp.api.assignments.models import Assignment
-from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, CreateCourseInput,\
+from chisubmit.backend.api.assignments.models import Assignment
+from chisubmit.backend.api.courses.forms import UpdateCourseInput, CreateCourseInput,\
     UpdateStudentInput
-from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
+from chisubmit.backend.auth.token import require_apikey
+from chisubmit.backend.auth.authz import check_course_access_or_abort,\
     check_admin_access_or_abort, check_user_ids_equal_or_abort
-from chisubmit.backend.webapp.api.types import update_options
+from chisubmit.backend.api.types import update_options
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
 @require_apikey

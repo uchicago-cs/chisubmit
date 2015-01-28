@@ -1,12 +1,12 @@
 from flask import jsonify, request, abort
-from chisubmit.backend.webapp.api import db, app
-from chisubmit.backend.webapp.api.blueprints import api_endpoint
-from chisubmit.backend.webapp.api.users.models import User
-from chisubmit.backend.webapp.api.users.forms import CreateUserInput, UpdateUserInput,\
+from chisubmit.backend.api import db, app
+from chisubmit.backend.api.blueprints import api_endpoint
+from chisubmit.backend.api.users.models import User
+from chisubmit.backend.api.users.forms import CreateUserInput, UpdateUserInput,\
     GenerateAccessTokenInput
-from chisubmit.backend.webapp.auth import ldap, require_auth
-from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import require_admin_access
+from chisubmit.backend.auth import ldap, require_auth
+from chisubmit.backend.auth.token import require_apikey
+from chisubmit.backend.auth.authz import require_admin_access
 from chisubmit.common.utils import gen_api_key
 from flask.globals import g
 

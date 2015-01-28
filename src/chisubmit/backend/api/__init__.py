@@ -2,16 +2,16 @@ import os.path
 
 from chisubmit.common import ChisubmitException
 from chisubmit.common.utils import gen_api_key
-from chisubmit.backend.webapp.api.json_encoder import CustomJSONEncoder
-from chisubmit.backend.webapp.api.blueprints import api_endpoint
+from chisubmit.backend.api.json_encoder import CustomJSONEncoder
+from chisubmit.backend.api.blueprints import api_endpoint
 
 from flask.app import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 import wtforms_json
-from chisubmit.backend.webapp.auth.testing import TestingAuth
-from chisubmit.backend.webapp.auth import set_auth
-from chisubmit.backend.webapp.auth.ldap import LDAPAuth
+from chisubmit.backend.auth.testing import TestingAuth
+from chisubmit.backend.auth import set_auth
+from chisubmit.backend.auth.ldap import LDAPAuth
 
 wtforms_json.init()
 
@@ -20,7 +20,7 @@ app.json_encoder = CustomJSONEncoder
 
 db = SQLAlchemy(app)
 
-import chisubmit.backend.webapp.api.views
+import chisubmit.backend.api.views
 app.register_blueprint(api_endpoint, url_prefix='/api/v0')
 
 
@@ -63,7 +63,7 @@ class ChisubmitAPIServer(object):
         self.db.create_all()
 
     def create_admin(self, api_key=None):
-        from chisubmit.backend.webapp.api.users.models import User
+        from chisubmit.backend.api.users.models import User
 
         admin = User.query.filter_by(id=u"admin").first()
         

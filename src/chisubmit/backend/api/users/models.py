@@ -1,6 +1,6 @@
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.models.mixins import UniqueModel
-from chisubmit.backend.webapp.api.models.json import Serializable
+from chisubmit.backend.api import db
+from chisubmit.backend.api.models.mixins import UniqueModel
+from chisubmit.backend.api.models.json import Serializable
 
 
 class User(UniqueModel, Serializable, db.Model):

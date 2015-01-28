@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import ldap
 from ldap.filter import filter_format
-from chisubmit.backend.webapp.auth import Auth
+from chisubmit.backend.auth import Auth
 
 global conn
 

@@ -1,8 +1,8 @@
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.models.mixins import ExposedModel
-from chisubmit.backend.webapp.api.models.json import Serializable
+from chisubmit.backend.api import db
+from chisubmit.backend.api.models.mixins import ExposedModel
+from chisubmit.backend.api.models.json import Serializable
 from sqlalchemy.ext.associationproxy import association_proxy
-from chisubmit.backend.webapp.api.types import JSONEncodedDict
+from chisubmit.backend.api.types import JSONEncodedDict
 
 
 class CoursesGraders(Serializable, db.Model):
@@ -53,7 +53,7 @@ class CoursesStudents(Serializable, db.Model):
         return CoursesStudents.query.filter_by(student_id=student_id, course_id=course_id).first()
 
     def get_extensions_available(self):
-        from chisubmit.backend.webapp.api.teams.models import Team
+        from chisubmit.backend.api.teams.models import Team
 
         extensions_used = 0
         

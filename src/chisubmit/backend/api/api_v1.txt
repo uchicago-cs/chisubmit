@@ -1,0 +1,50 @@
+/courses [GET, POST]
+
+/courses/:course [GET, PATCH, DELETE]
+
+
+/courses/:course/students [GET, POST]
+
+/courses/:course/students/:student [GET, PATCH, DELETE]
+
+/courses/:course/graders [GET, POST]
+
+/courses/:course/graders/:grader [GET, PATCH, DELETE]
+
+/courses/:course/instructors [GET, POST]
+
+/courses/:course/instructors/:instructor [GET, PATCH, DELETE]
+
+
+/courses/:course/assignments [GET, POST]
+
+/courses/:course/assignments/:assignment [GET, PATCH, DELETE]
+
+/courses/:course/assignments/:assignment/rubric [GET, POST]
+
+/courses/:course/assignments/:assignment/rubric/:rubric_component [GET, PATCH, DELETE]
+
+
+/courses/:course/teams [GET, POST]
+
+/courses/:course/teams/:team [GET, PATCH, DELETE]
+
+/courses/:course/teams/:team/students [GET, POST]
+
+/courses/:course/teams/:team/students/:student [GET, POST]
+
+/courses/:course/teams/:team/assignments [GET, POST]
+
+/courses/:course/teams/:team/assignments/:assignment [PATCH, DELETE]
+
+/courses/:course/teams/:team/assignments/:assignment/submissions [GET, POST]
+
+/courses/:course/teams/:team/assignments/:assignment/submissions/:submission [PATCH, DELETE]
+
+
+
+/users [GET, POST]
+
+/users/:user [GET, PATCH]
+
+/users/:user/auth [???]

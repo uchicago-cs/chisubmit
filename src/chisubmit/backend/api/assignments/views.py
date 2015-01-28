@@ -1,17 +1,17 @@
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.assignments.models import Assignment,\
+from chisubmit.backend.api import db
+from chisubmit.backend.api.assignments.models import Assignment,\
     GradeComponent
-from chisubmit.backend.webapp.api.blueprints import api_endpoint
+from chisubmit.backend.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
-from chisubmit.backend.webapp.api.assignments.forms import UpdateAssignmentInput,\
+from chisubmit.backend.api.assignments.forms import UpdateAssignmentInput,\
     CreateAssignmentInput, RegisterAssignmentInput, SubmitAssignmentInput
-from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
+from chisubmit.backend.auth.token import require_apikey
+from chisubmit.backend.auth.authz import check_course_access_or_abort,\
     check_team_access_or_abort
-from chisubmit.backend.webapp.api.courses.models import Course, CoursesStudents
+from chisubmit.backend.api.courses.models import Course, CoursesStudents
 from flask import g
-from chisubmit.backend.webapp.api.users.models import User
-from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams,\
+from chisubmit.backend.api.users.models import User
+from chisubmit.backend.api.teams.models import Team, StudentsTeams,\
     AssignmentsTeams
 from chisubmit.common.utils import get_datetime_now_utc,\
     compute_extensions_needed

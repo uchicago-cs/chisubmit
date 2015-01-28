@@ -1,16 +1,16 @@
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams, AssignmentsTeams
-from chisubmit.backend.webapp.api.blueprints import api_endpoint
+from chisubmit.backend.api import db
+from chisubmit.backend.api.teams.models import Team, StudentsTeams, AssignmentsTeams
+from chisubmit.backend.api.blueprints import api_endpoint
 from flask import jsonify, request, abort
-from chisubmit.backend.webapp.api.teams.forms import UpdateTeamInput,\
+from chisubmit.backend.api.teams.forms import UpdateTeamInput,\
     CreateTeamInput, UpdateAssignmentTeamInput
-from chisubmit.backend.webapp.auth.token import require_apikey
-from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
+from chisubmit.backend.auth.token import require_apikey
+from chisubmit.backend.auth.authz import check_course_access_or_abort,\
     check_team_access_or_abort
 from flask import g
-from chisubmit.backend.webapp.api.courses.models import Course
-from chisubmit.backend.webapp.api.teams.models import Grade
-from chisubmit.backend.webapp.api.types import update_options
+from chisubmit.backend.api.courses.models import Course
+from chisubmit.backend.api.teams.models import Grade
+from chisubmit.backend.api.types import update_options
 
 @api_endpoint.route('/courses/<course_id>/teams', methods=['GET', 'POST'])
 @require_apikey

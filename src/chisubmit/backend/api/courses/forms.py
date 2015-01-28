@@ -1,8 +1,8 @@
 from wtforms import Form, StringField, IntegerField
 from wtforms.fields import FormField, FieldList
 from wtforms.validators import Length, InputRequired, NumberRange, Optional
-from chisubmit.backend.webapp.api.assignments.forms import CreateAssignmentInput
-from chisubmit.backend.webapp.api.teams.forms import CreateTeamInput
+from chisubmit.backend.api.assignments.forms import CreateAssignmentInput
+from chisubmit.backend.api.teams.forms import CreateTeamInput
 from wtforms.fields.core import BooleanField
 
 

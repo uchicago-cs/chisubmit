@@ -1,7 +1,7 @@
-from chisubmit.backend.webapp.api import db
-from chisubmit.backend.webapp.api.models.json import Serializable
-from chisubmit.backend.webapp.api.types import JSONEncodedDict, UTCDateTime
-from chisubmit.backend.webapp.api.assignments.models import GradeComponent
+from chisubmit.backend.api import db
+from chisubmit.backend.api.models.json import Serializable
+from chisubmit.backend.api.types import JSONEncodedDict, UTCDateTime
+from chisubmit.backend.api.assignments.models import GradeComponent
 from sqlalchemy.ext.associationproxy import association_proxy
 
 class Team(Serializable, db.Model):
@@ -41,7 +41,7 @@ class Team(Serializable, db.Model):
         return extensions 
         
     def get_extensions_available(self, extension_policy):
-        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+        from chisubmit.backend.api.courses.models import CoursesStudents
 
         if extension_policy == "per_team":
             return self.extensions - self.get_extensions_used()    

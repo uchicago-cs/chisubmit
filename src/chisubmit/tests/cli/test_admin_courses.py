@@ -7,7 +7,7 @@ class CLIAdminCourse(ChisubmitTestCase):
             
     @cli_test
     def test_admin_course_add(self, runner):
-        from chisubmit.backend.webapp.api.courses.models import Course
+        from chisubmit.backend.api.courses.models import Course
 
         admin = ChisubmitCLITestClient("admin", "admin", runner)
         

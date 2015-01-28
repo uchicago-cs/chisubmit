@@ -8,8 +8,8 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
             
     @cli_test
     def test_complete_with_extensions_per_student(self, runner):
-        from chisubmit.backend.webapp.api.teams.models import Team
-        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+        from chisubmit.backend.api.teams.models import Team
+        from chisubmit.backend.api.courses.models import CoursesStudents
 
         course_id = u"cmsc40300"
         course_name = u"Foobarmentals of Foobar II"

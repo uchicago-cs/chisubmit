@@ -160,7 +160,7 @@ class BaseChisubmitTestCase(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        from chisubmit.backend.webapp.api import ChisubmitAPIServer
+        from chisubmit.backend.api import ChisubmitAPIServer
 
         cls.server = ChisubmitAPIServer(debug = True)
         cls.db_fd, cls.db_filename = tempfile.mkstemp()
@@ -272,9 +272,9 @@ class ChisubmitFixtureTestCase(ChisubmitMultiTestCase):
  
     
 def load_fixture(db, fixture):
-    from chisubmit.backend.webapp.api.users.models import User
-    from chisubmit.backend.webapp.api.assignments.models import Assignment
-    from chisubmit.backend.webapp.api.courses.models import Course,\
+    from chisubmit.backend.api.users.models import User
+    from chisubmit.backend.api.assignments.models import Assignment
+    from chisubmit.backend.api.courses.models import Course,\
         CoursesInstructors, CoursesGraders, CoursesStudents
         
     user_objs = {}
@@ -325,7 +325,7 @@ def load_fixture(db, fixture):
 class ChisubmitIntegrationTestCase(ChisubmitTestCase):
         
     def create_user(self, admin_runner, user_id):
-        from chisubmit.backend.webapp.api.users.models import User
+        from chisubmit.backend.api.users.models import User
 
         fname = "f_" + user_id
         lname = "l_" + user_id
@@ -369,7 +369,7 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             self.create_user(admin, user_id)
 
     def create_course(self, admin, course_id, course_name):
-        from chisubmit.backend.webapp.api.courses.models import Course
+        from chisubmit.backend.api.courses.models import Course
 
         result = admin.run("admin course add", [course_id, course_name])
         self.assertEquals(result.exit_code, 0)
@@ -412,7 +412,7 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
         
         
     def add_users_to_course(self, admin, course_id, instructors, graders, students):
-        from chisubmit.backend.webapp.api.courses.models import CoursesStudents        
+        from chisubmit.backend.api.courses.models import CoursesStudents        
         
         for instructor in instructors:
             result = admin.run("admin course add-instructor %s %s" % (course_id, instructor.user_id))
@@ -540,8 +540,8 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
 
             
     def register_team(self, student_clients, team_name, assignment_id, course_id):
-        from chisubmit.backend.webapp.api.users.models import User
-        from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams
+        from chisubmit.backend.api.users.models import User
+        from chisubmit.backend.api.teams.models import Team, StudentsTeams
 
         for s in student_clients:
             partners = [s2 for s2 in student_clients if s2!=s]

@@ -119,7 +119,10 @@ class LocalGitRepo(object):
             self.repo.index.commit(commit_message)
             return True
         else:
-            return False        
+            return False       
+    
+    def is_dirty(self):
+        return self.repo.is_dirty() 
 
     def __create_tag_object(self, tag):
         return GitTag(name = tag.name,

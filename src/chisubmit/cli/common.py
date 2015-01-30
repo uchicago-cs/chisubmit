@@ -122,7 +122,7 @@ def gradingrepo_pull_grading_branch(config, course, team, assignment, from_stude
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "%s grading repo has uncommited changes. Cannot pull."
+        print "%s grading repo has uncommited changes. Cannot pull." % team.id
         return CHISUBMIT_FAIL
 
     if from_students:

@@ -326,7 +326,8 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         
     def __get_team_namespaced_project_name(self, course, team):
         group_name = self.__get_group_name(course)
-        return "%s/%s" % (group_name, team.id)      
+        s = "%s/%s" % (group_name, team.id)
+        return s.lower()      
     
     def __get_team_project_api_id(self, course, team):
         project_name = self.__get_team_namespaced_project_name(course, team)

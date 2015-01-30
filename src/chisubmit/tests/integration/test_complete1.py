@@ -147,6 +147,15 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
+        # Try submitting an already-submitted assignment, with the same
+        # commit as before 
+        result = students_team[0][0].run("student assignment submit", 
+                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
+                                          "--extensions", "1",
+                                          "--yes", "--force"])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+
+
         # Submit an already-submitted assignment
         result = students_team[0][0].run("student assignment submit", 
                                          [teams[0], "pa1", team_commits[0][1].hexsha, 

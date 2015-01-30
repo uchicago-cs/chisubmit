@@ -183,6 +183,20 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
     else:             
         if prior_commit_sha is not None:
             submission_commit = conn.get_commit(course, team, prior_commit_sha)
+            
+            if prior_commit_sha == commit_sha:
+                print "You have already submitted assignment %s" % assignment.id
+                print "You submitted the following commit on %s:" % prior_submitted_at_local
+                print
+                if submission_commit is None:
+                    print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+                else:
+                    print_commit(submission_commit)
+                print
+                print "You are trying to submit the same commit again (%s)" % prior_commit_sha
+                print "If you want to re-submit, please specify a different commit"
+                ctx.exit(CHISUBMIT_FAIL)
+                
             if not force:
                 print        
                 print "You have already submitted assignment %s" % assignment.id

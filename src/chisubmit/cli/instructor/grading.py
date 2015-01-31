@@ -399,6 +399,67 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
     
     return CHISUBMIT_SUCCESS
 
+
+@click.command(name="show-grading-status")
+@click.argument('assignment_id', type=str)
+@click.option('--by-grader', is_flag=True)
+@pass_course
+@click.pass_context
+def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader):
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    teams = get_teams(course, assignment)
+    teams.sort(key=operator.attrgetter("id"))
+    
+    team_status = []
+    graders = set()
+    
+    for team in teams:
+        ta = team.get_assignment(assignment_id)
+        grade_ids = [g.grade_component_id for g in ta.grades]
+
+        if ta.grader is not None:
+            grader_id = ta.grader.id
+        else:
+            grader_id = "<no grader assigned>"
+            
+        graders.add(grader_id)
+
+        has_some = False
+        has_all = True
+        for gc in assignment.grade_components:
+            if gc.id in grade_ids:
+                has_some = True
+            else:
+                has_all = False
+
+        if not has_some:
+            team_status.append((team.id, grader_id, "NOT GRADED"))
+        elif has_all:
+            team_status.append((team.id, grader_id, "GRADED"))
+        else:
+            team_status.append((team.id, grader_id, "PARTIALLY GRADED"))
+
+    if not by_grader:
+        for team, grader, status in team_status:
+            print "%-40s %-20s %s" % (team, status, grader)
+    else:
+        for grader in sorted(list(graders)):
+            print grader
+            print "-" * len(grader)
+            
+            team_status_grader = [ts for ts in team_status if ts[1] == grader]
+            
+            for team, _, status in team_status_grader:
+                print "%-40s %s" % (team, status)
+
+            print
+
+    return CHISUBMIT_SUCCESS
+
 @click.command(name="create-grading-repos")
 @click.argument('assignment_id', type=str)
 @click.option('--all-teams', is_flag=True)
@@ -569,25 +630,24 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grad
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
         if repo is None:
             print "Repository for %s does not exist" % (team.id)
-            ctx.exit(CHISUBMIT_FAIL)
+            continue
 
         rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.id
 
         if not os.path.exists(rubricfile):
             print "Repository for %s does not have a rubric for assignment %s" % (team.id, assignment.id)
-            ctx.exit(CHISUBMIT_FAIL)
+            continue
 
         try:
             rubric = RubricFile.from_file(open(rubricfile), assignment)
         except ChisubmitRubricException, cre:
             print "ERROR: Rubric for %s does not validate (%s)" % (team.id, cre.message)
+            continue
 
         points = []
         for gc in gcs:
             grade = rubric.points[gc.description]
             if grade is None:
-                if not dry_run:
-                    team.set_assignment_grade(assignment.id, gc.id, 0)
                 points.append(0.0)
             else:
                 if not dry_run:
@@ -629,6 +689,7 @@ instructor_grading.add_command(instructor_grading_list_grades)
 instructor_grading.add_command(instructor_grading_assign_graders)
 instructor_grading.add_command(instructor_grading_list_grader_assignments)
 instructor_grading.add_command(instructor_grading_list_submissions)
+instructor_grading.add_command(instructor_grading_show_grading_status)
 instructor_grading.add_command(instructor_grading_create_grading_repos)
 instructor_grading.add_command(instructor_grading_create_grading_branches)
 instructor_grading.add_command(instructor_grading_push_grading_branches)

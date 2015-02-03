@@ -1,16 +1,18 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-import operator
-import random
 from chisubmit.repos.grading import GradingGitRepo
-import os.path
 from chisubmit.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import create_grading_repos, get_teams,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
+
 import csv
+import operator
+import random
+import itertools
+import os.path
 from pprint import pprint
 
 @click.group(name="grading")
@@ -278,34 +280,36 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
 
     not_ready_for_grading = []
     ta_avoid = {}
-    for g in graders:
-        if teams_per_grader[g.user.id] > 0:
-            for t in teams:
-                if not t.has_assignment_ready_for_grading(assignment):
-                    not_ready_for_grading.append(t.id)
-                    continue
-                
+    graders_cycle = itertools.cycle(graders)
+    for t in teams:
+        if team_grader[t.id] is not None:
+            continue
+        
+        if not t.has_assignment_ready_for_grading(assignment):
+            not_ready_for_grading.append(t.id)
+            continue
+
+        for g in graders_cycle:
+            if teams_per_grader[g.user.id] == 0:
+                continue
+            else:
                 if avoid_assignment is not None:
                     taa = ta_avoid.setdefault(t.id, t.get_assignment(avoid_assignment.id))
                     if taa.grader.user.id == grader.user.id:
                         continue
                 
-                if team_grader[t.id] is None:
-                    valid = True
+                valid = True
+                for s in t.students:
+                    conflicts = g.get_conflicts()
+                    if s.user.id in conflicts:
+                        valid = False
+                        break
 
-                    for s in t.students:
-                        conflicts = g.get_conflicts()
-                        if s.user.id in conflicts:
-                            valid = False
-                            break
-
-                    if valid:
-                        team_grader[t.id] = g.user.id 
-                        teams_per_grader[g.user.id] -= 1
-                        teams_per_grader_assigned[g.user.id] += 1                        
-                        if teams_per_grader[g.user.id] == 0:
-                            break
-                    
+                if valid:
+                    team_grader[t.id] = g.user.id 
+                    teams_per_grader[g.user.id] -= 1
+                    teams_per_grader_assigned[g.user.id] += 1                        
+                    break                    
 
     for t in teams:
         if team_grader[t.id] is None:
@@ -314,12 +318,13 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
             else:
                 print "Team %s's submission isn't ready for grading yet" % (t.id)
         else:
-            t.set_assignment_grader(assignment.id, team_grader[t.id])
+            if ta[t.id].grader !=  team_grader[t.id]:
+                t.set_assignment_grader(assignment.id, team_grader[t.id])
 
     print 
     for grader_id, assigned in teams_per_grader_assigned.items():
         if teams_per_grader[grader_id] != 0:
-            print grader_id, assigned, "(still needs to be assigned %i more assignments)" % (teams_per_grader[g.user.id])
+            print grader_id, assigned, "(still needs to be assigned %i more assignments)" % (teams_per_grader[grader_id])
         else:
             print grader_id, assigned
 

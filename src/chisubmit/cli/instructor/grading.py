@@ -597,15 +597,19 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
         rubric = RubricFile.from_assignment(assignment, team_assignment)
         rubricfile = "%s.rubric.txt" % assignment.id
         rubricfilepath = "%s/%s" % (repo.repo_path, rubricfile)
-        rubric.save(rubricfilepath, include_blank_comments=True)
         
         if commit:
-            rv = repo.commit([rubricfile], "Added grading rubric")
-            if rv:
-                print rubricfile, "(COMMITTED)"
+            if not os.path.exists(rubricfilepath):
+                rubric.save(rubricfilepath, include_blank_comments=True)
+                rv = repo.commit([rubricfile], "Added grading rubric")
+                if rv:
+                    print rubricfilepath, "(COMMITTED)"
+                else:
+                    print rubricfilepath, "(NO CHANGES - Not committed)"
             else:
-                print rubricfile, "(NO CHANGES - Not committed)"
+                print rubricfilepath, "(SKIPPED - already exists)"
         else:
+            rubric.save(rubricfilepath, include_blank_comments=True)
             print rubricfilepath
 
 

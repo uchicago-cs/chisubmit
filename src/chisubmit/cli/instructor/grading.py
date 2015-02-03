@@ -514,6 +514,8 @@ def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_t
 
         if ta.submitted_at is None:
             print "Skipping grading branch. %s has not submitted." % team.id
+        elif repo.has_grading_branch():
+            print "Skipping grading branch. %s already has a grading branch." % team.id
         else:
             repo.create_grading_branch()
             print "Created grading branch for %s" % team.id

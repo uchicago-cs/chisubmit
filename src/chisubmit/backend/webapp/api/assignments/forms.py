@@ -7,7 +7,7 @@ from wtforms.fields.core import BooleanField, FloatField
 
 class CreateGradeComponentInput(Form):
     id = StringField(validators=[Length(max=36), InputRequired()])
-    description = StringField(validators=[Length(max=36), InputRequired()])
+    description = StringField(validators=[InputRequired()])
     points = FloatField(validators=[InputRequired()])
 
 

@@ -132,6 +132,10 @@ class GradingGitRepo(object):
     def commit(self, files, commit_message):
         return self.repo.commit(files, commit_message)
 
+    def is_dirty(self):
+        return self.repo.is_dirty()
+
+
     @staticmethod
     def get_grading_repo_path(base_dir, course, team, assignment):
         # TODO 18DEC14: This code could be a problem

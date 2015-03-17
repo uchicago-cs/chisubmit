@@ -43,12 +43,12 @@ def instructor_team_search(ctx, course, verbose, team_id):
 @click.command(name="pull-repos")
 @click.argument('assignment_id', type=str)
 @click.argument('directory', type=str)
-@click.option('--only-submitted', is_flag=True)
+@click.option('--only-ready-for-grading', is_flag=True)
 @click.option('--reset', is_flag=True)
 @click.option('--only', type=str)
 @pass_course
 @click.pass_context
-def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_submitted, reset, only):
+def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready_for_grading, reset, only):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
@@ -74,8 +74,8 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_submi
         team_git_url = conn.get_repository_git_url(course, team) 
         ta = team.get_assignment(assignment.id)
 
-        if ta.submitted_at is None and only_submitted:
-            print "%-*s  SKIPPING (not submitted)" % (max_len, team.id)
+        if not team.has_assignment_ready_for_grading(assignment) and only_ready_for_grading:
+            print "%-*s  SKIPPING (not ready for grading)" % (max_len, team.id)
             continue
         
         try:
@@ -96,7 +96,7 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_submi
                     r.checkout_branch("master")
                     r.pull("origin", "master")
                     msg = "Pulled latest changes"
-            if only_submitted:
+            if only_ready_for_grading:
                 r.checkout_commit(ta.commit_sha)
                 msg += " and checked out commit %s" % (ta.commit_sha)               
             print "%-*s  %s" % (max_len, team.id, msg)

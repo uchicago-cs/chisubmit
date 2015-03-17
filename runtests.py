@@ -13,6 +13,7 @@ from chisubmit.tests import client
 from chisubmit.tests import cli
 from chisubmit.tests.integration.test_complete1 import CLICompleteWorkflowExtensionsPerTeam
 from chisubmit.tests.integration.test_complete2 import CLICompleteWorkflowExtensionsPerStudent
+from chisubmit.tests.integration.test_complete3 import CLICompleteWorkflowCancelSubmission
 
 api_tests = unittest.TestLoader().loadTestsFromModule(api)
 client_tests = unittest.TestLoader().loadTestsFromModule(client)
@@ -25,7 +26,8 @@ unit_tests = {"api": api_tests,
 all_unittests = unittest.TestSuite(unit_tests.values())
 
 integration_tests = {"complete1": CLICompleteWorkflowExtensionsPerTeam,
-                     "complete2": CLICompleteWorkflowExtensionsPerStudent}
+                     "complete2": CLICompleteWorkflowExtensionsPerStudent,
+                     "complete3": CLICompleteWorkflowCancelSubmission}
 
 @click.command()
 @click.option("--failfast", "-f", is_flag=True)

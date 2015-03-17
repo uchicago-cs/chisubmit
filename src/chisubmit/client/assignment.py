@@ -73,6 +73,14 @@ class Assignment(CourseQualifiedApiObject):
         response = session.post(url, data=data)
         return response    
 
+    def cancel(self, team_id):
+        url = self.url() + "/cancel"
+        data = {}
+        data["team_id"] = team_id
+        data = json.dumps(data)
+        response = session.post(url, data=data)
+        return response    
+
     def get_grade_component(self, grade_component_id):
         gcs = [gc for gc in self.grade_components if gc.id == grade_component_id]
         

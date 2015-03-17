@@ -3,6 +3,8 @@ from chisubmit.backend.api.models.json import Serializable
 from chisubmit.backend.api.types import JSONEncodedDict, UTCDateTime
 from chisubmit.backend.api.assignments.models import GradeComponent
 from sqlalchemy.ext.associationproxy import association_proxy
+from datetime import timedelta
+from chisubmit.common.utils import get_datetime_now_utc
 
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
@@ -127,7 +129,20 @@ class AssignmentsTeams(Serializable, db.Model):
         if len(grades) == 0:
             return None
         else:
-            return grades[0]                                                
+            return grades[0]           
+        
+    def is_ready_for_grading(self):
+        if self.submitted_at is None:
+            return False
+        else:
+            now = get_datetime_now_utc()
+            deadline = self.assignment.deadline + timedelta(days=self.extensions_used)
+            
+            if now > deadline:
+                return True
+            else:
+                return False
+                                   
                                     
 class Grade(Serializable, db.Model):
     __tablename__ = 'grades'

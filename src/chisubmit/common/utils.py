@@ -40,8 +40,22 @@ import math
 
 localzone = get_localzone()
 
+now_override = None
+
 def get_datetime_now_utc():
-    return datetime.datetime.now(pytz.utc).replace(microsecond=0)
+    global now_override
+    
+    if now_override is None:
+        return datetime.datetime.now(pytz.utc).replace(microsecond=0)
+    else:
+        return now_override 
+    
+
+def set_testing_now(dt):
+    global now_override
+    
+    now_override = dt
+    
 
 def set_datetime_timezone_utc(dt):
     return pytz.utc.localize(dt)

@@ -1,5 +1,6 @@
 from chisubmit.tests.common import cli_test, ChisubmitIntegrationTestCase
-from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local
+from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local,\
+    set_testing_now
 from chisubmit.client.session import BadRequestError
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
@@ -136,19 +137,34 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
+        result = students_team[0][0].run("student team show", [teams[0]])
+        self.assertEquals(result.exit_code, 0)
+
         # Try submitting an already-submitted assignment
         result = students_team[0][0].run("student assignment submit", 
                                          [teams[0], "pa1", team_commits[0][1].hexsha, 
                                           "--extensions", "1",
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-        
+
+        # Try submitting an already-submitted assignment, with the same
+        # commit as before 
+        result = students_team[0][0].run("student assignment submit", 
+                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
+                                          "--extensions", "1",
+                                          "--yes", "--force"])
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+
+
         # Submit an already-submitted assignment
         result = students_team[0][0].run("student assignment submit", 
                                          [teams[0], "pa1", team_commits[0][1].hexsha, 
                                           "--extensions", "1",
                                           "--yes", "--force"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
+        
+        result = students_team[0][0].run("student team show", [teams[0]])
+        self.assertEquals(result.exit_code, 0)
         
         # Try requesting more extensions than the team has
         result = students_team[0][0].run("student assignment submit", 
@@ -158,19 +174,28 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Try submitting for a project the team is not registered for
-        with self.assertRaises(BadRequestError) as cm:
-            students_team[1][0].run("student assignment submit", 
-                                    [teams[1], "pa2", team_commits[1][1].hexsha, 
-                                     "--extensions", "0",
-                                     "--yes"])        
-        bre = cm.exception
-        bre.print_errors()
+        result = students_team[1][0].run("student assignment submit", 
+                                         [teams[1], "pa2", team_commits[1][1].hexsha, 
+                                          "--extensions", "0",
+                                          "--yes"])        
+        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         result = students_team[1][0].run("student assignment submit", 
                                          [teams[1], "pa1", team_commits[1][1].hexsha, 
                                          "--extensions", "1",
                                          "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+
+        result = instructors[0].run("instructor grading list-submissions", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+
+        # Let the deadline "pass"
+        new_now = get_datetime_now_utc() + timedelta(hours=2)
+        set_testing_now(new_now)
+
+        print
+        print "~~~ Time has moved 'forward' by two hours ~~~"
+        print
 
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)

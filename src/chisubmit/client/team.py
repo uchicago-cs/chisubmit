@@ -32,8 +32,9 @@ from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
 from chisubmit.client.user import User
 import json
-from chisubmit.common.utils import convert_datetime_to_utc
+from chisubmit.common.utils import convert_datetime_to_utc, get_datetime_now_utc
 from dateutil import parser
+from datetime import timedelta
 
 class Grade(JSONObject):
     
@@ -65,6 +66,8 @@ class AssignmentTeam(JSONObject):
                 
         return points + self.get_total_penalties()
     
+
+    
 class Team(CourseQualifiedApiObject):
 
     _api_attrs = ('id', 'active', 'course_id', 'extensions_available', 'extras')
@@ -95,6 +98,24 @@ class Team(CourseQualifiedApiObject):
             else:
                 return False        
         
+    def has_assignment_ready_for_grading(self, assignment, when=None):
+        ta = self.get_assignment(assignment.id)
+        
+        if ta is None:
+            return False
+        
+        if ta.submitted_at is None:
+            return False
+        
+        if when is None:
+            when = get_datetime_now_utc()
+            
+        deadline = assignment.deadline + timedelta(days=ta.extensions_used)
+        
+        if when > deadline:
+            return True
+        else:
+            return False
     
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}

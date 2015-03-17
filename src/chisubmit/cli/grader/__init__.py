@@ -112,7 +112,7 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment, grader = grader, only = only)
+    teams = get_teams(course, assignment, grader = grader, only = only, only_ready_for_grading=True)
 
     if not teams:
         ctx.exit(CHISUBMIT_FAIL)
@@ -140,7 +140,7 @@ def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment, grader = grader, only = only)
+    teams = get_teams(course, assignment, grader = grader, only = only, only_ready_for_grading=True)
 
     if not teams:
         ctx.exit(CHISUBMIT_FAIL)

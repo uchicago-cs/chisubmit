@@ -201,10 +201,11 @@ def instructor_grading_list_grades(ctx, course):
 @click.argument('assignment_id', type=str)
 @click.option('--from-assignment', type=str)
 @click.option('--avoid-assignment', type=str)
+@click.option('--only-graders', type=str)
 @click.option('--reset', is_flag=True)
 @pass_course
 @click.pass_context
-def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, reset):
+def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, only_graders, reset):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
         print "Assignment %s does not exist" % assignment_id
@@ -234,7 +235,21 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
 
     teams = get_teams(course, assignment)
     graders = course.graders[:]
-
+    
+    if only_graders is None:
+        graders = course.graders[:]
+    else:
+        gd = {g.user.id: g for g in course.graders}
+        only_graders = only_graders.strip().split(",")
+        
+        graders = []
+        for g in only_graders:
+            if g in gd:
+                graders.append(gd[g])
+            else:
+                print "No such grader: %s" % g
+                ctx.exit(CHISUBMIT_FAIL)        
+    
     if len(graders) == 0:
         print "There are ZERO graders in this course!"
         ctx.exit(CHISUBMIT_FAIL)

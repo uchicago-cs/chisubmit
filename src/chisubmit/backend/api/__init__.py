@@ -21,7 +21,7 @@ app.json_encoder = CustomJSONEncoder
 db = SQLAlchemy(app)
 
 import chisubmit.backend.api.views
-app.register_blueprint(api_endpoint, url_prefix='/api/v0')
+app.register_blueprint(api_endpoint, url_prefix='/api/v1')
 
 
 class ChisubmitAPIServer(object):

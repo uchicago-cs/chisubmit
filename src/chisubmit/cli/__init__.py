@@ -37,7 +37,6 @@ from requests.exceptions import HTTPError, ConnectionError
 from chisubmit.cli.admin import admin
 from chisubmit.cli.instructor import instructor
 from chisubmit.cli.student import student
-from chisubmit.client.session import BadRequestError
 from chisubmit.cli.grader import grader
 import getpass
 from chisubmit.client.user import User
@@ -47,7 +46,6 @@ config = None
 import chisubmit.common.log as log
 from chisubmit.config import Config
 from chisubmit import RELEASE
-from chisubmit.client import session
 
 SUBCOMMANDS_NO_COURSE = [('course','create')]
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']

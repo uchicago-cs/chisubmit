@@ -1,7 +1,6 @@
 from chisubmit.tests.common import cli_test, ChisubmitIntegrationTestCase
 from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local,\
     set_testing_now
-from chisubmit.client.session import BadRequestError
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 from datetime import timedelta

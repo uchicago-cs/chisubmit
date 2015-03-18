@@ -53,15 +53,13 @@ def course(course_id):
     check_course_access_or_abort(g.user, course, 404)
 
     if request.method == 'GET':
-        fields = []
+        #if g.user.admin:
+        #    fields.append("options")
         
-        if g.user.admin:
-            fields.append("options")
-        
-        if g.user.admin or g.user.is_instructor_in(course) or g.user.is_grader_in(course):
-            fields += ['teams', 'courses_graders', 'courses_students', 'courses_instructors']
+        #if g.user.admin or g.user.is_instructor_in(course) or g.user.is_grader_in(course):
+        #    fields += ['teams', 'courses_graders', 'courses_students', 'courses_instructors']
 
-        return jsonify({'course': course.to_dict(show=fields)})
+        return jsonify(course.to_dict(show=["id","name"]))
     
     if request.method == 'PUT':
         input_data = request.get_json(force=True)

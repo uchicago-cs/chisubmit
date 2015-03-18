@@ -2,9 +2,6 @@ from chisubmit.tests.common import ChisubmitMultiTestCase, ChisubmitTestCase
 from chisubmit.client.course import Course
 from chisubmit.tests.fixtures import users_and_courses, complete_course
 from chisubmit.client.assignment import Assignment
-
-import unittest
-from chisubmit.client.session import BadRequestError
         
         
 class EmptyCourse(ChisubmitMultiTestCase):

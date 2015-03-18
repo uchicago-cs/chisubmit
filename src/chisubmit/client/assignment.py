@@ -28,18 +28,17 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.common.utils import convert_datetime_to_utc
-from chisubmit.client import session
 from dateutil import parser
 import json
+from chisubmit.client.types import ChisubmitAPIObject
 
-class GradeComponent(JSONObject):
+class GradeComponent(object):
     
     _api_attrs = ('id', 'description', 'points', 'assignment_id')
 
 
-class Assignment(CourseQualifiedApiObject):
+class Assignment(ChisubmitAPIObject):
 
     _api_attrs = ('name', 'deadline', 'id', 'course_id')
     _primary_key = 'id'    

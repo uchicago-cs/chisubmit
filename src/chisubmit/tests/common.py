@@ -11,18 +11,17 @@ import random
 import string
 import re
 
-import chisubmit.client.session as session
 from click.testing import CliRunner
-from chisubmit.cli import chisubmit_cmd
+#from chisubmit.cli import chisubmit_cmd
 from dateutil.parser import parse
-from chisubmit.client.session import BadRequestError
+from chisubmit import client
 
 colorama.init()
 
+API_PREFIX = "/api/v1"
+
 class ChisubmitTestClient(object):
-    
-    API_PREFIX = "/api/v0/"
-    
+        
     def __init__(self, app, user_id, api_key):
         self.user_id = user_id
         self.api_key = api_key
@@ -94,7 +93,7 @@ class ChisubmitCLITestClient(object):
                     }
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
-    def run(self, subcommands, params = [], course = None, cmd=chisubmit_cmd, catch_exceptions=False, cmd_input = None):
+    def run(self, subcommands, params = [], course = None, cmd=None, catch_exceptions=False, cmd_input = None):
         chisubmit_args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
         
         if course is not None:
@@ -192,6 +191,11 @@ class BaseChisubmitTestCase(unittest.TestCase):
     
     def get_admin_test_client(self):
         return ChisubmitTestClient(self.server.app, "admin", "admin")
+    
+    def get_api_client(self, api_token):
+        return client.Chisubmit(api_token=api_token, 
+                                base_url=API_PREFIX, 
+                                testing_app=self.server.app)
     
     def get_test_client(self, user = None):
         if user is None:

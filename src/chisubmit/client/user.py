@@ -28,13 +28,12 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client import ApiObject
-from chisubmit.client import session
 import json
 import base64
 from chisubmit.common import ChisubmitException
+from chisubmit.client.types import ChisubmitAPIObject
 
-class User(ApiObject):
+class User(ChisubmitAPIObject):
 
     _api_attrs = ('id', 'first_name', 'last_name', 'email')
     _primary_key = 'id'

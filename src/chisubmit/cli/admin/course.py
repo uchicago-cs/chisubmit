@@ -36,6 +36,7 @@ from chisubmit.client.course import Course
 from chisubmit.common.utils import create_connection
 from chisubmit.cli.shared.course import shared_course_list
 import operator
+import csv
 
 @click.group(name="course")
 @click.pass_context
@@ -169,8 +170,64 @@ def admin_course_add_student(ctx, course_id, user_id):
         print "User %s does not exist" % user_id
         ctx.exit(CHISUBMIT_FAIL)    
     
-    course.add_student(user)        
+    course.add_student(user)  
     
+    
+@click.command(name="load-students")
+@click.argument('course_id', type=str)
+@click.argument('csv_file', type=click.File('rb'))
+@click.argument('csv_userid_column', type=str)
+@click.argument('csv_fname_column', type=str)
+@click.argument('csv_lname_column', type=str)
+@click.argument('csv_email_column', type=str)
+@click.option('--dry-run', is_flag=True)
+@click.option('--id-from-email', is_flag=True)
+@click.pass_context
+def admin_course_load_students(ctx, course_id, csv_file, csv_userid_column, csv_fname_column, csv_lname_column, csv_email_column, dry_run, id_from_email):   
+    course = Course.from_id(course_id)
+    if course is None:
+        print "Course %s does not exist" % course_id
+        ctx.exit(CHISUBMIT_FAIL)   
+                
+    csvf = csv.DictReader(csv_file)
+            
+    for col in (csv_userid_column, csv_fname_column, csv_lname_column, csv_email_column):
+        if col not in csvf.fieldnames:
+            print "CSV file %s does not have a '%s' column" % (csv_file, col)
+            ctx.exit(CHISUBMIT_FAIL)
+        
+    for entry in csvf:
+        user_id = entry[csv_userid_column]
+        if id_from_email:
+            user_id = user_id.split("@")[0].strip()
+        
+        first_name = entry[csv_fname_column]
+        last_name = entry[csv_lname_column]
+        email = entry[csv_email_column]
+
+        print "Processing %s (%s, %s)" % (user_id, last_name, first_name)
+
+        user = User.from_id(user_id)
+    
+        if user is not None:
+            print "- User %s already exists." % user_id
+        else:
+            print "- Creating user %s" % user_id
+            if not dry_run:
+                user = User(id = user_id,
+                            first_name = first_name,
+                            last_name = last_name,
+                            email = email)
+        
+        student = course.get_student(user_id)
+        if student is not None:
+            print "- User %s is already a student in %s" % (user_id, course_id)
+        else:
+            print "- Adding %s to %s" % (user_id, course_id)
+            if not dry_run:
+                course.add_student(user)
+        
+        print 
     
 @click.command(name="set-option")
 @click.argument('course_id', type=str)
@@ -412,6 +469,7 @@ admin_course.add_command(admin_course_show)
 admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)
+admin_course.add_command(admin_course_load_students)
 admin_course.add_command(admin_course_set_option)
 admin_course.add_command(admin_course_setup_repo)
 admin_course.add_command(admin_course_unsetup_repo)

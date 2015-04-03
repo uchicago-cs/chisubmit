@@ -10,6 +10,7 @@ from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
 from flask import g
 from chisubmit.backend.webapp.api.courses.models import Course
 from chisubmit.backend.webapp.api.teams.models import Grade
+from chisubmit.backend.webapp.api.types import update_options
 
 @api_endpoint.route('/courses/<course_id>/teams', methods=['GET', 'POST'])
 @require_apikey
@@ -23,12 +24,20 @@ def teams(course_id):
     
     if request.method == 'GET':
         # TODO: SQLAlchemy-fy this
-        teams = Team.query.all()
+        teams = Team.query.filter_by(course_id=course_id).all()
 
-        if g.user.is_student_in(course):
+        if not g.user.has_instructor_or_grader_permissions(course):
             teams = [t for t in teams if g.user in t.students]
+            
+        teams_dict = []
+        
+        for team in teams:
+            extension_policy = course.options.get("extension-policy", None)
+            t = team.to_dict()
+            t["extensions_available"] = team.get_extensions_available(extension_policy)
+            teams_dict.append(t)
 
-        return jsonify(teams=[team.to_dict() for team in teams])
+        return jsonify(teams=teams_dict)
 
     check_course_access_or_abort(g.user, course, 404, roles = ["instructor"])
 
@@ -137,8 +146,18 @@ def team(course_id, team_id):
                                         
                     at.penalties = penalty_value
                     db.session.add(at)
+                    
+        if 'extras' in form:
+            if len(form.extras) > 0:
+                update_options(form.extras, team.extras)
+                db.session.add(team)                    
 
         db.session.commit()
 
-    return jsonify({'team': team.to_dict()})
+    
+    extension_policy = course.options.get("extension-policy", None)
+    t = team.to_dict()
+    t["extensions_available"] = team.get_extensions_available(extension_policy)
+
+    return jsonify({'team': t})
 

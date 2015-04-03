@@ -94,6 +94,8 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
     ctx.obj["course_specified"] = course_specified
     ctx.obj["course_id"] = course_id
     ctx.obj["config"] = config
+    ctx.obj["verbose"] = verbose
+    ctx.obj["debug"] = debug
 
     return CHISUBMIT_SUCCESS
 
@@ -114,7 +116,7 @@ def cmd_wrapper(cmd):
         print "Error(s):"
         for noun, errors in bre.errors:
             if len(errors) == 1:
-                print "  - %s: %s" % (noun, errors[0])
+                print "  - %s: %s" % (noun, errors)
             else:
                 print "  - %s:" % noun
                 for error in errors:

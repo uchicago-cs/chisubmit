@@ -1,25 +1,21 @@
-import chisubmit.client.session as session
 import tempfile
 import os
 import json
-from chisubmit.backend.webapp.api.users.models import User
-from chisubmit.backend.webapp.api.courses.models import Course,\
-    CoursesInstructors, CoursesGraders, CoursesStudents
-from chisubmit.backend.webapp.api import ChisubmitAPIServer
-from click.testing import CliRunner
-from functools import update_wrapper
 import yaml
-from chisubmit.cli import chisubmit_cmd
 import sys
-from chisubmit.backend.webapp.api.assignments.models import Assignment
-from dateutil.parser import parse
 import colorama
 import git
 import functools
-from chisubmit.client.session import BadRequestError
 import unittest
 import random
 import string
+import re
+
+import chisubmit.client.session as session
+from click.testing import CliRunner
+from chisubmit.cli import chisubmit_cmd
+from dateutil.parser import parse
+from chisubmit.client.session import BadRequestError
 
 colorama.init()
 
@@ -164,6 +160,8 @@ class BaseChisubmitTestCase(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
+        from chisubmit.backend.webapp.api import ChisubmitAPIServer
+
         cls.server = ChisubmitAPIServer(debug = True)
         cls.db_fd, cls.db_filename = tempfile.mkstemp()
         cls.server.connect_sqlite(cls.db_filename)
@@ -274,7 +272,11 @@ class ChisubmitFixtureTestCase(ChisubmitMultiTestCase):
  
     
 def load_fixture(db, fixture):
-    
+    from chisubmit.backend.webapp.api.users.models import User
+    from chisubmit.backend.webapp.api.assignments.models import Assignment
+    from chisubmit.backend.webapp.api.courses.models import Course,\
+        CoursesInstructors, CoursesGraders, CoursesStudents
+        
     user_objs = {}
     
     for u_id, user in fixture["users"].items():
@@ -320,4 +322,252 @@ def load_fixture(db, fixture):
     db.session.commit()
         
     
+class ChisubmitIntegrationTestCase(ChisubmitTestCase):
+        
+    def create_user(self, admin_runner, user_id):
+        from chisubmit.backend.webapp.api.users.models import User
+
+        fname = "f_" + user_id
+        lname = "l_" + user_id
+        email = user_id + "@example.org"
+        result = admin_runner.run("admin user add", [user_id, fname, lname, email])
+        self.assertEquals(result.exit_code, 0)
+            
+        user = User.from_id(user_id)
+        self.assertIsNotNone(user)
+        self.assertEquals(user.id, user_id)            
+        self.assertEquals(user.first_name, fname)            
+        self.assertEquals(user.last_name, lname)            
+        self.assertEquals(user.email, email)      
+        
+        # TODO: We manually set the API key here, since the CLI
+        # and the server are not completely set up for fetching
+        # API keys yet. 
+        user.api_key = user_id
+        self.server.db.session.add(user)
+        self.server.db.session.commit()
+
+    def create_clients(self, runner, course_id, admin_id, instructor_ids, grader_ids, student_ids):
+        admin = ChisubmitCLITestClient(admin_id, admin_id, runner, git_credentials=self.git_api_keys, verbose = True)
+        
+        instructors = []
+        for instructor_id in instructor_ids:
+            instructors.append(ChisubmitCLITestClient(instructor_id, instructor_id, runner, git_credentials=self.git_api_keys,  verbose = True, course = course_id))
+
+        graders = []
+        for grader_id in grader_ids:
+            graders.append(ChisubmitCLITestClient(grader_id, grader_id, runner, git_credentials=self.git_api_keys,  verbose = True, course = course_id))
+
+        students = []
+        for student_id in student_ids:
+            students.append(ChisubmitCLITestClient(student_id, student_id, runner, git_credentials=self.git_api_keys,  verbose = True, course = course_id))
+                        
+        return admin, instructors, graders, students    
+            
+    def create_users(self, admin, user_ids):
+        for user_id in user_ids:
+            self.create_user(admin, user_id)
+
+    def create_course(self, admin, course_id, course_name):
+        from chisubmit.backend.webapp.api.courses.models import Course
+
+        result = admin.run("admin course add", [course_id, course_name])
+        self.assertEquals(result.exit_code, 0)
+        
+        course = Course.from_id(course_id)
+        self.assertIsNotNone(course)
+        self.assertEquals(course.name, course_name)
+        
+        result = admin.run("admin course list")
+        self.assertEquals(result.exit_code, 0)
+        self.assertIn(course_id, result.output)
+        self.assertIn(course_name, result.output)
+        
+        git_server_connstr = self.git_server_connstr
+        git_staging_connstr = self.git_staging_connstr
+
+        result = admin.run("admin course set-option %s git-server-connstr %s" % (course_id, git_server_connstr))
+        self.assertEquals(result.exit_code, 0)
+
+        result = admin.run("admin course set-option %s git-staging-connstr %s" % (course_id, git_staging_connstr))
+        self.assertEquals(result.exit_code, 0)
+        
+        course = Course.from_id(course_id)
+        self.assertIn("git-server-connstr", course.options)
+        self.assertIn("git-staging-connstr", course.options)
+        self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
+        self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
+        
+        result = admin.run("admin course unsetup-repo %s" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+        
+        result = admin.run("admin course setup-repo %s" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+
+        result = admin.run("admin course unsetup-repo %s --staging" % (course_id))
+        self.assertEquals(result.exit_code, 0)
+
+        result = admin.run("admin course setup-repo %s --staging" % (course_id))
+        self.assertEquals(result.exit_code, 0)        
+        
+        
+    def add_users_to_course(self, admin, course_id, instructors, graders, students):
+        from chisubmit.backend.webapp.api.courses.models import CoursesStudents        
+        
+        for instructor in instructors:
+            result = admin.run("admin course add-instructor %s %s" % (course_id, instructor.user_id))
+            self.assertEquals(result.exit_code, 0)
+        
+        for grader in graders:
+            result = admin.run("admin course add-grader %s %s" % (course_id, grader.user_id))
+            self.assertEquals(result.exit_code, 0)
+        
+        for student in students:
+            result = admin.run("admin course add-student %s %s" % (course_id, student.user_id))
+            self.assertEquals(result.exit_code, 0)
+                
+        for instructor in instructors:
+            if self.git_server_user is None:
+                git_username = "git-" + instructors[0].user_id
+            else:
+                git_username = self.git_server_user
+    
+            result = instructors[0].run("instructor user set-repo-option", 
+                                    ["instructor", instructors[0].user_id, "git-username", git_username])
+            self.assertEquals(result.exit_code, 0)
+
+        for grader in graders:
+            if self.git_server_user is None:
+                git_username = "git-" + graders[0].user_id
+            else:
+                git_username = self.git_server_user
+    
+            result = instructors[0].run("instructor user set-repo-option", 
+                                        ["grader", graders[0].user_id, "git-username", git_username])
+            self.assertEquals(result.exit_code, 0)
+                
+        result = admin.run("admin course update-repo-access", [course_id])
+        self.assertEquals(result.exit_code, 0)
+                
+        result = admin.run("admin course update-repo-access", [course_id, "--staging"])
+        self.assertEquals(result.exit_code, 0)
+        
+        for student in students:
+            if self.git_server_user is None:
+                git_username = "git-" + student.user_id
+            else:
+                git_username = self.git_server_user
+                
+            result = student.run("student course set-git-username", [git_username])
+            self.assertEquals(result.exit_code, 0)
+            
+            course_student = CoursesStudents.query.filter_by(
+                course_id=course_id).filter_by(
+                student_id=student.user_id).first()
+                
+            self.assertIn("git-username", course_student.repo_info)
+            self.assertEquals(course_student.repo_info["git-username"], git_username)
+
+
+    def create_team_repos(self, admin, course_id, teams, students_team):
+        
+        team_git_paths = []
+        team_git_repos = []
+        team_commits = []
+        
+        for team, students in zip(teams, students_team):
+            result = admin.run("admin course team-repo-remove", [course_id, team, "--ignore-non-existing"])
+            self.assertEquals(result.exit_code, 0)
+            result = admin.run("admin course team-repo-remove", ["--staging", course_id, team, "--ignore-non-existing"])
+            self.assertEquals(result.exit_code, 0)
+
+            result = admin.run("admin course team-repo-create", [course_id, team, "--public"])
+            self.assertEquals(result.exit_code, 0)
+            result = admin.run("admin course team-repo-create", ["--staging", course_id, team, "--public"])
+            self.assertEquals(result.exit_code, 0)
+
+        
+            result = students[0].run("student team repo-check", [team])
+            self.assertEquals(result.exit_code, 0)
+            
+            r = re.findall(r"^Repository URL: (.*)$", result.output, flags=re.MULTILINE)
+            self.assertEquals(len(r), 1, "student team repo-check didn't produce the expected output")
+            repo_url = r[0]
+
+            team_git_repo, team_git_path = students[0].create_local_git_repository(team)
+            team_remote = team_git_repo.create_remote("origin", repo_url)
+            
+            team_git_repos.append(team_git_repo)
+            team_git_paths.append(team_git_path)
+
+            commits = []
+                        
+            files = ["foo", "bar", "baz"]
+            
+            for f in files:
+                open("%s/%s" % (team_git_path, f), "w").close()
+                
+            team_git_repo.index.add(files)
+            team_git_repo.index.commit("First commit of %s" % team)
+                
+            commits.append(team_git_repo.heads.master.commit)
+    
+            team_remote.push("master")
+            
+            f = open("%s/foo" % (team_git_path), "w")
+            f.write("Hello, team1!")
+            f.close()
+            
+            team_git_repo.index.add(["foo"])
+            team_git_repo.index.commit("Second commit of %s" % team)
+
+            commits.append(team_git_repo.heads.master.commit)
+            
+            team_remote.push("master")
+            
+            team_commits.append(commits)
+            
+            
+        for team1, students1 in zip(teams, students_team):
+            for team2, students2 in zip(teams, students_team):
+                if team1 != team2:
+                    result = students1[0].run("student team repo-check", [team2])
+                    self.assertNotEquals(result.exit_code, 0)
+                    result = students2[0].run("student team repo-check", [team1])
+                    self.assertNotEquals(result.exit_code, 0)
+            
+        return team_git_paths, team_git_repos, team_commits
+
+            
+    def register_team(self, student_clients, team_name, assignment_id, course_id):
+        from chisubmit.backend.webapp.api.users.models import User
+        from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams
+
+        for s in student_clients:
+            partners = [s2 for s2 in student_clients if s2!=s]
+            partner_args = []
+            for p in partners:
+                partner_args += ["--partner", p.user_id]
+        
+            s.run("student assignment register", 
+                  [ assignment_id, "--team-name", team_name] + partner_args)
+
+            s.run("student team show", [team_name])
+        
+        
+        students_in_team = [User.from_id(s.user_id) for s in student_clients]
+        
+        ts = Team.find_teams_with_students(course_id, students_in_team)
+        
+        self.assertGreaterEqual(len(ts), 1)
+        self.assertIn(team_name, [t.id for t in ts])
+        
+        team = [t for t in ts if t.id == team_name]
+        self.assertEqual(len(team), 1)
+        t = team[0]
+        self.assertEquals(t.id, team_name)
+        self.assertListEqual(sorted([s.id for s in students_in_team]), 
+                             sorted([s.id for s in t.students]))
+        for st in t.students_teams:
+            self.assertEquals(st.status, StudentsTeams.STATUS_CONFIRMED)      
     

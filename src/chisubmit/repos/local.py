@@ -42,7 +42,7 @@ class LocalGitRepo(object):
         if remote_branch is None:
             raise ChisubmitException("No such remote branch: %s" % branch)
 
-        if self.repo.head.ref != branch_head:
+        if self.repo.head.is_detached or self.repo.head.ref != branch_head:
             try:
                 branch_head.checkout()
             except GitCommandError, gce:
@@ -68,6 +68,18 @@ class LocalGitRepo(object):
             branch_head.checkout()
         except GitCommandError:
             raise ChisubmitException("Error checking out")
+
+    def checkout_commit(self, commit_sha):
+        commit = self.get_commit(commit_sha)
+        
+        if commit is None:
+            raise ChisubmitException("Tried to checkout a commit that does not exist: %s" % commit_sha)
+        
+        try:
+            self.repo.git.checkout(commit_sha)
+        except GitCommandError:
+            raise ChisubmitException("Could not checkout commit %s" % commit_sha)
+        
 
     def get_commit(self, commit_sha):
         try:
@@ -100,6 +112,17 @@ class LocalGitRepo(object):
 
     def pull(self, remote_name, branch):
         self.remotes[remote_name].pull("%s" % (branch))
+        
+    def commit(self, files, commit_message):
+        self.repo.index.add(files)
+        if self.repo.is_dirty():
+            self.repo.index.commit(commit_message)
+            return True
+        else:
+            return False       
+    
+    def is_dirty(self):
+        return self.repo.is_dirty() 
 
     def __create_tag_object(self, tag):
         return GitTag(name = tag.name,

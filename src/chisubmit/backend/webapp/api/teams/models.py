@@ -1,8 +1,10 @@
 from chisubmit.backend.webapp.api import db
 from chisubmit.backend.webapp.api.models.json import Serializable
-from sqlalchemy.ext.associationproxy import association_proxy
 from chisubmit.backend.webapp.api.types import JSONEncodedDict, UTCDateTime
 from chisubmit.backend.webapp.api.assignments.models import GradeComponent
+from sqlalchemy.ext.associationproxy import association_proxy
+from datetime import timedelta
+from chisubmit.common.utils import get_datetime_now_utc
 
 class Team(Serializable, db.Model):
     __tablename__ = 'teams'
@@ -17,9 +19,13 @@ class Team(Serializable, db.Model):
     students = association_proxy('students_teams', 'student')
     assignments = association_proxy('assignments_teams', 'assignment')
 
-    default_fields = ['extensions', 'repo_info', 'active', 'course_id',
+    default_fields = ['extensions', 'repo_info', 'active', 'course_id', 'extras',
                       'students_teams', 'assignments_teams', 'grades']
-    readonly_fields = ['students', 'assignments', 'grades']
+    readonly_fields = ['students', 'assignments', 'grades', 'extras']
+    
+    @staticmethod
+    def from_id(course_id, team_id):
+        return Team.query.filter_by(course_id=course_id,id=team_id).first()        
     
     @staticmethod
     def find_teams_with_students(course_id, students):
@@ -36,9 +42,20 @@ class Team(Serializable, db.Model):
             extensions += at.extensions_used
         return extensions 
         
-    def get_extensions_available(self):
-        return self.extensions - self.get_extensions_used()
-        
+    def get_extensions_available(self, extension_policy):
+        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+
+        if extension_policy == "per_team":
+            return self.extensions - self.get_extensions_used()    
+        elif extension_policy == "per_student":
+            student_extensions_available = []
+            for student in self.students:
+                cs = CoursesStudents.from_id(self.course_id, student.id)
+                a = cs.get_extensions_available()
+                student_extensions_available.append(a)
+            return min(student_extensions_available)
+        else:
+            return 0        
 
 class StudentsTeams(Serializable, db.Model):
     STATUS_UNCONFIRMED = 0
@@ -112,7 +129,20 @@ class AssignmentsTeams(Serializable, db.Model):
         if len(grades) == 0:
             return None
         else:
-            return grades[0]                                                
+            return grades[0]           
+        
+    def is_ready_for_grading(self):
+        if self.submitted_at is None:
+            return False
+        else:
+            now = get_datetime_now_utc()
+            deadline = self.assignment.deadline + timedelta(days=self.extensions_used)
+            
+            if now > deadline:
+                return True
+            else:
+                return False
+                                   
                                     
 class Grade(Serializable, db.Model):
     __tablename__ = 'grades'

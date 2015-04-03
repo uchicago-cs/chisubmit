@@ -1,43 +1,51 @@
-import git
 import os.path
 
 from chisubmit.common import ChisubmitException
-from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.repos.local import LocalGitRepo
 from chisubmit.common.utils import create_connection
 
 
 class GradingGitRepo(object):
-    def __init__(self, team, assignment, repo, repo_path):
+    def __init__(self, team, assignment, repo, repo_path, commit_sha):
         self.team = team
         self.assignment = assignment
         self.repo = repo
         self.repo_path = repo_path
+        self.commit_sha = commit_sha
 
     @classmethod
     def get_grading_repo(cls, config, course, team, assignment):
         base_dir = config["directory"]
+        
+        ta = team.get_assignment(assignment.id)
         
         repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         if not os.path.exists(repo_path):
             return None
         else:
             repo = LocalGitRepo(repo_path)
-            return cls(team, assignment, repo, repo_path)
+            return cls(team, assignment, repo, repo_path, ta.commit_sha)
 
     @classmethod
     def create_grading_repo(cls, config, course, team, assignment):
         base_dir = config["directory"]
         
         conn_server = create_connection(course, config)
+        if conn_server is None:
+            raise ChisubmitException("Could not connect to git server")
+        
         conn_staging = create_connection(course, config, staging = True)
+        if conn_server is None:
+            raise ChisubmitException("Could not connect to git staging server")        
         
         repo_path = cls.get_grading_repo_path(base_dir, course, team, assignment)
         server_url = conn_server.get_repository_git_url(course, team)
         staging_url = conn_staging.get_repository_git_url(course, team)
 
+        ta = team.get_assignment(assignment.id)
+
         repo = LocalGitRepo.create_repo(repo_path, clone_from_url = server_url, remotes = [("staging", staging_url)])
-        return cls(team, assignment, repo, repo_path)
+        return cls(team, assignment, repo, repo_path, ta.commit_sha)
 
     def sync(self):
         self.repo.fetch("origin")
@@ -49,15 +57,16 @@ class GradingGitRepo(object):
         if self.repo.has_branch(branch_name):
             raise ChisubmitException("%s repository already has a %s branch" % (self.team.id, branch_name))
 
-        tag = self.repo.get_tag(self.assignment.id)
-        if tag is None:
-            self.sync()
-            tag = self.repo.get_tag(self.assignment.id)
-            if tag is None:
-                raise ChisubmitException("%s repository does not have a %s tag" % (self.team.id, self.assignment.id))
+        if self.commit_sha is not None:
+            commit = self.repo.get_commit(self.commit_sha)
+            if commit is None:
+                self.sync()
+                commit = self.repo.get_commit(self.commit_sha)
+                if commit is None:
+                    raise ChisubmitException("%s repository does not have a commit %s" % (self.team.id, self.commit_sha))
 
-        self.repo.create_branch(branch_name, tag.commit.sha)
-        self.repo.checkout_branch(branch_name)
+            self.repo.create_branch(branch_name, self.commit_sha)
+            self.repo.checkout_branch(branch_name)
 
     def has_grading_branch(self):
         branch_name = self.assignment.get_grading_branch_name()
@@ -120,8 +129,17 @@ class GradingGitRepo(object):
             self.repo.fetch(remote_name, branch_name)
             self.repo.checkout_branch(branch_name)
 
+    def commit(self, files, commit_message):
+        return self.repo.commit(files, commit_message)
+
+    def is_dirty(self):
+        return self.repo.is_dirty()
+
+
     @staticmethod
     def get_grading_repo_path(base_dir, course, team, assignment):
         # TODO 18DEC14: This code could be a problem
         # The base_dir is passed from far away
         return "%s/repositories/%s/%s/%s" % (base_dir, course.id, assignment.id, team.id)
+    
+    

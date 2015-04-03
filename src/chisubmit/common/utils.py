@@ -36,11 +36,26 @@ import base64
 import string
 from tzlocal import get_localzone
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+import math
 
 localzone = get_localzone()
 
+now_override = None
+
 def get_datetime_now_utc():
-    return datetime.datetime.now(pytz.utc).replace(microsecond=0)
+    global now_override
+    
+    if now_override is None:
+        return datetime.datetime.now(pytz.utc).replace(microsecond=0)
+    else:
+        return now_override 
+    
+
+def set_testing_now(dt):
+    global now_override
+    
+    now_override = dt
+    
 
 def set_datetime_timezone_utc(dt):
     return pytz.utc.localize(dt)
@@ -54,6 +69,16 @@ def convert_datetime_to_local(dt, default_tz = localzone):
     if dt.tzinfo is None:
         dt = localzone.localize(dt)
     return dt.astimezone(localzone)
+
+def compute_extensions_needed(submission_time, deadline):
+    delta = (submission_time - deadline).total_seconds()
+
+    extensions_needed = math.ceil(delta / (3600.0 * 24))
+
+    if extensions_needed <= 0:
+        return 0
+    else:
+        return int(extensions_needed)
 
 # Based on http://jetfar.com/simple-api-key-generation-in-python/
 def gen_api_key():
@@ -72,7 +97,10 @@ def create_connection(course, config, staging = False):
 
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()
-    git_credentials = config['git-credentials'].get(server_type, None)
+    
+    git_credentials = None
+    if config['git-credentials'] is not None:
+        git_credentials = config['git-credentials'].get(server_type, None)
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type

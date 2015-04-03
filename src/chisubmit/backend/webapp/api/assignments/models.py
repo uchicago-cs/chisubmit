@@ -15,16 +15,11 @@ class Assignment(Serializable):
     default_fields = ['id', 'name', 'deadline', 'course_id', 
                       'grade_components']
     readonly_fields = ['id', 'grade_components', 'course_id']
-
-    def extensions_needed(self, submission_time):
-        delta = (submission_time - self.deadline).total_seconds()
-
-        extensions_needed = math.ceil(delta / (3600.0 * 24))
-
-        if extensions_needed <= 0:
-            return 0
-        else:
-            return int(extensions_needed)
+    
+    @staticmethod
+    def from_id(course_id, assignment_id):
+        return Assignment.query.filter_by(id=assignment_id, course_id=course_id).first()    
+    
         
 class GradeComponent(Serializable, db.Model):
     __tablename__ = 'grade_components'
@@ -34,7 +29,7 @@ class GradeComponent(Serializable, db.Model):
 
     order = db.Column(db.Integer)
     description = db.Column(db.Unicode)
-    points = db.Column('points', db.Integer)
+    points = db.Column('points', db.Float)
     
     default_fields = ['id', 'description', 'order', 'points', 'assignment_id']
     readonly_fields = ['id', 'course_id', 'assignment_id']

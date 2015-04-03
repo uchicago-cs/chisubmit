@@ -1,9 +1,6 @@
 from chisubmit.tests.common import ChisubmitTestCase, ChisubmitMultiTestCase
-import json
-import unittest
 from chisubmit.tests.fixtures import complete_course, users_and_courses
-from chisubmit.backend.webapp.api.courses.models import CoursesStudents
-from pprint import pprint
+import json
 
 class Empty(ChisubmitTestCase):
     
@@ -85,6 +82,8 @@ class CompleteCourse(ChisubmitTestCase):
     FIXTURE = complete_course
         
     def test_update_student1(self):
+        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+
         c = self.get_admin_test_client()
         
         attrs = {'name': 'git_username', 'value': 'foobar'}
@@ -106,6 +105,8 @@ class CompleteCourse(ChisubmitTestCase):
                         
 
     def test_update_student2(self):
+        from chisubmit.backend.webapp.api.courses.models import CoursesStudents
+
         c = self.get_admin_test_client()
         
         

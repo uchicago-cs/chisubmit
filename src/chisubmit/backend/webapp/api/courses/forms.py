@@ -40,6 +40,7 @@ class UpdateInstructorInput(Form):
 class UpdateGraderInput(Form):
     grader_id = StringField(default = None)
     repo_info = FieldList(FormField(SetOptionInput))
+    conflicts = StringField(validators=[Optional()])
 
 
 class LinkInstructorInput(Form):
@@ -67,14 +68,14 @@ class UpdateOptionInput(Form):
 
 class CreateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
-    id = StringField(validators=[Length(max=36, min=5), InputRequired()])
-    name = StringField(validators=[Length(max=36, min=5), InputRequired()])
+    id = StringField(validators=[Length(max=36, min=2), InputRequired()])
+    name = StringField(validators=[Length(max=36, min=2), InputRequired()])
 
 
 class UpdateCourseInput(Form):
     # FIXME 10DEC14: take the primary key out of the user's hands
-    id = StringField(validators=[Length(max=36, min=10), Optional()])
-    name = StringField(validators=[Length(max=36, min=10), Optional()])
+    id = StringField(validators=[Length(max=36, min=2), Optional()])
+    name = StringField(validators=[Length(max=36, min=2), Optional()])
     assignments = FormField(AddAssignmentsInput)
     instructors = FormField(AddInstructorsInput)
     students = FormField(AddStudentsInput)

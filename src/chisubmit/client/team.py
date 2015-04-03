@@ -32,6 +32,9 @@ from chisubmit.client import CourseQualifiedApiObject, JSONObject
 from chisubmit.client import session
 from chisubmit.client.user import User
 import json
+from chisubmit.common.utils import convert_datetime_to_utc, get_datetime_now_utc
+from dateutil import parser
+from datetime import timedelta
 
 class Grade(JSONObject):
     
@@ -48,6 +51,13 @@ class AssignmentTeam(JSONObject):
     _has_one = {'grader': ('grader', User)}
     _has_many = {'grades': 'grades'}
     
+    def __init__(self, *args, **kwargs):
+        if kwargs.has_key("submitted_at"):
+            if kwargs["submitted_at"] is not None and not hasattr(kwargs["submitted_at"], 'isoformat'):
+                kwargs["submitted_at"] = convert_datetime_to_utc(parser.parse(kwargs['submitted_at']))
+                
+        super(AssignmentTeam, self).__init__(*args, **kwargs)    
+    
     def get_total_penalties(self):
         return sum([p for p in self.penalties.values()])
         
@@ -56,14 +66,16 @@ class AssignmentTeam(JSONObject):
                 
         return points + self.get_total_penalties()
     
+
+    
 class Team(CourseQualifiedApiObject):
 
-    _api_attrs = ('id', 'active', 'course_id')
+    _api_attrs = ('id', 'active', 'course_id', 'extensions_available', 'extras')
     _primary_key = 'id'    
     _updatable_attributes = ('active',)
     _has_many = {'students': 'students_teams',
                  'assignments': 'assignments_teams',
-                 }
+                 }    
     
     def has_assignment(self, assignment_id):        
         return self.get_assignment(assignment_id) is not None    
@@ -75,6 +87,35 @@ class Team(CourseQualifiedApiObject):
             return ats[0]
         else:
             return None        
+        
+    def has_submitted(self, assignment_id):
+        assignment = self.get_assignment(assignment_id)
+        if assignment is None:
+            return False
+        else:
+            if assignment.submitted_at is not None:
+                return True
+            else:
+                return False        
+        
+    def has_assignment_ready_for_grading(self, assignment, when=None):
+        ta = self.get_assignment(assignment.id)
+        
+        if ta is None:
+            return False
+        
+        if ta.submitted_at is None:
+            return False
+        
+        if when is None:
+            when = get_datetime_now_utc()
+            
+        deadline = assignment.deadline + timedelta(days=ta.extensions_used)
+        
+        if when > deadline:
+            return True
+        else:
+            return False
     
     def add_student(self, student):
         attrs = {'team_id': self.id, 'student_id': student.id}
@@ -109,3 +150,9 @@ class Team(CourseQualifiedApiObject):
     
     def get_unconfirmed_students(self):
         return [s for s in self.students if s.status == 0]            
+    
+    def set_extra(self, name, value):
+        data = {"extras": [ {'name': name, 'value': value} ] }
+        data = json.dumps(data)
+        session.put(self.url(), data=data) 
+    

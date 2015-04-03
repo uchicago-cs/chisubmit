@@ -9,6 +9,7 @@ from chisubmit.backend.webapp.api.courses.forms import UpdateCourseInput, Create
 from chisubmit.backend.webapp.auth.token import require_apikey
 from chisubmit.backend.webapp.auth.authz import check_course_access_or_abort,\
     check_admin_access_or_abort, check_user_ids_equal_or_abort
+from chisubmit.backend.webapp.api.types import update_options
 
 @api_endpoint.route('/courses', methods=['GET', 'POST'])
 @require_apikey
@@ -114,7 +115,7 @@ def course(course_id):
                 if not course_instructor:
                     abort(404)
             
-                if not g.user.admin:
+                if g.user.admin or g.user.is_instructor_in(course):
                     course_instructor.set_columns(**child_data.patch_data)
                     
                 update_options(child_data.repo_info, course_instructor.repo_info)
@@ -144,7 +145,6 @@ def course(course_id):
                 
             for child_data in form.students.update:
                 student_id = child_data["student_id"].data
-                
                 if student_id is None:
                     student_id = g.user.id                
                 
@@ -159,7 +159,7 @@ def course(course_id):
                 if not course_student:
                     abort(404)
 
-                if not (g.user.admin or g.user.is_instructor_in(course)):
+                if g.user.admin or g.user.is_instructor_in(course):
                     course_student.set_columns(**child_data.patch_data)
                 update_options(child_data.repo_info, course_student.repo_info)
                 
@@ -196,7 +196,7 @@ def course(course_id):
                 if not course_grader:
                     abort(404)
             
-                if not (g.user.admin or g.user.is_instructor_in(course)):
+                if g.user.admin or g.user.is_instructor_in(course):
                     course_grader.set_columns(**child_data.patch_data)
                 update_options(child_data.repo_info, course_grader.repo_info)
                 
@@ -232,12 +232,3 @@ def course_student(course_id, student_id):
 
     return jsonify({'student': course_student.student.to_dict()}), 201
 
-
-def update_options(option_update_form, d):
-    if len(option_update_form) > 0:
-        for child_data in option_update_form:
-            d[child_data.data["name"]] = child_data.data["value"]
-        return True
-    else:
-        return False
-    

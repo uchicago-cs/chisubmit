@@ -48,6 +48,22 @@ class CoursesStudents(Serializable, db.Model):
                              backref=db.backref("courses_students",
                                                 cascade="all, delete-orphan"))
 
+    @staticmethod
+    def from_id(course_id, student_id):
+        return CoursesStudents.query.filter_by(student_id=student_id, course_id=course_id).first()
+
+    def get_extensions_available(self):
+        from chisubmit.backend.webapp.api.teams.models import Team
+
+        extensions_used = 0
+        
+        student_teams = Team.find_teams_with_students(self.course_id, [self.student])
+        for student_team in student_teams:
+            for assignment_team in student_team.assignments_teams:
+                extensions_used += assignment_team.extensions_used
+
+        return self.extensions - extensions_used
+                
 
 class CoursesInstructors(Serializable, db.Model):
     __tablename__ = 'courses_instructors'

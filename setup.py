@@ -54,7 +54,7 @@ setup(name='chisubmit',
       package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
       
-      install_requires = [ "PyGithub >= 1.25.2", "pyapi-gitlab >= 7.5", "GitPython >= 0.3.2.1",
+      install_requires = [ "PyGithub >= 1.25.2", "pyapi-gitlab >= 7.5", "GitPython >= 0.3.5",
                            "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0", "python-dateutil >= 2.4",
                            "click >= 3.3", "requests >= 2.5.1",
                            "colorama >= 0.3.2", "docutils >= 0.12" ],

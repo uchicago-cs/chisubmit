@@ -7,6 +7,7 @@ from chisubmit.client.course import Course
 from functools import update_wrapper
 
 from dateutil.parser import parse
+import operator
 
 
 def pass_course(f):
@@ -45,7 +46,7 @@ class DateTimeParamType(click.ParamType):
 DATETIME = DateTimeParamType()
 
 
-def get_teams(course, assignment, grader = None, only = None):
+def get_teams(course, assignment, only_ready_for_grading = False, grader = None, only = None):
     if only is not None:
         team = course.get_team(only)
         if team is None:
@@ -57,10 +58,15 @@ def get_teams(course, assignment, grader = None, only = None):
 
         teams = [team]
     else:
-        teams = [t for t in course.teams if t.has_assignment(assignment.id)]
+        if only_ready_for_grading:
+            teams = [t for t in course.teams if t.has_assignment_ready_for_grading(assignment)]
+        else:
+            teams = [t for t in course.teams if t.has_assignment(assignment.id)]
 
         if grader is not None:
-            teams = [t for t in teams if t.get_assignment(assignment.id).grader.id == grader.user.id]
+            teams = [t for t in teams if getattr(t.get_assignment(assignment.id).grader, "id", None) == grader.user.id]
+
+    teams.sort(key=operator.attrgetter("id"))
 
     return teams
 
@@ -91,10 +97,13 @@ def gradingrepo_push_grading_branch(config, course, team, assignment, to_student
     if repo is None:
         print "%s does not have a grading repository" % team.id
         return CHISUBMIT_FAIL
-
+    
     if not repo.has_grading_branch():
         print "%s does not have a grading branch" % team.id
         return CHISUBMIT_FAIL
+
+    if repo.is_dirty():
+        print "Warning: %s grading repo has uncommitted changes." % team.id
 
     if to_students:
         repo.push_grading_branch_to_students()
@@ -110,6 +119,10 @@ def gradingrepo_pull_grading_branch(config, course, team, assignment, from_stude
 
     if repo is None:
         print "%s does not have a grading repository" % team.id
+        return CHISUBMIT_FAIL
+
+    if repo.is_dirty():
+        print "%s grading repo has uncommited changes. Cannot pull." % team.id
         return CHISUBMIT_FAIL
 
     if from_students:

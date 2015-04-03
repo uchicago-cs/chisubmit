@@ -116,7 +116,7 @@ def cmd_wrapper(cmd):
         print "Error(s):"
         for noun, errors in bre.errors:
             if len(errors) == 1:
-                print "  - %s: %s" % (noun, errors[0])
+                print "  - %s: %s" % (noun, errors)
             else:
                 print "  - %s:" % noun
                 for error in errors:

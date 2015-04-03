@@ -315,6 +315,10 @@ def admin_course_create_repos(ctx, course_id, staging):
 
     teams = course.get_teams()
 
+    if len(teams) == 0:
+        print "Course %s has no teams. No repositories to create." % course_id
+        ctx.exit(CHISUBMIT_FAIL)  
+
     max_len = max([len(t.id) for t in teams])
 
     conn = create_connection(course, ctx.obj['config'], staging)

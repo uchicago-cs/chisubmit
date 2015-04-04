@@ -34,6 +34,25 @@ import json
 import sys
 from requests.exceptions import HTTPError
 
+# Disable the InsecurePlatformWarning warning
+# This warning is thrown in versions of Python < 2.7.9, which includes pretty
+# much all current Ubuntus.
+# 
+# Disabling this warning doesn't withhold information that the user could
+# use to prevent a potentially insecure connection (as in the case of an
+# untrusted certificate). The warning states that the version of Python and
+# SSL used could lead to certain connections failing. So far, we haven't
+# encountered this in any of our tests.
+#
+# More details here: https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning
+try:
+    from requests.packages.urllib3 import disable_warnings
+    from requests.packages.urllib3.exceptions import InsecurePlatformWarning
+
+    disable_warnings(category=InsecurePlatformWarning)
+except ImportError, ie:
+    pass
+
 class BadRequestError(HTTPError):
     
     def __init__(self, method, url, errors, *args, **kwargs):

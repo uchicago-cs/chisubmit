@@ -22,10 +22,13 @@ def student_assignment(ctx):
 @pass_course
 @click.pass_context
 def student_assignment_register(ctx, course, assignment_id, team_name, partner):
-    a = Assignment.from_id(course.id, assignment_id)
-        
-    a.register(team_name = team_name,
-               partners = partner)
+    assignment = course.get_assignment(assignment_id)
+    if assignment is None:
+        print "Assignment %s does not exist" % assignment_id
+        ctx.exit(CHISUBMIT_FAIL)
+
+    assignment.register(team_name = team_name,
+                        partners = partner)
     
     return CHISUBMIT_SUCCESS
 

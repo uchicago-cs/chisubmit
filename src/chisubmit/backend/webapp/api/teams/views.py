@@ -65,7 +65,7 @@ def team(course_id, team_id):
     if course is None:
         abort(404)
             
-    team = Team.query.filter_by(id=team_id, course_id=course_id).first()
+    team = Team.from_id(course_id=course_id, team_id=team_id)
     if team is None:
         abort(404)
 

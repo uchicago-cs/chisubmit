@@ -79,6 +79,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     nstudents = len(student_dict)
     nstudents_assignment = 0
     nsubmissions = 0
+    unsubmitted = []
     
     for team in course.teams:
         if team.has_assignment(assignment.id):
@@ -86,7 +87,9 @@ def instructor_assignment_stats(ctx, course, assignment_id):
             
             if team.has_submitted(assignment.id):
                 nsubmissions += 1
-            
+            else:
+                unsubmitted.append(team)
+                
             unconfirmed = False
             for student in team.students:
                 student_id = student.user.id
@@ -118,7 +121,14 @@ def instructor_assignment_stats(ctx, course, assignment_id):
             not_signed_up.sort(key=operator.attrgetter("last_name"))
             for s in not_signed_up:
                 print "%s, %s <%s>" % (s.last_name, s.first_name, s.email)
-    
+                
+        if len(unsubmitted) > 0:
+            print
+            print "Teams that have not submitted"
+            print "-----------------------------"
+            for t in unsubmitted:
+                print t.id
+                
     return CHISUBMIT_SUCCESS
 
 

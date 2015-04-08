@@ -271,7 +271,7 @@ def assignment_submit(course_id, assignment_id):
         extensions_requested = form.extensions.data
         dry_run = form.dry_run.data
         
-        team = Team.query.filter_by(id=team_id).first()
+        team = Team.from_id(course_id=course_id, team_id=team_id)
         if team is None:
             abort(404)
 
@@ -371,7 +371,7 @@ def assignment_cancel_submit(course_id, assignment_id):
         
         team_id = form.team_id.data
         
-        team = Team.query.filter_by(id=team_id).first()
+        team = Team.from_id(course_id=course_id, team_id=team_id)
         if team is None:
             abort(404)
 

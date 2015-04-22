@@ -81,7 +81,7 @@ setup(name='chisubmit',
           'Intended Audience :: Education',
           'License :: OSI Approved :: BSD License',
           'Operating System :: POSIX',
-          'Programming Language :: Python :: 2'
+          'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2 :: Only',
           'Topic :: Education'
           ]

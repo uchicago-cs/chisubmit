@@ -116,7 +116,7 @@ def configure_integration_test(test, config, git_server, git_staging):
         apikey = config.get(git_staging, "api-key")
         username = config.get(git_server, "username")
         
-        test.set_git_staging_connstr(connstr, username)
+        test.set_git_staging_connstr(connstr)
         test.add_api_key(git_staging, apikey)
         test.set_git_staging_user(username)
             

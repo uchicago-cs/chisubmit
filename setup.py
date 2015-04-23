@@ -50,22 +50,22 @@ setup(name='chisubmit',
       author='University of Chicago, Department of Computer Science',
       author_email='borja@cs.uchicago.edu',
       url='http://www.cs.uchicago.edu/',
-      package_dir = {'': 'src'},      
+      package_dir = {'': 'src'},
       package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
-      
+
       install_requires = [ "PyGithub >= 1.25.2", "pyapi-gitlab >= 7.5", "GitPython >= 0.3.5",
                            "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0", "python-dateutil >= 2.4",
                            "click >= 3.3", "requests >= 2.5.1",
                            "colorama >= 0.3.2", "docutils >= 0.12" ],
       extras_require = {
                          "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
-                                     "flask-restless >= 0.15", "Flask-Script >= 2.0.5", 
-                                     "python-ldap >= 2.4.18", "WTForms-JSON >= 0.2.8"] 
+                                     "flask-restless >= 0.15", "Flask-Script >= 2.0.5",
+                                     "python-ldap >= 2.4.18", "WTForms-JSON >= 0.2.8"]
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,
-      
+
       entry_points = {
         'console_scripts': eps
         },
@@ -81,7 +81,8 @@ setup(name='chisubmit',
           'Intended Audience :: Education',
           'License :: OSI Approved :: BSD License',
           'Operating System :: POSIX',
-          'Programming Language :: Python',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 2 :: Only',
           'Topic :: Education'
           ]
      )

@@ -239,7 +239,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
     def delete_team_repository(self, course, team, fail_if_not_exists):
         project_name = self.__get_team_namespaced_project_name(course, team)
-        project_api_id = self.__get_teayJey8z_D6AP-oMaTxu2qm_project_api_id(course, team)
+        project_api_id = self.__get_team_project_api_id(course, team)
         
         repo = self.__get_team_project(course, team)
         
@@ -334,9 +334,8 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         return project_name.replace("/", "%2F")
     
     def __get_team_project(self, course, team):
-        project_api_id = self.__get_team_project_api_id(course, team)
-        
-        project = self.gitlab.getproject(project_api_id)
+        namespaced_project_name = self.__get_team_namespaced_project_name(course, team)
+        project = self.gitlab.getproject(namespaced_project_name)
         
         if project == False:
             return None

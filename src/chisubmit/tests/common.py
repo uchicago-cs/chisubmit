@@ -435,6 +435,14 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             result = instructors[0].run("instructor user set-repo-option", 
                                     ["instructor", instructors[0].user_id, "git-username", git_username])
             self.assertEquals(result.exit_code, 0)
+            
+            if self.git_staging_user is None:
+                git_staging_username = "git-" + instructors[0].user_id
+            else:
+                git_staging_username = self.git_server_user            
+            result = instructors[0].run("instructor user set-repo-option", 
+                                    ["instructor", instructors[0].user_id, "git-staging-username", git_staging_username])
+            self.assertEquals(result.exit_code, 0)
 
         for grader in graders:
             if self.git_server_user is None:
@@ -445,6 +453,15 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             result = instructors[0].run("instructor user set-repo-option", 
                                         ["grader", graders[0].user_id, "git-username", git_username])
             self.assertEquals(result.exit_code, 0)
+            
+            if self.git_staging_user is None:
+                git_staging_username = "git-" + instructors[0].user_id
+            else:
+                git_staging_username = self.git_server_user            
+            result = instructors[0].run("instructor user set-repo-option", 
+                                        ["grader", graders[0].user_id, "git-staging-username", git_staging_username])
+            self.assertEquals(result.exit_code, 0)
+            
                 
         result = admin.run("admin course update-repo-access", [course_id])
         self.assertEquals(result.exit_code, 0)

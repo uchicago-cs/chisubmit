@@ -11,6 +11,9 @@ class Course(models.Model):
     graders = models.ManyToManyField(User, through='Grader', related_name="grader_in")
     students = models.ManyToManyField(User, through='Student', related_name="student_in")
     
+    def __unicode__(self):
+        return u"%s: %s" % (self.shortname, self.name)    
+    
     # OPTIONS
     GIT_USERNAME_USER = 'user-id'
     GIT_USERNAME_CUSTOM = 'custom'

@@ -1,5 +1,5 @@
 from django.contrib import admin
-import models
+import chisubmit.backend.api.models as models
 
 admin.site.register(models.Course)
 admin.site.register(models.Instructor)

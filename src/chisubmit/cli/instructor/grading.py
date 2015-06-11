@@ -173,9 +173,9 @@ def instructor_grading_list_grades(ctx, course):
 
     fields = ["Last Name","First Name"]
     for assignment in assignments:
-        fields += ["%s - %s" % (assignment.id, gc.description) for gc in assignment.grade_components]
-        fields.append("%s - Penalties" % assignment.id)
-        fields.append("%s - Total" % assignment.id)
+        fields += ["\"%s - %s\"" % (assignment.id, gc.description) for gc in assignment.grade_components]
+        fields.append("\"%s - Penalties\"" % assignment.id)
+        fields.append("\"%s - Total\"" % assignment.id)
 
     print ",".join(fields)
 

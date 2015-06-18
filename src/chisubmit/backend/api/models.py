@@ -41,6 +41,9 @@ class Instructor(models.Model):
     git_username = models.CharField(max_length=64)
     git_staging_username = models.CharField(max_length=64)
 
+    def __unicode__(self):
+        return u"Instructor %s of %s" % (self.user.id, self.course.shortname) 
+
     class Meta:
         unique_together = ("user", "course")
 
@@ -51,7 +54,10 @@ class Grader(models.Model):
     git_username = models.CharField(max_length=64)
     git_staging_username = models.CharField(max_length=64)
     
-    conflicts = models.ManyToManyField("Student")
+    conflicts = models.ManyToManyField("Student", blank=True)
+    
+    def __unicode__(self):
+        return u"Grader %s of %s" % (self.user.id, self.course.shortname)     
     
     class Meta:
         unique_together = ("user", "course")    
@@ -65,6 +71,9 @@ class Student(models.Model):
     extensions = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     dropped = models.BooleanField(default = False)
     
+    def __unicode__(self):
+        return u"Student %s of %s" % (self.user.id, self.course.shortname)     
+    
     class Meta:
         unique_together = ("user", "course")    
 
@@ -77,6 +86,9 @@ class Assignment(models.Model):
     # Options
     min_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
     max_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
+    
+    def __unicode__(self):
+        return u"Assignment %s of %s" % (self.shortname, self.course.shortname)     
 
 class RubricComponent(models.Model):    
     assignment = models.ForeignKey(Assignment)

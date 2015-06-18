@@ -1,0 +1,82 @@
+-   model: api.course
+    pk: 1
+    fields:
+        name: Introduction to Software Testing
+        shortname: cmsc40100 
+        default_extensions: 0
+        extension_policy: per-student
+        git_staging_usernames: user-id
+        git_usernames: user-id
+-   model: api.instructor
+    pk: 1
+    fields:
+        course: 1
+        git_staging_username: instructor1
+        git_username: instructor1
+        user: 101
+-   model: api.grader
+    pk: 1
+    fields:
+        conflicts: []
+        course: 1
+        git_staging_username: grader1
+        git_username: grader1
+        user: 201
+-   model: api.grader
+    pk: 2
+    fields:
+        conflicts: []
+        course: 1
+        git_staging_username: grader2
+        git_username: grader2
+        user: 202
+-   model: api.student
+    pk: 1
+    fields:
+        course: 1
+        git_username: student1
+        extensions: 0
+        dropped: false
+        user: 301
+-   model: api.student
+    pk: 2
+    fields:
+        course: 1
+        git_username: student2
+        extensions: 0
+        dropped: false
+        user: 302
+-   model: api.student
+    pk: 3
+    fields:
+        course: 1
+        git_username: student3
+        extensions: 0
+        dropped: false
+        user: 303
+-   model: api.student
+    pk: 4
+    fields:
+        course: 1
+        git_username: student4
+        extensions: 0
+        dropped: false
+        user: 304
+-   model: api.assignment
+    pk: 1
+    fields: 
+        course: 1
+        deadline: "2042-01-21 20:00:00+00:00"
+        max_students: 2
+        min_students: 2
+        name: Programming Assignment 1
+        shortname: pa1
+-   model: api.assignment
+    pk: 2
+    fields: 
+        course: 1
+        deadline: "2042-01-28 20:00:00+00:00"
+        max_students: 2
+        min_students: 2
+        name: Programming Assignment 2
+        shortname: pa2

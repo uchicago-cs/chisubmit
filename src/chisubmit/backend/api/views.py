@@ -64,18 +64,15 @@ class CourseQualifiedAPIView(APIView):
         return self.response
     
 class CourseDetail(CourseQualifiedAPIView):
-    def get_object(self, course_slug):
-        try:
-            return Course.objects.get(shortname=course_slug)
-        except Course.DoesNotExist:
-            raise Http404
             
     def get(self, request, course, format=None):
         serializer = CourseSerializer(course)
-        return Response(serializer.data)
+        data = serializer.get_filtered_data(course, request.user)
+        return Response(data)
 
-    def put(self, request, course, format=None):
-        serializer = CourseSerializer(course, data=request.data)
+    def patch(self, request, course, format=None):
+        serializer = CourseSerializer(course, data=request.data, partial=True)
+        serializer.filter_initial_data(course, request.user)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

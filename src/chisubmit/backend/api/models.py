@@ -1,7 +1,16 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
+from enum import Enum
 
+class CourseRoles(Enum):
+    ADMIN = 0
+    INSTRUCTOR = 1
+    GRADER = 2
+    STUDENT = 3
+
+GradersAndStudents = set([CourseRoles.GRADER, CourseRoles.STUDENT])
+AllExceptAdmin = set([CourseRoles.INSTRUCTOR, CourseRoles.GRADER, CourseRoles.STUDENT])
 
 class Course(models.Model):
     shortname = models.SlugField(unique = True)
@@ -18,13 +27,28 @@ class Course(models.Model):
         return self.instructors.filter(username=user.username).exists()
 
     def has_grader(self, user):
-        return self.instructors.filter(username=user.username).exists()
+        return self.graders.filter(username=user.username).exists()
 
     def has_student(self, user):
-        return self.instructors.filter(username=user.username).exists()
+        return self.students.filter(username=user.username).exists()
 
     def has_user(self, user):
         return self.has_student(user) or self.has_instructor(user) or self.has_grader(user) 
+    
+    def has_access(self, user):
+        return user.is_staff or user.is_superuser or self.has_user(user)
+    
+    def get_roles(self, user):
+        roles = set()
+        if self.has_instructor(user):
+            roles.add(CourseRoles.INSTRUCTOR)
+        if self.has_grader(user):
+            roles.add(CourseRoles.GRADER)
+        if self.has_student(user):
+            roles.add(CourseRoles.STUDENT)
+        if user.is_staff or user.is_superuser:
+            roles.add(CourseRoles.ADMIN)
+        return roles
     
     # OPTIONS
     GIT_USERNAME_USER = 'user-id'

@@ -12,7 +12,19 @@ class Course(models.Model):
     students = models.ManyToManyField(User, through='Student', related_name="student_in")
     
     def __unicode__(self):
-        return u"%s: %s" % (self.shortname, self.name)    
+        return u"%s: %s" % (self.shortname, self.name)
+    
+    def has_instructor(self, user):
+        return self.instructors.filter(username=user.username).exists()
+
+    def has_grader(self, user):
+        return self.instructors.filter(username=user.username).exists()
+
+    def has_student(self, user):
+        return self.instructors.filter(username=user.username).exists()
+
+    def has_user(self, user):
+        return self.has_student(user) or self.has_instructor(user) or self.has_grader(user) 
     
     # OPTIONS
     GIT_USERNAME_USER = 'user-id'

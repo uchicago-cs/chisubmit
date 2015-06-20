@@ -2,9 +2,11 @@ from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from chisubmit.backend.api.models import Course, Student, Instructor, Grader
+from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
+    Assignment, Team
 from chisubmit.backend.api.serializers import CourseSerializer,\
-    StudentSerializer, InstructorSerializer, GraderSerializer
+    StudentSerializer, InstructorSerializer, GraderSerializer,\
+    AssignmentSerializer, TeamSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 
@@ -166,4 +168,87 @@ class StudentDetail(PersonDetail):
     person_str = "student"    
     
     
+class AssignmentList(CourseQualifiedAPIView):
+    def get(self, request, course, format=None):
+        assignments = Assignment.objects.filter(course = course.pk)
+        serializer = AssignmentSerializer(assignments, many=True, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def post(self, request, course, format=None):
+        serializer = AssignmentSerializer(data=request.data, context={'request': request, 'course': course})
+        if serializer.is_valid():
+            serializer.save(course=course)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    
+class AssignmentDetail(CourseQualifiedAPIView):
+            
+    def get_assignment(self, course, assignment):
+        try:
+            assignment = Assignment.objects.get(course = course, shortname = assignment)
+            return assignment
+        except Assignment.DoesNotExist:
+            raise Http404  
+
+    def get(self, request, course, assignment, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        serializer = AssignmentSerializer(assignment_obj, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def patch(self, request, course, assignment, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        serializer = AssignmentSerializer(assignment_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
+        serializer.filter_initial_data(course, request.user)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, course, assignment, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        assignment_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)    
+    
+    
+class TeamList(CourseQualifiedAPIView):
+    def get(self, request, course, format=None):
+        teams = Team.objects.filter(course = course.pk)
+        serializer = TeamSerializer(teams, many=True, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def post(self, request, course, format=None):
+        serializer = TeamSerializer(data=request.data, context={'request': request, 'course': course})
+        if serializer.is_valid():
+            serializer.save(course=course)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)        
+    
+    
+class TeamDetail(CourseQualifiedAPIView):
+            
+    def get_team(self, course, team):
+        try:
+            team_obj = Assignment.objects.get(course = course, name = team)
+            return team_obj
+        except Assignment.DoesNotExist:
+            raise Http404  
+
+    def get(self, request, course, team, format=None):
+        team_obj = self.get_team(course, team)
+        serializer = TeamSerializer(team_obj, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def patch(self, request, course, team, format=None):
+        team_obj = self.get_team(course, team)
+        serializer = TeamSerializer(team_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
+        serializer.filter_initial_data(course, request.user)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, course, team, format=None):
+        team_obj = self.get_team(course, team)
+        team_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)        
     

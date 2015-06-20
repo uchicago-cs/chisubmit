@@ -1,18 +1,20 @@
 from rest_framework import serializers
 from chisubmit.backend.api.models import Course, GradersAndStudents, AllExceptAdmin,\
-    Students, Student, Instructor, Grader
+    Students, Student, Instructor, Grader, Team, Assignment
 from django.contrib.auth.models import User
 from rest_framework.reverse import reverse
 
 class FieldPermissionsMixin(object):
     def get_filtered_data(self, course, user):
-        roles = course.get_roles(user)
-        data = self.data
-        fields = data.keys()
-        for f in fields:
-            if f in self.hidden_fields:
-                if roles.issubset(self.hidden_fields[f]):
-                    data.pop(f)
+        data = self.data[:]
+
+        if hasattr(self, "hidden_fields"):
+            roles = course.get_roles(user)
+            fields = data.keys()
+            for f in fields:
+                if f in self.hidden_fields:
+                    if roles.issubset(self.hidden_fields[f]):
+                        data.pop(f)
         
         return data
         
@@ -20,10 +22,10 @@ class FieldPermissionsMixin(object):
         roles = course.get_roles(user)
         fields = self.initial_data.keys()
         for f in fields:
-            if f in self.hidden_fields:
+            if hasattr(self, "hidden_fields") and f in self.hidden_fields:
                 if roles.issubset(self.hidden_fields[f]):
                     self.initial_data.pop(f)
-            elif f in self.readonly_fields:
+            elif hasattr(self, "readonly_fields") and  f in self.readonly_fields:
                 if roles.issubset(self.readonly_fields[f]):
                     self.initial_data.pop(f)                
                 
@@ -40,9 +42,13 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
     shortname = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     
+    url = serializers.SerializerMethodField()    
     instructors_url = serializers.SerializerMethodField()
     graders_url = serializers.SerializerMethodField()
     students_url = serializers.SerializerMethodField()
+    assignments_url = serializers.SerializerMethodField()
+    teams_url = serializers.SerializerMethodField()
+    
     
     git_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
     git_staging_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
@@ -63,6 +69,9 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
                         "default_extensions": AllExceptAdmin
                       }
 
+    def get_url(self, obj):
+        return reverse('course-detail', args=[obj.shortname], request=self.context["request"])
+
     def get_instructors_url(self, obj):
         return reverse('instructor-list', args=[obj.shortname], request=self.context["request"])    
 
@@ -71,6 +80,12 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     def get_students_url(self, obj):
         return reverse('student-list', args=[obj.shortname], request=self.context["request"])    
+    
+    def get_assignments_url(self, obj):
+        return reverse('assignment-list', args=[obj.shortname], request=self.context["request"])      
+
+    def get_teams_url(self, obj):
+        return reverse('team-list', args=[obj.shortname], request=self.context["request"])      
     
     def create(self, validated_data):
         return Course.objects.create(**validated_data)
@@ -175,3 +190,65 @@ class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.dropped = validated_data.get('dropped', instance.dropped)
         instance.save()
         return instance    
+    
+    
+    
+class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
+    shortname = serializers.SlugField()
+    name = serializers.CharField(max_length=64)
+    deadline = serializers.DateTimeField()
+    
+    url = serializers.SerializerMethodField()   
+    
+    min_students = serializers.IntegerField(default=1, min_value=1)
+    max_students = serializers.IntegerField(default=1, min_value=1)
+    
+    readonly_fields = { "shortname": GradersAndStudents,
+                        "name": GradersAndStudents,
+                        "deadline": GradersAndStudents,
+                        "min_students": GradersAndStudents,
+                        "max_students": GradersAndStudents
+                      }       
+    
+    def get_url(self, obj):
+        return reverse('assignment-detail', args=[self.context["course"].shortname, obj.shortname], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return Assignment.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.shortname = validated_data.get('shortname', instance.shortname)
+        instance.name = validated_data.get('name', instance.name)
+        instance.deadline = validated_data.get('deadline', instance.deadline)
+        instance.min_students = validated_data.get('min_students', instance.min_students)
+        instance.max_students = validated_data.get('max_students', instance.max_students)
+        instance.save()
+        return instance    
+    
+    
+class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
+    name = serializers.SlugField()
+    extensions = serializers.IntegerField(default=1, min_value=1)
+    active = serializers.BooleanField()
+        
+    url = serializers.SerializerMethodField()   
+
+    hidden_fields = { "active": Students }       
+        
+    readonly_fields = { "name": GradersAndStudents,
+                        "extensions": GradersAndStudents
+                      }       
+    
+    def get_url(self, obj):
+        return reverse('team-detail', args=[self.context["course"].shortname, obj.name], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return Team.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.extensions = validated_data.get('extensions', instance.extensions)
+        instance.active = validated_data.get('active', instance.min_students)
+        instance.save()
+        return instance         
+    

@@ -140,7 +140,7 @@ class RubricComponent(models.Model):
         
 class Team(models.Model):
     course = models.ForeignKey(Course)
-    name = models.CharField(max_length=128)
+    name = models.SlugField(max_length=128)
     extensions = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     active = models.BooleanField(default = True)
     

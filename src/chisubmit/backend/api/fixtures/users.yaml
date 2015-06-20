@@ -178,5 +178,25 @@
     fields:
         created: "2015-06-19 00:18:40.984059+00:00"
         user: 304        
+-   model: auth.user
+    pk: 305
+    fields:
+        date_joined: "2015-06-18 20:06:21.821543+00:00"
+        email: ''
+        first_name: 'Student 5'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: ''
+        password: pbkdf2_sha256$20000$mdTnv7q72sC9$ccKpVZrYQHXxLmgPAPx49cv0xVE0DVjf86hnodO03zg=
+        user_permissions: []
+        username: student5
+-   model: authtoken.token
+    pk: student4token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 305        
         
     

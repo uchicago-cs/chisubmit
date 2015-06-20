@@ -11,6 +11,7 @@ class CourseRoles(Enum):
 
 GradersAndStudents = set([CourseRoles.GRADER, CourseRoles.STUDENT])
 AllExceptAdmin = set([CourseRoles.INSTRUCTOR, CourseRoles.GRADER, CourseRoles.STUDENT])
+Students = set([CourseRoles.STUDENT])
 
 class Course(models.Model):
     shortname = models.SlugField(unique = True)
@@ -78,7 +79,7 @@ class Instructor(models.Model):
     git_staging_username = models.CharField(max_length=64)
 
     def __unicode__(self):
-        return u"Instructor %s of %s" % (self.user.id, self.course.shortname) 
+        return u"Instructor %s of %s" % (self.user.username, self.course.shortname) 
 
     class Meta:
         unique_together = ("user", "course")
@@ -93,7 +94,7 @@ class Grader(models.Model):
     conflicts = models.ManyToManyField("Student", blank=True)
     
     def __unicode__(self):
-        return u"Grader %s of %s" % (self.user.id, self.course.shortname)     
+        return u"Grader %s of %s" % (self.user.username, self.course.shortname)     
     
     class Meta:
         unique_together = ("user", "course")    
@@ -108,7 +109,7 @@ class Student(models.Model):
     dropped = models.BooleanField(default = False)
     
     def __unicode__(self):
-        return u"Student %s of %s" % (self.user.id, self.course.shortname)     
+        return u"Student %s of %s" % (self.user.username, self.course.shortname)     
     
     class Meta:
         unique_together = ("user", "course")    

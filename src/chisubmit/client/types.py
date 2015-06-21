@@ -77,6 +77,7 @@ class ChisubmitAPIObject(object):
         self._requester = requester
         self._headers = headers
         self._rawData = attributes
+        self._attrtypes = self.__getattrtypes()
         self._updateAttributes(attributes)
 
     @property
@@ -107,7 +108,7 @@ class ChisubmitAPIObject(object):
     def __getattrtype(self, attrname):
         attr = self.__class__.__dict__.get(attrname)
         if not isinstance(attr, Attribute):
-            raise ValueError("%s does not have a attribute '%s'" % (self.__class__.__name__, attrname))
+            return None
         else:
             return attr
         
@@ -120,9 +121,10 @@ class ChisubmitAPIObject(object):
         for attrname, attrvalue in attributes.items():
             attrtype = self.__getattrtype(attrname)
             
-            attrtype.validate(attrvalue)
-            
-            setattr(self, attrname, attrvalue)
+            if attrtype is not None:
+                attrtype.validate(attrvalue)
+                
+                setattr(self, attrname, attrvalue)
                 
         
 

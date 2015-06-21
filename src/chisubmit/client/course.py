@@ -31,7 +31,7 @@ from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType
 
 class Course(ChisubmitAPIObject):
     
-    id = Attribute(name="id", 
+    shortname = Attribute(name="shortname", 
                    attrtype=AttributeType.STRING, 
                    patchable=False)
     
@@ -39,10 +39,6 @@ class Course(ChisubmitAPIObject):
                      attrtype=AttributeType.STRING, 
                      patchable=True)
     
-    options = Attribute(name="options", 
-                        attrtype=AttributeType.DICT,
-                        items_type=AttributeType.STRING,  
-                        patchable=True)
 
 
 

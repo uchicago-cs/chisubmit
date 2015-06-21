@@ -53,77 +53,47 @@ class BadRequestError(HTTPError):
 
 class Requester(object):
     
-    def __init__(self, api_token, base_url, testing_app = None):
+    def __init__(self, api_token, base_url):
         
         self.__base_url = base_url
-        self.__testing = testing_app is not None
         
         self.__headers = {}
         self.__headers['content-type'] = 'application/json'
         if api_token is not None:
-            self.__headers["CHISUBMIT-API-KEY"] = api_token
-            
-        if self.__testing:
-            self.__test_client = testing_app.test_client()
-        else:
-            self.__session = Session()
-            
-    def __werkzeug_request(self, method, url, data, headers, params):
-        response = self.__test_client.open(path = url,
-                                           method = method,
-                                           query_string=params,
-                                           data=data,
-                                           headers=headers)
+            self.__headers["Authorization"] = "Token %s" % api_token
         
-        return response.status_code, response.status, response.headers, response.get_data()
-
-        
-
-    def __requests_request(self, method, url, data, headers, params):
-        response = self.__session.request(url = url,
-                                          method = method,
-                                          params = params,
-                                          data = data,
-                                          headers = headers)
-        
-        return response.status_code, response.reason, response.headers, response.text
+        self.__session = Session()
 
     def request(self, method, resource, data=None, headers=None, params=None):
         url = self.__base_url + resource
-        print url
+
         all_headers = {}
         all_headers.update(self.__headers)
         if headers is not None:
             all_headers.update(headers)
+        print all_headers
+        # TODO: try..except
+        response = self.__session.request(url = url,
+                                  method = method,
+                                  params = params,
+                                  data = data,
+                                  headers = all_headers)
         
-        if self.__testing:
-            status_code, status, headers, data = self.__werkzeug_request(method, url, data, all_headers, params)
-        else:
-            status_code, status, headers, data = self.__requests_request(method, url, data, all_headers, params)
+        data = response.json()
         
-        try:
-            print status_code
-            print status
-            print data
-            data_json = json.loads(data)
-        except ValueError, ve:
-            if status_code == 400:
-                raise BadRequestError(errors=[("unknown", "Unexpected error message: %s" % data)])
-            else:
-                raise ve        
-        
-        if status_code == 400:
+        if response.status_code == 400:
             error_result = []
-            for noun, problem in data_json.get('errors', {}).items():
+            for noun, problem in data.get('errors', {}).items():
                 error_result.append((noun, problem))
             raise BadRequestError(method = method,
                                   url = url,
                                   errors = error_result)        
-        elif 400 < status_code < 500:
-            http_error_msg = '%s Client Error: %s' % (status_code, status)
+        elif 400 < response.status_code < 500:
+            http_error_msg = '%s Client Error: %s' % (response.status_code, response.reason)
+            print http_error_msg
             raise #TODO
-        elif 500 <= status_code < 600:
-            http_error_msg = '%s Server Error: %s' % (status_code, status)
+        elif 500 <= response.status_code < 600:
+            http_error_msg = '%s Server Error: %s' % (response.status_code, response.reason)
             raise #TODO
 
-        return headers, data_json
+        return headers, data

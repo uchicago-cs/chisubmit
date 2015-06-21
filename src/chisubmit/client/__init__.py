@@ -32,8 +32,8 @@ from chisubmit.client.requester import Requester
 
 class Chisubmit(object):
     
-    def __init__(self, api_token, base_url, testing_app = None):
-        self.__requester = Requester(api_token, base_url, testing_app)
+    def __init__(self, api_token, base_url):
+        self.__requester = Requester(api_token, base_url)
     
     def get_course(self, course_id):
         """

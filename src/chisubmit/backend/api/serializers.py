@@ -6,7 +6,7 @@ from rest_framework.reverse import reverse
 
 class FieldPermissionsMixin(object):
     def get_filtered_data(self, course, user):
-        data = self.data[:]
+        data = dict(self.data)
 
         if hasattr(self, "hidden_fields"):
             roles = course.get_roles(user)

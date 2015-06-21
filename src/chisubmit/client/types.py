@@ -27,6 +27,13 @@ class AttributeType(Enum):
     LIST = 5,
     DICT = 6
 
+class AttributeException(Exception):
+    
+    def __init__(self, name, value, msg = None):
+        self.name = name
+        self.value = value
+        self.msg = msg
+
 class AttributeValidationException(Exception):
     
     def __init__(self, name, value, expected_type):
@@ -72,7 +79,7 @@ class Attribute(object):
 
 
 class ChisubmitAPIObject(object):
-    
+        
     def __init__(self, requester, headers, attributes):
         self._requester = requester
         self._headers = headers
@@ -93,10 +100,6 @@ class ChisubmitAPIObject(object):
         :type: dict
         """
         return self._headers
-
-    @staticmethod
-    def _parentUrl(url):
-        return "/".join(url.split("/")[: -1])
 
     def __getattrtypes(self):
         attrtypes = {}
@@ -130,11 +133,18 @@ class ChisubmitAPIObject(object):
 
     def edit(self, **kwargs):
         
-        request_parameters = {}
-
+        patch_data = {}
+        
+        for attrname, attrvalue in kwargs.items():
+            if attrname not in self._attrtypes:
+                raise AttributeException(attrname, attrvalue, msg = "No such attribute")
+            attrtype = self._attrtypes[attrname]
+            attrtype.validate(attrvalue)
+            patch_data[attrname] = attrvalue
+            
         headers, data = self._requester.request(
             "PATCH",
             self.url,
-            input=request_parameters
+            data=patch_data
         )
         self._updateAttributes(data)

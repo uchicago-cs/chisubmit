@@ -31,16 +31,33 @@ from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType
 
 class Course(ChisubmitAPIObject):
     
+    url = Attribute(name="url", 
+                    attrtype=AttributeType.STRING, 
+                   patchable=False)    
+    
     shortname = Attribute(name="shortname", 
                    attrtype=AttributeType.STRING, 
-                   patchable=False)
+                   patchable=True)
     
     name = Attribute(name="name", 
                      attrtype=AttributeType.STRING, 
                      patchable=True)
     
+    git_usernames = Attribute(name="git_usernames", 
+                              attrtype=AttributeType.STRING, 
+                              patchable=True)
+    
+    git_staging_usernames = Attribute(name="git_staging_usernames", 
+                                      attrtype=AttributeType.STRING, 
+                                      patchable=True)
 
+    extension_policy = Attribute(name="extension_policy", 
+                                 attrtype=AttributeType.STRING, 
+                                 patchable=True)
 
+    default_extensions = Attribute(name="default_extensions", 
+                                   attrtype=AttributeType.INTEGER, 
+                                   patchable=True)
 
 
 

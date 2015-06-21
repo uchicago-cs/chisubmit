@@ -65,13 +65,20 @@ class Requester(object):
         self.__session = Session()
 
     def request(self, method, resource, data=None, headers=None, params=None):
-        url = self.__base_url + resource
+        if resource.startswith("/"):
+            url = self.__base_url + resource
+        else:
+            # TODO: Validate the URL is valid given base_url
+            url = resource
 
         all_headers = {}
         all_headers.update(self.__headers)
         if headers is not None:
             all_headers.update(headers)
-        print all_headers
+
+        if data is not None:
+            data = json.dumps(data)
+            
         # TODO: try..except
         response = self.__session.request(url = url,
                                   method = method,
@@ -90,7 +97,6 @@ class Requester(object):
                                   errors = error_result)        
         elif 400 < response.status_code < 500:
             http_error_msg = '%s Client Error: %s' % (response.status_code, response.reason)
-            print http_error_msg
             raise #TODO
         elif 500 <= response.status_code < 600:
             http_error_msg = '%s Server Error: %s' % (response.status_code, response.reason)

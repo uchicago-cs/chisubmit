@@ -59,9 +59,7 @@ setup(name='chisubmit',
                            "click >= 3.3", "requests >= 2.5.1", "enum >= 1.0.4",
                            "colorama >= 0.3.2", "docutils >= 0.12" ],
       extras_require = {
-                         "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
-                                     "flask-restless >= 0.15", "Flask-Script >= 2.0.5", 
-                                     "python-ldap >= 2.4.18", "WTForms-JSON >= 0.2.8"] 
+                         "server" : ["djangorestframework >= 3.1.3", "python-ldap >= 2.4.18"] 
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,

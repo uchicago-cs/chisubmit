@@ -1,4 +1,6 @@
-from enum import Enum
+import dateutil.parser
+import datetime
+import pytz
 
 class ChisubmitAPIException(Exception):
 
@@ -18,64 +20,111 @@ class ChisubmitAPIException(Exception):
     def __str__(self):
         return str(self.status) + " " + str(self.data)
 
+class AttributeTypeException(Exception):
+    
+    def __init__(self, value, expected_type):
+        self.value = value
+        self.expected_type = expected_type
 
-class AttributeType(Enum):
-    STRING = 1,
-    INTEGER = 2,
-    BOOLEAN = 3,
-    OBJECT = 4,
-    LIST = 5,
-    DICT = 6
 
 class AttributeException(Exception):
     
-    def __init__(self, name, value, msg = None):
+    def __init__(self, name, value):
         self.name = name
         self.value = value
-        self.msg = msg
 
-class AttributeValidationException(Exception):
+class NoSuchAttributeException(AttributeException):
+    pass
+
+class AttributeValidationException(AttributeException):
     
     def __init__(self, name, value, expected_type):
-        self.name = name
-        self.value = value
+        AttributeException.__init__(self, name, value)
         self.expected_type = expected_type
+
+
+class AttributeType(object):
+    STRING = 1,
+    INTEGER = 2,
+    DATETIME = 3,
+    BOOLEAN = 4,
+    OBJECT = 5,
+    LIST = 6
+        
+    primitive_types = [STRING, INTEGER, DATETIME, BOOLEAN]
+    composite_types = [OBJECT, LIST]
+    
+    def __init__(self, attrtype, subtype = None):
+        assert((attrtype in self.primitive_types and subtype is None) or 
+               (attrtype in self.composite_types and subtype is not None))
+        
+        assert(subtype is None or 
+               (attrtype == self.LIST and isinstance(subtype, AttributeType)) or
+               (attrtype == self.OBJECT and issubclass(subtype, ChisubmitAPIObject)))
+               
+        self.attrtype = attrtype
+        self.subtype = subtype
+        
+    def check(self, value, requester = None, headers = None):
+        if self.attrtype == AttributeType.STRING:
+            if not isinstance(value, basestring):
+                raise AttributeTypeException(value, self)
+            return value
+        elif self.attrtype == AttributeType.INTEGER:
+            if not isinstance(value, (int, long)):
+                raise AttributeTypeException(value, self)
+            return value
+        elif self.attrtype == AttributeType.BOOLEAN:
+            if not isinstance(value, bool):
+                raise AttributeTypeException(value, self)
+            return value
+        elif self.attrtype == AttributeType.DATETIME:
+            if not isinstance(value, basestring):
+                raise AttributeTypeException(value, self)
+            try:
+                if value[19] == ".":
+                    dt = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+                else:
+                    dt = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+                dt = pytz.utc.localize(dt)
+            except ValueError, ve:
+                raise AttributeTypeException(value, self)
+                
+            return dt        
+        elif self.attrtype == AttributeType.LIST:
+            if not isinstance(value, (list, tuple)):
+                raise AttributeTypeException(value, self)
+            rvalue = []
+            for item in value:
+                checked_item = self.subtype.check(item, requester, headers)
+                rvalue.append(checked_item)
+            return rvalue
+        elif self.attrtype == AttributeType.OBJECT:
+            if not isinstance(value, dict):
+                raise AttributeTypeException(value, self)
+            rvalue = self.subtype(requester, headers, value)
+            return rvalue
+                
+        raise AttributeTypeException(value, self)
+
+APIStringType = AttributeType(AttributeType.STRING)
+APIIntegerType = AttributeType(AttributeType.INTEGER)
+APIDateTimeType = AttributeType(AttributeType.DATETIME)
+APIBooleanType = AttributeType(AttributeType.BOOLEAN)
+
+def APIListType(subtype):
+    return AttributeType(AttributeType.LIST, subtype)
+
+def APIObjectType(subtype):
+    return AttributeType(AttributeType.OBJECT, subtype)
         
 
 class Attribute(object):
     
-    def __init__(self, name, attrtype, patchable, items_type = None):
-        if attrtype in (AttributeType.LIST, AttributeType.DICT):
-            assert isinstance(items_type, AttributeType)
-        else:
-            assert items_type is None
-        
+    def __init__(self, name, attrtype, patchable):        
         self.name = name
         self.type = attrtype
         self.patchable = patchable
-        self.items_type = items_type
-        
-    @staticmethod
-    def __validate(value, expected_type, items_type = None):
-        valid = False
-        if expected_type == AttributeType.STRING:
-            valid = isinstance(value, basestring)
-        elif expected_type == AttributeType.INTEGER:
-            valid = isinstance(value, (int, long))
-        elif expected_type == AttributeType.DICT:
-            valid = isinstance(value, dict)
-            valid &= all(isinstance(k, basestring) and Attribute.__validate(v, items_type) for k, v in value.iteritems())
-
-        return valid
-        
-        
-    def validate(self, value, raise_on_fail = True):
-        valid = Attribute.__validate(value, self.type, self.items_type)
-            
-        if not valid and raise_on_fail:
-            raise AttributeValidationException(self.name, value, self.type)
-        else:
-            return valid
 
 
 class ChisubmitAPIObject(object):
@@ -84,63 +133,42 @@ class ChisubmitAPIObject(object):
         self._requester = requester
         self._headers = headers
         self._rawData = attributes
-        self._attrtypes = self.__getattrtypes()
+        self._initAttributes()
         self._updateAttributes(attributes)
 
-    @property
-    def raw_data(self):
-        """
-        :type: dict
-        """
-        return self._rawData
+    def __has_api_attr(self, attrname):
+        return self._api_attributes.has_key(attrname)
 
-    @property
-    def raw_headers(self):
-        """
-        :type: dict
-        """
-        return self._headers
-
-    def __getattrtypes(self):
-        attrtypes = {}
-        for attrname, attrvalue in self.__class__.__dict__.items():
-            if isinstance(attrvalue, Attribute):
-                attrtypes[attrname] = attrvalue
-        return attrtypes
-
-    def __getattrtype(self, attrname):
-        attr = self.__class__.__dict__.get(attrname)
-        if not isinstance(attr, Attribute):
-            return None
-        else:
-            return attr
+    def __get_api_attr(self, attrname):
+        return self._api_attributes.get(attrname)
         
     def _initAttributes(self):
-        for attr in self.__getattrtypes.values():
-            setattr(self, attr.name, None)
+        for api_attr in self._api_attributes.keys():
+            setattr(self, api_attr, None)
 
     def _updateAttributes(self, attributes):
         
         for attrname, attrvalue in attributes.items():
-            attrtype = self.__getattrtype(attrname)
+            api_attr = self.__get_api_attr(attrname)
             
-            if attrtype is not None:
-                attrtype.validate(attrvalue)
-                
-                setattr(self, attrname, attrvalue)
-                
-        
+            if api_attr is None:
+                raise NoSuchAttributeException(attrname, attrvalue)
+            else:
+                checked_value = api_attr.type.check(attrvalue, self._requester, self._headers)
+                setattr(self, attrname, checked_value)       
 
     def edit(self, **kwargs):
         
         patch_data = {}
         
         for attrname, attrvalue in kwargs.items():
-            if attrname not in self._attrtypes:
-                raise AttributeException(attrname, attrvalue, msg = "No such attribute")
-            attrtype = self._attrtypes[attrname]
-            attrtype.validate(attrvalue)
-            patch_data[attrname] = attrvalue
+            api_attr = self.__get_api_attr(attrname)
+            
+            if api_attr is None:
+                raise NoSuchAttributeException(attrname, attrvalue)
+            else:
+                checked_value = api_attr.type.check(attrvalue)
+                patch_data[attrname] = attrvalue
             
         headers, data = self._requester.request(
             "PATCH",

@@ -33,6 +33,8 @@ from pprint import pprint
 import json
 import sys
 from requests.exceptions import HTTPError
+from chisubmit.client.exceptions import UnknownObjectException,\
+    ChisubmitRequestException
 
 class BadRequestError(HTTPError):
     
@@ -86,7 +88,10 @@ class Requester(object):
                                   data = data,
                                   headers = all_headers)
         
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError, ve:
+            data = {"data": response.text}
         
         if response.status_code == 400:
             error_result = []
@@ -96,10 +101,11 @@ class Requester(object):
                                   url = url,
                                   errors = error_result)        
         elif 400 < response.status_code < 500:
-            http_error_msg = '%s Client Error: %s' % (response.status_code, response.reason)
-            raise #TODO
+            if response.status_code == 404:
+                raise UnknownObjectException(response.status_code, response.reason, data)
+            else:
+                raise ChisubmitRequestException(response.status_code, response.reason, data)
         elif 500 <= response.status_code < 600:
-            http_error_msg = '%s Server Error: %s' % (response.status_code, response.reason)
-            raise #TODO
+            raise ChisubmitRequestException(response.status_code, response.reason, data)
 
         return headers, data

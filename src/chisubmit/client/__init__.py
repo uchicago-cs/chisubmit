@@ -33,7 +33,7 @@ from chisubmit.client.requester import Requester
 class Chisubmit(object):
     
     def __init__(self, api_token, base_url):
-        self.__requester = Requester(api_token, base_url)
+        self._requester = Requester(api_token, base_url)
     
     def get_courses(self):
         """
@@ -41,11 +41,11 @@ class Chisubmit(object):
         :rtype: List of :class:`chisubmit.client.course.Course`
         """
         
-        headers, data = self.__requester.request(
+        headers, data = self._requester.request(
             "GET",
             "/courses/"
         )
-        return [chisubmit.client.course.Course(self.__requester, headers, elem) for elem in data]    
+        return [chisubmit.client.course.Course(self._requester, headers, elem) for elem in data]    
     
     def get_course(self, course_id):
         """
@@ -55,11 +55,11 @@ class Chisubmit(object):
         """
         assert isinstance(course_id, (str, unicode)), course_id
         
-        headers, data = self.__requester.request(
+        headers, data = self._requester.request(
             "GET",
             "/courses/" + course_id
         )
-        return chisubmit.client.course.Course(self.__requester, headers, data)
+        return chisubmit.client.course.Course(self._requester, headers, data)
     
     def create_course(self, course_id, name, git_usernames = None, git_staging_usernames = None, 
                       extension_policy = None, default_extensions = None):
@@ -87,9 +87,9 @@ class Chisubmit(object):
         if default_extensions is not None:
             post_data["default_extensions"] = default_extensions
         
-        headers, data = self.__requester.request(
+        headers, data = self._requester.request(
             "POST",
             "/courses/",
             data = post_data
         )
-        return chisubmit.client.course.Course(self.__requester, headers, data)
+        return chisubmit.client.course.Course(self._requester, headers, data)

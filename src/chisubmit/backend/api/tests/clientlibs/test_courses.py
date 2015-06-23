@@ -1,15 +1,11 @@
-from chisubmit import client
-from rest_framework.test import APILiveServerTestCase
 from chisubmit.backend.api.models import Course
+from chisubmit.backend.api.tests.clientlibs import ChisubmitClientLibsTests,\
+    COURSE1_USERS, COURSE2_USERS
+from chisubmit.client.exceptions import UnknownObjectException
 
-class CourseTests(APILiveServerTestCase):
+class CourseTests(ChisubmitClientLibsTests):
     
     fixtures = ['users', 'complete_course1']
-    
-    def get_api_client(self, api_token):
-        base_url = self.live_server_url + "/api/v1"
-        
-        return client.Chisubmit(api_token=api_token, base_url=base_url)    
     
     def test_get_courses(self):
         c = self.get_api_client("admintoken")
@@ -58,4 +54,46 @@ class CourseTests(APILiveServerTestCase):
             
         self.assertEquals(course_obj.name, "Intro to Software Testing")                    
         self.assertEquals(course_obj.default_extensions, 10)                  
+                 
+class CoursePermissionsTests(ChisubmitClientLibsTests):
+    
+    fixtures = ['users', 'complete_course1', 'complete_course2']
+    
+    def test_get_courses_admin(self):
+        c = self.get_api_client("admintoken")
+        
+        courses = c.get_courses()
+        self.assertEquals(len(courses), 2)
+        
+    def test_get_courses_course1(self):
+        for user in COURSE1_USERS:
+            c = self.get_api_client(user + "token")
+            
+            courses = c.get_courses()
+            self.assertEquals(len(courses), 1)
+            self.assertEquals(courses[0].name, "Introduction to Software Testing")
+        
+    def test_get_courses_course2(self):
+        for user in COURSE2_USERS:
+            c = self.get_api_client(user + "token")
+            
+            courses = c.get_courses()
+            self.assertEquals(len(courses), 1)
+            self.assertEquals(courses[0].name, "Advanced Software Testing")
+        
+    def test_get_course_course1(self):
+        for user in COURSE1_USERS:
+            c = self.get_api_client(user + "token")
+            
+            with self.assertRaises(UnknownObjectException):
+                c.get_course("cmsc40110")    
+
+    def test_get_course_course2(self):
+        for user in COURSE2_USERS:
+            c = self.get_api_client(user + "token")
+            
+            with self.assertRaises(UnknownObjectException):
+                c.get_course("cmsc40100")  
+        
+              
                  

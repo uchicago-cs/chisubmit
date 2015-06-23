@@ -24,7 +24,6 @@ class CourseTests(APITestCase):
 
         url = reverse('course-detail', args=["cmsc40100"])
         response = self.client.get(url)
-        pprint(dict(response.data))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
     def test_patch_course_admin(self):

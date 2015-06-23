@@ -27,37 +27,132 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType
+import chisubmit.client.users
+import chisubmit.client.assignment
+from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
+    APIStringType, APIIntegerType
 
 class Course(ChisubmitAPIObject):
     
-    url = Attribute(name="url", 
-                    attrtype=AttributeType.STRING, 
-                   patchable=False)    
+    _api_attributes = {"url": Attribute(name="url", 
+                                   attrtype=APIStringType, 
+                                   patchable=False),    
     
-    shortname = Attribute(name="shortname", 
-                   attrtype=AttributeType.STRING, 
-                   patchable=True)
+                       "shortname": Attribute(name="shortname", 
+                                       attrtype=APIStringType, 
+                                       patchable=True),    
+        
+                       "name": Attribute(name="name", 
+                                         attrtype=APIStringType, 
+                                         patchable=True),    
+        
+                       "git_usernames": Attribute(name="git_usernames", 
+                                                  attrtype=APIStringType, 
+                                                  patchable=True),    
+        
+                       "git_staging_usernames": Attribute(name="git_staging_usernames", 
+                                                          attrtype=APIStringType, 
+                                                          patchable=True),    
+        
+                       "extension_policy": Attribute(name="extension_policy", 
+                                                     attrtype=APIStringType, 
+                                                     patchable=True),    
+        
+                       "default_extensions": Attribute(name="default_extensions", 
+                                                       attrtype=APIIntegerType, 
+                                                       patchable=True),
+                       
+                       "instructors_url": Attribute(name="instructors_url", 
+                                                    attrtype=APIStringType, 
+                                                    patchable=False),
+                       
+                       "graders_url": Attribute(name="graders_url", 
+                                                    attrtype=APIStringType, 
+                                                    patchable=False),       
+                       
+                       "students_url": Attribute(name="students_url", 
+                                                    attrtype=APIStringType, 
+                                                    patchable=False),                                                                                
+
+                       "assignments_url": Attribute(name="assignments_url", 
+                                                    attrtype=APIStringType, 
+                                                    patchable=False),                                                                                
+                       
+                       "teams_url": Attribute(name="teams_url", 
+                                                    attrtype=APIStringType, 
+                                                    patchable=False),                                                                                
+                      }
+
+
+    def get_instructors(self):
+        """
+        :calls: GET /courses/:course/instructors/
+        :rtype: List of :class:`chisubmit.client.users.Instructor`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/courses/" + self.shortname + "/instructors/"
+        )
+        return [chisubmit.client.users.Instructor(self._requester, headers, elem) for elem in data]
     
-    name = Attribute(name="name", 
-                     attrtype=AttributeType.STRING, 
-                     patchable=True)
+    def get_graders(self):
+        """
+        :calls: GET /courses/:course/graders/
+        :rtype: List of :class:`chisubmit.client.users.Grader`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/courses/" + self.shortname + "/graders/"
+        )
+        return [chisubmit.client.users.Grader(self._requester, headers, elem) for elem in data]    
     
-    git_usernames = Attribute(name="git_usernames", 
-                              attrtype=AttributeType.STRING, 
-                              patchable=True)
+    def get_students(self):
+        """
+        :calls: GET /courses/:course/students/
+        :rtype: List of :class:`chisubmit.client.users.Student`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/courses/" + self.shortname + "/students/"
+        )
+        return [chisubmit.client.users.Student(self._requester, headers, elem) for elem in data]    
     
-    git_staging_usernames = Attribute(name="git_staging_usernames", 
-                                      attrtype=AttributeType.STRING, 
-                                      patchable=True)
-
-    extension_policy = Attribute(name="extension_policy", 
-                                 attrtype=AttributeType.STRING, 
-                                 patchable=True)
-
-    default_extensions = Attribute(name="default_extensions", 
-                                   attrtype=AttributeType.INTEGER, 
-                                   patchable=True)
-
-
-
+    def get_assignments(self):
+        """
+        :calls: GET /courses/:course/assignments/
+        :rtype: List of :class:`chisubmit.client.assignment.Assignment`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/courses/" + self.shortname + "/assignments/"
+        )
+        return [chisubmit.client.assignment.Assignment(self._requester, headers, elem) for elem in data]    
+    
+    def get_assignment(self, assignment_id):
+        """
+        :calls: GET /courses/:course/assignments/:assignment/
+        :rtype: List of :class:`chisubmit.client.assignment.Assignment`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/courses/" + self.shortname + "/assignments/" + assignment_id
+        )
+        return chisubmit.client.assignment.Assignment(self._requester, headers, data)       
+    
+    def get_teams(self):
+        """
+        :calls: GET /courses/:course/teams/
+        :rtype: List of :class:`chisubmit.client.team.Team`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/courses/" + self.shortname + "/teams/"
+        )
+        return [chisubmit.client.team.Team(self._requester, headers, elem) for elem in data]                    
+    

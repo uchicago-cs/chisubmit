@@ -13,10 +13,14 @@ from django.contrib.auth.models import User
 class CourseList(APIView):
     def get(self, request, format=None):
         courses = Course.objects.all()
+        if not (request.user.is_staff or request.user.is_superuser):
+            courses = [c for c in courses if c.has_user(request.user)]
         serializer = CourseSerializer(courses, many=True, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request, format=None):
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied
         serializer = CourseSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
@@ -48,7 +52,7 @@ class CourseQualifiedAPIView(APIView):
                 raise
             
             if not (request.user.is_staff or request.user.is_superuser or course.has_user(request.user)):
-                raise PermissionDenied
+                raise Http404
             
             self.initial(request, *args, **kwargs)
 
@@ -83,6 +87,9 @@ class CourseDetail(CourseQualifiedAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, course, format=None):
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied
+        
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
                 

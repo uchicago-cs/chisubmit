@@ -38,7 +38,6 @@ class UserSerializer(serializers.Serializer):
     
 
 class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
-    id = serializers.IntegerField(read_only=True)
     shortname = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     

@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
 #
@@ -28,75 +27,33 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.common.utils import convert_datetime_to_utc
-from dateutil import parser
-import json
-from chisubmit.client.types import ChisubmitAPIObject
-
-class GradeComponent(object):
-    
-    _api_attrs = ('id', 'description', 'points', 'assignment_id')
+from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
+    APIIntegerType, APIDateTimeType
 
 
 class Assignment(ChisubmitAPIObject):
 
-    _api_attrs = ('name', 'deadline', 'id', 'course_id')
-    _primary_key = 'id'    
-    _has_many = {'grade_components': 'grade_components'}
-
-    def __init__(self, *args, **kwargs):
-        if kwargs.has_key("deadline"):
-            if not hasattr(kwargs["deadline"], 'isoformat'):
-                kwargs["deadline"] = convert_datetime_to_utc(parser.parse(kwargs['deadline']))
-                
-        super(Assignment, self).__init__(*args, **kwargs)
-                
-    def register(self, team_name=None, partners = []):
-        url = self.url() + "/register"
-        data = {}
-        if team_name is not None:
-            data["team_name"] = team_name
-        data["partners"] = partners
-        data = json.dumps(data)
-        response = session.post(url, data=data)
-        return response
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       patchable=False),  
+                       
+                       "shortname": Attribute(name="shortname", 
+                                       attrtype=APIStringType, 
+                                       patchable=True),  
     
-    def submit(self, team_id, commit_sha, extensions, dry_run):
-        url = self.url() + "/submit"
-        data = {}
-        data["team_id"] = team_id
-        data["commit_sha"] = commit_sha
-        data["extensions"] = extensions
-        data["dry_run"] = dry_run
-        data = json.dumps(data)
-        response = session.post(url, data=data)
-        return response    
-
-    def cancel(self, team_id):
-        url = self.url() + "/cancel"
-        data = {}
-        data["team_id"] = team_id
-        data = json.dumps(data)
-        response = session.post(url, data=data)
-        return response    
-
-    def get_grade_component(self, grade_component_id):
-        gcs = [gc for gc in self.grade_components if gc.id == grade_component_id]
-        
-        if len(gcs) == 0:
-            return None
-        else:
-            return gcs[0]
-
-    def add_grade_component(self, gc):
-        attrs = {}
-        for attr in gc._api_attrs:
-            attrs[attr] = getattr(gc, attr, None)
-        data = json.dumps({'grade_components': {'add': [attrs]}})
-        session.put(self.url(), data=data)
-
-    def get_deadline(self):
-        return self.deadline
-
-    def get_grading_branch_name(self):
-        return self.id + "-grading"
+                       "name": Attribute(name="name", 
+                                            attrtype=APIStringType, 
+                                            patchable=True),  
+    
+                       "deadline": Attribute(name="deadline", 
+                                        attrtype=APIDateTimeType, 
+                                        patchable=True),  
+    
+                       "min_students": Attribute(name="min_students", 
+                                                attrtype=APIIntegerType, 
+                                                patchable=True),  
+     
+                       "max_students": Attribute(name="extensions", 
+                                               attrtype=APIIntegerType, 
+                                               patchable=True)
+                      }    

@@ -36,7 +36,7 @@ class CourseTests(ChisubmitClientLibsTests):
         self.assertEquals(course_obj.name, "Advanced Software Testing")                  
         
         
-    def test_edit_course(self):
+    def test_edit_course_1(self):
         c = self.get_api_client("admintoken")
         
         course = c.get_course("cmsc40100")
@@ -53,7 +53,56 @@ class CourseTests(ChisubmitClientLibsTests):
             self.fail("Course not found in database")  
             
         self.assertEquals(course_obj.name, "Intro to Software Testing")                    
-        self.assertEquals(course_obj.default_extensions, 10)                  
+        self.assertEquals(course_obj.default_extensions, 10)
+        
+    def test_edit_course_2(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        
+        course.name = "Intro to Software Testing"
+        course.default_extensions = 10
+
+        self.assertEquals(course.name, "Intro to Software Testing")                    
+        self.assertEquals(course.default_extensions, 10)
+                 
+        try:
+            course_obj = Course.objects.get(shortname="cmsc40100")
+        except Course.DoesNotExist:
+            self.fail("Course not found in database")  
+            
+        self.assertEquals(course_obj.name, "Intro to Software Testing")                    
+        self.assertEquals(course_obj.default_extensions, 10)            
+        
+    def test_edit_course_3(self):
+        c = self.get_api_client("admintoken", deferred_save = True)
+        
+        course = c.get_course("cmsc40100")
+        
+        course.name = "Intro to Software Testing"
+        course.default_extensions = 10
+
+        self.assertEquals(course.name, "Intro to Software Testing")                    
+        self.assertEquals(course.default_extensions, 10)
+                 
+        try:
+            course_obj = Course.objects.get(shortname="cmsc40100")
+        except Course.DoesNotExist:
+            self.fail("Course not found in database")  
+            
+        self.assertEquals(course_obj.name, "Introduction to Software Testing")                    
+        self.assertEquals(course_obj.default_extensions, 0)
+        
+        course.save()                   
+        
+        try:
+            course_obj = Course.objects.get(shortname="cmsc40100")
+        except Course.DoesNotExist:
+            self.fail("Course not found in database")  
+            
+        self.assertEquals(course.name, "Intro to Software Testing")                    
+        self.assertEquals(course.default_extensions, 10)
+        
                  
 class CoursePermissionsTests(ChisubmitClientLibsTests):
     

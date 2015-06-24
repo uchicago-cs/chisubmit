@@ -15,7 +15,7 @@ COURSE2_ASSIGNMENTS = ["hw1", "hw2"]
     
 class ChisubmitClientLibsTests(APILiveServerTestCase):
         
-    def get_api_client(self, api_token):
+    def get_api_client(self, api_token, deferred_save = False):
         base_url = self.live_server_url + "/api/v1"
         
-        return client.Chisubmit(api_token=api_token, base_url=base_url)  
+        return client.Chisubmit(api_token=api_token, base_url=base_url, deferred_save=deferred_save)  

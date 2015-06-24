@@ -36,51 +36,51 @@ class Course(ChisubmitAPIObject):
     
     _api_attributes = {"url": Attribute(name="url", 
                                    attrtype=APIStringType, 
-                                   patchable=False),    
+                                   editable=False),    
     
                        "shortname": Attribute(name="shortname", 
                                        attrtype=APIStringType, 
-                                       patchable=True),    
+                                       editable=True),    
         
                        "name": Attribute(name="name", 
                                          attrtype=APIStringType, 
-                                         patchable=True),    
+                                         editable=True),    
         
                        "git_usernames": Attribute(name="git_usernames", 
                                                   attrtype=APIStringType, 
-                                                  patchable=True),    
+                                                  editable=True),    
         
                        "git_staging_usernames": Attribute(name="git_staging_usernames", 
                                                           attrtype=APIStringType, 
-                                                          patchable=True),    
+                                                          editable=True),    
         
                        "extension_policy": Attribute(name="extension_policy", 
                                                      attrtype=APIStringType, 
-                                                     patchable=True),    
+                                                     editable=True),    
         
                        "default_extensions": Attribute(name="default_extensions", 
                                                        attrtype=APIIntegerType, 
-                                                       patchable=True),
+                                                       editable=True),
                        
                        "instructors_url": Attribute(name="instructors_url", 
                                                     attrtype=APIStringType, 
-                                                    patchable=False),
+                                                    editable=False),
                        
                        "graders_url": Attribute(name="graders_url", 
                                                     attrtype=APIStringType, 
-                                                    patchable=False),       
+                                                    editable=False),       
                        
                        "students_url": Attribute(name="students_url", 
                                                     attrtype=APIStringType, 
-                                                    patchable=False),                                                                                
+                                                    editable=False),                                                                                
 
                        "assignments_url": Attribute(name="assignments_url", 
                                                     attrtype=APIStringType, 
-                                                    patchable=False),                                                                                
+                                                    editable=False),                                                                                
                        
                        "teams_url": Attribute(name="teams_url", 
                                                     attrtype=APIStringType, 
-                                                    patchable=False),                                                                                
+                                                    editable=False),                                                                                
                       }
 
 
@@ -94,7 +94,7 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.shortname + "/instructors/"
         )
-        return [chisubmit.client.users.Instructor(self._requester, headers, elem) for elem in data]
+        return [chisubmit.client.users.Instructor(self._requester, headers, elem, self._deferred_save) for elem in data]
     
     def get_graders(self):
         """
@@ -106,7 +106,7 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.shortname + "/graders/"
         )
-        return [chisubmit.client.users.Grader(self._requester, headers, elem) for elem in data]    
+        return [chisubmit.client.users.Grader(self._requester, headers, elem, self._deferred_save) for elem in data]    
     
     def get_students(self):
         """
@@ -118,7 +118,7 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.shortname + "/students/"
         )
-        return [chisubmit.client.users.Student(self._requester, headers, elem) for elem in data]    
+        return [chisubmit.client.users.Student(self._requester, headers, elem, self._deferred_save) for elem in data]    
     
     def get_assignments(self):
         """
@@ -130,7 +130,7 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.shortname + "/assignments/"
         )
-        return [chisubmit.client.assignment.Assignment(self._requester, headers, elem) for elem in data]    
+        return [chisubmit.client.assignment.Assignment(self._requester, headers, elem, self._deferred_save) for elem in data]    
     
     def get_assignment(self, assignment_id):
         """
@@ -142,7 +142,7 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.shortname + "/assignments/" + assignment_id
         )
-        return chisubmit.client.assignment.Assignment(self._requester, headers, data)       
+        return chisubmit.client.assignment.Assignment(self._requester, headers, data, self._deferred_save)       
     
     def get_teams(self):
         """
@@ -154,5 +154,5 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.shortname + "/teams/"
         )
-        return [chisubmit.client.team.Team(self._requester, headers, elem) for elem in data]                    
+        return [chisubmit.client.team.Team(self._requester, headers, elem, self._deferred_save) for elem in data]                    
     

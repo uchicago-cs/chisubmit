@@ -1,4 +1,3 @@
-import dateutil.parser
 import datetime
 import pytz
 
@@ -36,6 +35,9 @@ class AttributeException(Exception):
 class NoSuchAttributeException(AttributeException):
     pass
 
+class AttributeNotEditableException(AttributeException):
+    pass
+
 class AttributeValidationException(AttributeException):
     
     def __init__(self, name, value, expected_type):
@@ -65,7 +67,7 @@ class AttributeType(object):
         self.attrtype = attrtype
         self.subtype = subtype
         
-    def check(self, value, requester = None, headers = None):
+    def to_python(self, value, requester, headers, deferred_save):
         if self.attrtype == AttributeType.STRING:
             if not isinstance(value, basestring):
                 raise AttributeTypeException(value, self)
@@ -96,16 +98,20 @@ class AttributeType(object):
                 raise AttributeTypeException(value, self)
             rvalue = []
             for item in value:
-                checked_item = self.subtype.check(item, requester, headers)
+                checked_item = self.subtype.check(item, requester, headers, deferred_save)
                 rvalue.append(checked_item)
             return rvalue
         elif self.attrtype == AttributeType.OBJECT:
             if not isinstance(value, dict):
                 raise AttributeTypeException(value, self)
-            rvalue = self.subtype(requester, headers, value)
+            rvalue = self.subtype(requester, headers, value, deferred_save)
             return rvalue
                 
         raise AttributeTypeException(value, self)
+    
+    def to_json(self, value):
+        # TODO
+        pass
 
 APIStringType = AttributeType(AttributeType.STRING)
 APIIntegerType = AttributeType(AttributeType.INTEGER)
@@ -121,18 +127,29 @@ def APIObjectType(subtype):
 
 class Attribute(object):
     
-    def __init__(self, name, attrtype, patchable):        
+    def __init__(self, name, attrtype, editable):        
         self.name = name
         self.type = attrtype
-        self.patchable = patchable
+        self.editable = editable
+        
+    def to_python(self, value, requester, headers, deferred_save):
+        return self.type.to_python(value, requester, headers, deferred_save)
+    
+    def to_json(self, value):
+        return self.type.to_json(value)    
 
 
 class ChisubmitAPIObject(object):
         
-    def __init__(self, requester, headers, attributes):
+    def __init__(self, requester, headers, attributes, deferred_save):
         self._requester = requester
         self._headers = headers
         self._rawData = attributes
+        self._deferred_save = deferred_save
+        
+        if self._deferred_save:
+            self.dirty = {api_attr: False for api_attr in self._api_attributes}
+        
         self._initAttributes()
         self._updateAttributes(attributes)
 
@@ -144,21 +161,47 @@ class ChisubmitAPIObject(object):
         
     def _initAttributes(self):
         for api_attr in self._api_attributes.keys():
-            setattr(self, api_attr, None)
+            object.__setattr__(self, api_attr, None)
 
     def _updateAttributes(self, attributes):
-        
         for attrname, attrvalue in attributes.items():
             api_attr = self.__get_api_attr(attrname)
             
             if api_attr is None:
                 raise NoSuchAttributeException(attrname, attrvalue)
             else:
-                checked_value = api_attr.type.check(attrvalue, self._requester, self._headers)
-                setattr(self, attrname, checked_value)       
+                checked_value = api_attr.to_python(attrvalue, self._requester, self._headers, self._deferred_save)
+                object.__setattr__(self, attrname, checked_value)       
+
+    def __setattr__(self, name, value):
+        api_attr = self.__get_api_attr(name)
+        
+        if api_attr is None:        
+            object.__setattr__(self, name, value)
+        else:
+            if not api_attr.editable:
+                raise AttributeNotEditableException(name, value)
+            else:
+                if self._deferred_save:
+                    self.dirty[name] = True
+                else:
+                    self.edit(**{name: value})                
+                object.__setattr__(self, name, value)
+                    
+    def save(self):
+        if self._deferred_save:
+            attrs = {}
+            for attrname, dirty in self.dirty.items():
+                if dirty:
+                    attrs[attrname] = getattr(self, attrname)
+                    self.dirty[attrname] = False
+            if len(attrs) > 0:
+                self.edit(**attrs)            
+        else:
+            # TODO: Log a warning?
+            pass
 
     def edit(self, **kwargs):
-        
         patch_data = {}
         
         for attrname, attrvalue in kwargs.items():
@@ -167,7 +210,7 @@ class ChisubmitAPIObject(object):
             if api_attr is None:
                 raise NoSuchAttributeException(attrname, attrvalue)
             else:
-                checked_value = api_attr.type.check(attrvalue)
+                #value = api_attr.to_json(attrvalue)
                 patch_data[attrname] = attrvalue
             
         headers, data = self._requester.request(

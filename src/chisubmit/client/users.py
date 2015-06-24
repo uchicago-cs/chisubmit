@@ -33,19 +33,19 @@ from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,
 class User(ChisubmitAPIObject):
     _api_attributes = {"username": Attribute(name="username", 
                                             attrtype=APIStringType, 
-                                            patchable=False),    
+                                            editable=False),    
     
                        "first_name": Attribute(name="first_name", 
                                               attrtype=APIStringType, 
-                                              patchable=False),    
+                                              editable=False),    
     
                        "last_name": Attribute(name="name", 
                                              attrtype=APIStringType, 
-                                             patchable=False),    
+                                             editable=False),    
     
                        "email": Attribute(name="email", 
                                          attrtype=APIStringType, 
-                                         patchable=False)
+                                         editable=False)
                       }    
     
 
@@ -53,71 +53,71 @@ class Instructor(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 
                                        attrtype=APIStringType, 
-                                       patchable=False),  
+                                       editable=False),  
     
                        "username": Attribute(name="username", 
                                             attrtype=APIStringType, 
-                                            patchable=False),  
+                                            editable=False),  
     
                        "user": Attribute(name="user", 
                                         attrtype=APIObjectType(User), 
-                                        patchable=False),  
+                                        editable=False),  
     
                        "git_username": Attribute(name="git_username", 
                                                 attrtype=APIStringType, 
-                                                patchable=True),  
+                                                editable=True),  
      
                        "git_staging_username": Attribute(name="git_staging_username", 
                                                         attrtype=APIStringType, 
-                                                        patchable=True)
+                                                        editable=True)
                       }
     
 class Grader(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 
                                        attrtype=APIStringType, 
-                                       patchable=False),  
+                                       editable=False),  
     
                        "username": Attribute(name="username", 
                                             attrtype=APIStringType, 
-                                            patchable=False),  
+                                            editable=False),  
     
                        "user": Attribute(name="user", 
                                         attrtype=APIObjectType(User), 
-                                        patchable=False),  
+                                        editable=False),  
     
                        "git_username": Attribute(name="git_username", 
                                                 attrtype=APIStringType, 
-                                                patchable=True),  
+                                                editable=True),  
      
                        "git_staging_username": Attribute(name="git_staging_username", 
                                                         attrtype=APIStringType, 
-                                                        patchable=True)
+                                                        editable=True)
                       }
     
 class Student(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 
                                        attrtype=APIStringType, 
-                                       patchable=False),  
+                                       editable=False),  
     
                        "username": Attribute(name="username", 
                                             attrtype=APIStringType, 
-                                            patchable=False),  
+                                            editable=False),  
     
                        "user": Attribute(name="user", 
                                         attrtype=APIObjectType(User), 
-                                        patchable=False),  
+                                        editable=False),  
     
                        "git_username": Attribute(name="git_username", 
                                                 attrtype=APIStringType, 
-                                                patchable=True),  
+                                                editable=True),  
      
                        "extensions": Attribute(name="extensions", 
                                                attrtype=APIIntegerType, 
-                                               patchable=True),
+                                               editable=True),
                          
                        "dropped": Attribute(name="dropped", 
                                             attrtype=APIBooleanType, 
-                                            patchable=True),  
+                                            editable=True),  
                       }    

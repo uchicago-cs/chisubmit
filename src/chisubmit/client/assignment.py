@@ -35,25 +35,25 @@ class Assignment(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 
                                        attrtype=APIStringType, 
-                                       patchable=False),  
+                                       editable=False),  
                        
                        "shortname": Attribute(name="shortname", 
                                        attrtype=APIStringType, 
-                                       patchable=True),  
+                                       editable=True),  
     
                        "name": Attribute(name="name", 
                                             attrtype=APIStringType, 
-                                            patchable=True),  
+                                            editable=True),  
     
                        "deadline": Attribute(name="deadline", 
                                         attrtype=APIDateTimeType, 
-                                        patchable=True),  
+                                        editable=True),  
     
                        "min_students": Attribute(name="min_students", 
                                                 attrtype=APIIntegerType, 
-                                                patchable=True),  
+                                                editable=True),  
      
                        "max_students": Attribute(name="extensions", 
                                                attrtype=APIIntegerType, 
-                                               patchable=True)
+                                               editable=True)
                       }    

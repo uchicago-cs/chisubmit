@@ -67,7 +67,7 @@ class AttributeType(object):
         self.attrtype = attrtype
         self.subtype = subtype
         
-    def to_python(self, value, requester, headers, deferred_save):
+    def to_python(self, value, headers, api_client):
         if self.attrtype == AttributeType.STRING:
             if not isinstance(value, basestring):
                 raise AttributeTypeException(value, self)
@@ -98,13 +98,13 @@ class AttributeType(object):
                 raise AttributeTypeException(value, self)
             rvalue = []
             for item in value:
-                checked_item = self.subtype.check(item, requester, headers, deferred_save)
+                checked_item = self.subtype.check(item, headers, api_client)
                 rvalue.append(checked_item)
             return rvalue
         elif self.attrtype == AttributeType.OBJECT:
             if not isinstance(value, dict):
                 raise AttributeTypeException(value, self)
-            rvalue = self.subtype(requester, headers, value, deferred_save)
+            rvalue = self.subtype(api_client, headers, value)
             return rvalue
                 
         raise AttributeTypeException(value, self)
@@ -132,8 +132,8 @@ class Attribute(object):
         self.type = attrtype
         self.editable = editable
         
-    def to_python(self, value, requester, headers, deferred_save):
-        return self.type.to_python(value, requester, headers, deferred_save)
+    def to_python(self, value, headers, api_client):
+        return self.type.to_python(value, headers, api_client)
     
     def to_json(self, value):
         return self.type.to_json(value)    
@@ -141,13 +141,12 @@ class Attribute(object):
 
 class ChisubmitAPIObject(object):
         
-    def __init__(self, requester, headers, attributes, deferred_save):
-        self._requester = requester
+    def __init__(self, api_client, headers, attributes):
+        self._api_client = api_client
         self._headers = headers
         self._rawData = attributes
-        self._deferred_save = deferred_save
         
-        if self._deferred_save:
+        if self._api_client._deferred_save:
             self.dirty = {api_attr: False for api_attr in self._api_attributes}
         
         self._initAttributes()
@@ -170,7 +169,7 @@ class ChisubmitAPIObject(object):
             if api_attr is None:
                 raise NoSuchAttributeException(attrname, attrvalue)
             else:
-                checked_value = api_attr.to_python(attrvalue, self._requester, self._headers, self._deferred_save)
+                checked_value = api_attr.to_python(attrvalue, self._headers, self._api_client)
                 object.__setattr__(self, attrname, checked_value)       
 
     def __setattr__(self, name, value):
@@ -182,14 +181,14 @@ class ChisubmitAPIObject(object):
             if not api_attr.editable:
                 raise AttributeNotEditableException(name, value)
             else:
-                if self._deferred_save:
+                if self._api_client._deferred_save:
                     self.dirty[name] = True
                 else:
                     self.edit(**{name: value})                
                 object.__setattr__(self, name, value)
                     
     def save(self):
-        if self._deferred_save:
+        if self._api_client._deferred_save:
             attrs = {}
             for attrname, dirty in self.dirty.items():
                 if dirty:
@@ -213,7 +212,7 @@ class ChisubmitAPIObject(object):
                 #value = api_attr.to_json(attrvalue)
                 patch_data[attrname] = attrvalue
             
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "PATCH",
             self.url,
             data=patch_data

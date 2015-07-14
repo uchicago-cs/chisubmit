@@ -46,7 +46,7 @@ class Chisubmit(object):
             "GET",
             "/courses/"
         )
-        return [chisubmit.client.course.Course(self._requester, headers, elem, self._deferred_save) for elem in data]    
+        return [chisubmit.client.course.Course(self, headers, elem) for elem in data]    
     
     def get_course(self, course_id):
         """
@@ -60,7 +60,7 @@ class Chisubmit(object):
             "GET",
             "/courses/" + course_id
         )
-        return chisubmit.client.course.Course(self._requester, headers, data, self._deferred_save)
+        return chisubmit.client.course.Course(self, headers, data)
     
     def create_course(self, course_id, name, git_usernames = None, git_staging_usernames = None, 
                       extension_policy = None, default_extensions = None):
@@ -93,4 +93,4 @@ class Chisubmit(object):
             "/courses/",
             data = post_data
         )
-        return chisubmit.client.course.Course(self._requester, headers, data, self._deferred_save)
+        return chisubmit.client.course.Course(self, headers, data)

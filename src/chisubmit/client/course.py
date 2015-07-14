@@ -31,6 +31,7 @@ import chisubmit.client.users
 import chisubmit.client.assignment
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
     APIStringType, APIIntegerType
+from chisubmit.client.users import User
 
 class Course(ChisubmitAPIObject):
     
@@ -90,11 +91,11 @@ class Course(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.users.Instructor`
         """
         
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "GET",
             "/courses/" + self.shortname + "/instructors/"
         )
-        return [chisubmit.client.users.Instructor(self._requester, headers, elem, self._deferred_save) for elem in data]
+        return [chisubmit.client.users.Instructor(self._api_client, headers, elem) for elem in data]
     
     def get_graders(self):
         """
@@ -102,11 +103,11 @@ class Course(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.users.Grader`
         """
         
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "GET",
             "/courses/" + self.shortname + "/graders/"
         )
-        return [chisubmit.client.users.Grader(self._requester, headers, elem, self._deferred_save) for elem in data]    
+        return [chisubmit.client.users.Grader(self._api_client, headers, elem) for elem in data]    
     
     def get_students(self):
         """
@@ -114,11 +115,11 @@ class Course(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.users.Student`
         """
         
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "GET",
             "/courses/" + self.shortname + "/students/"
         )
-        return [chisubmit.client.users.Student(self._requester, headers, elem, self._deferred_save) for elem in data]    
+        return [chisubmit.client.users.Student(self._api_client, headers, elem) for elem in data]    
     
     def get_assignments(self):
         """
@@ -126,11 +127,11 @@ class Course(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.assignment.Assignment`
         """
         
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "GET",
             "/courses/" + self.shortname + "/assignments/"
         )
-        return [chisubmit.client.assignment.Assignment(self._requester, headers, elem, self._deferred_save) for elem in data]    
+        return [chisubmit.client.assignment.Assignment(self._api_client, headers, elem) for elem in data]    
     
     def get_assignment(self, assignment_id):
         """
@@ -138,11 +139,11 @@ class Course(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.assignment.Assignment`
         """
         
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "GET",
             "/courses/" + self.shortname + "/assignments/" + assignment_id
         )
-        return chisubmit.client.assignment.Assignment(self._requester, headers, data, self._deferred_save)       
+        return chisubmit.client.assignment.Assignment(self._api_client, headers, data)       
     
     def get_teams(self):
         """
@@ -150,9 +151,9 @@ class Course(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.team.Team`
         """
         
-        headers, data = self._requester.request(
+        headers, data = self._api_client._requester.request(
             "GET",
             "/courses/" + self.shortname + "/teams/"
         )
-        return [chisubmit.client.team.Team(self._requester, headers, elem, self._deferred_save) for elem in data]                    
+        return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]                    
     

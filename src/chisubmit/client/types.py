@@ -169,7 +169,10 @@ class ChisubmitAPIObject(object):
             if api_attr is None:
                 raise NoSuchAttributeException(attrname, attrvalue)
             else:
-                checked_value = api_attr.to_python(attrvalue, self._headers, self._api_client)
+                if attrvalue is None:
+                    checked_value = None
+                else:
+                    checked_value = api_attr.to_python(attrvalue, self._headers, self._api_client)
                 object.__setattr__(self, attrname, checked_value)       
 
     def __setattr__(self, name, value):

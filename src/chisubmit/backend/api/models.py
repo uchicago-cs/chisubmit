@@ -75,8 +75,8 @@ class Instructor(models.Model):
     user = models.ForeignKey(User)
     course = models.ForeignKey(Course)
     
-    git_username = models.CharField(max_length=64)
-    git_staging_username = models.CharField(max_length=64)
+    git_username = models.CharField(max_length=64, null=True)
+    git_staging_username = models.CharField(max_length=64, null=True)
 
     def __unicode__(self):
         return u"Instructor %s of %s" % (self.user.username, self.course.shortname) 

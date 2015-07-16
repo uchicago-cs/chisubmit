@@ -108,8 +108,8 @@ class InstructorSerializer(serializers.Serializer, FieldPermissionsMixin):
         slug_field='username'
     )
     user = UserSerializer(read_only=True)
-    git_username = serializers.CharField(max_length=64)
-    git_staging_username = serializers.CharField(max_length=64)
+    git_username = serializers.CharField(max_length=64, required=False)
+    git_staging_username = serializers.CharField(max_length=64, required=False)
     
     hidden_fields = { "git_username": AllExceptAdmin,
                       "git_staging_username": AllExceptAdmin }
@@ -137,8 +137,8 @@ class GraderSerializer(serializers.Serializer, FieldPermissionsMixin):
         slug_field='username'
     )
     user = UserSerializer(read_only=True)
-    git_username = serializers.CharField(max_length=64)
-    git_staging_username = serializers.CharField(max_length=64)
+    git_username = serializers.CharField(max_length=64, required=False)
+    git_staging_username = serializers.CharField(max_length=64, required=False)
     
     hidden_fields = { "git_username": AllExceptAdmin,
                       "git_staging_username": AllExceptAdmin }
@@ -165,11 +165,11 @@ class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
         queryset=User.objects.all(),
         slug_field='username'
     )
-    user = UserSerializer(read_only=True)
-    git_username = serializers.CharField(max_length=64)
+    user = UserSerializer(read_only=True, required=False)
+    git_username = serializers.CharField(max_length=64, required=False)
     
-    extensions = serializers.IntegerField()
-    dropped = serializers.BooleanField()
+    extensions = serializers.IntegerField(default=0, min_value=0)
+    dropped = serializers.BooleanField(default=False)
     
     hidden_fields = { "dropped": Students }
     

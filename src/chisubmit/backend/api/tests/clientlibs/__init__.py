@@ -13,6 +13,8 @@ COURSE2_STUDENTS =    ["student5", "student6", "student7", "student8"]
 COURSE2_USERS = COURSE2_INSTRUCTORS + COURSE2_GRADERS + COURSE2_STUDENTS
 COURSE2_ASSIGNMENTS = ["hw1", "hw2"]
     
+ALL_USERS = list(set(COURSE1_USERS + COURSE2_USERS + ["admin"]))    
+    
 class ChisubmitClientLibsTests(APILiveServerTestCase):
         
     def get_api_client(self, api_token, deferred_save = False):

@@ -97,6 +97,54 @@ class Course(ChisubmitAPIObject):
         )
         return [chisubmit.client.users.Instructor(self._api_client, headers, elem) for elem in data]
     
+    def add_instructor(self, user_or_username, git_username = None, git_staging_username = None):
+        """
+        :calls: POST /courses/:course/instructors/
+        :rtype: :class:`chisubmit.client.users.Instructor`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username }
+        
+        if git_username is not None:
+            post_data["git_username"] = git_username
+        if git_staging_username is not None:
+            post_data["git_staging_username"] = git_staging_username
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.shortname + "/instructors/",
+            data = post_data
+        )
+        return chisubmit.client.users.Instructor(self._api_client, headers, data)    
+    
+    def remove_instructor(self, user_or_username):
+        """
+        :calls: DELETE /courses/:course/instructors/:username
+        :rtype: None
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Instructor)
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        elif isinstance(user_or_username, chisubmit.client.users.Instructor):
+            username = user_or_username.user.username
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.shortname + "/instructors/" + username
+        )
+        return None
+    
     def get_graders(self):
         """
         :calls: GET /courses/:course/graders/
@@ -109,6 +157,55 @@ class Course(ChisubmitAPIObject):
         )
         return [chisubmit.client.users.Grader(self._api_client, headers, elem) for elem in data]    
     
+    def add_grader(self, user_or_username, git_username = None, git_staging_username = None):
+        """
+        :calls: POST /courses/:course/graders/
+        :rtype: :class:`chisubmit.client.users.Grader`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username }
+        
+        if git_username is not None:
+            post_data["git_username"] = git_username
+        if git_staging_username is not None:
+            post_data["git_staging_username"] = git_staging_username
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.shortname + "/graders/",
+            data = post_data
+        )
+        return chisubmit.client.users.Grader(self._api_client, headers, data)        
+    
+    def remove_grader(self, user_or_username):
+        """
+        :calls: DELETE /courses/:course/graders/:username
+        :rtype: None
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Grader)
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        elif isinstance(user_or_username, chisubmit.client.users.Grader):
+            username = user_or_username.user.username
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.shortname + "/graders/" + username
+        )
+        return None
+        
+    
     def get_students(self):
         """
         :calls: GET /courses/:course/students/
@@ -120,6 +217,56 @@ class Course(ChisubmitAPIObject):
             "/courses/" + self.shortname + "/students/"
         )
         return [chisubmit.client.users.Student(self._api_client, headers, elem) for elem in data]    
+    
+    def add_student(self, user_or_username, git_username = None, extensions = None, dropped = None):
+        """
+        :calls: POST /courses/:course/students/
+        :rtype: :class:`chisubmit.client.users.Student`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username }
+        
+        if git_username is not None:
+            post_data["git_username"] = git_username
+        if extensions is not None:
+            post_data["extensions"] = extensions
+        if dropped is not None:
+            post_data["dropped"] = dropped
+                    
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.shortname + "/students/",
+            data = post_data
+        )
+        return chisubmit.client.users.Student(self._api_client, headers, data)       
+    
+    def remove_student(self, user_or_username):
+        """
+        :calls: DELETE /courses/:course/students/:username
+        :rtype: None
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Student)
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        elif isinstance(user_or_username, chisubmit.client.users.Student):
+            username = user_or_username.user.username
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.shortname + "/students/" + username
+        )
+        return None      
     
     def get_assignments(self):
         """

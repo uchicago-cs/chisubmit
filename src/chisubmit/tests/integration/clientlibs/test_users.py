@@ -1,5 +1,4 @@
-from chisubmit.backend.api.tests.clientlibs import ChisubmitClientLibsTests,\
-    ALL_USERS
+from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTests, ALL_USERS
 
 class UserTests(ChisubmitClientLibsTests):
     

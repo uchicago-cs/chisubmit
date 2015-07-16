@@ -1,6 +1,5 @@
 from chisubmit.backend.api.models import Course
-from chisubmit.backend.api.tests.clientlibs import ChisubmitClientLibsTests,\
-    COURSE1_USERS, COURSE2_USERS
+from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTests, COURSE1_USERS, COURSE2_USERS
 from chisubmit.client.exceptions import UnknownObjectException
 
 class CourseTests(ChisubmitClientLibsTests):

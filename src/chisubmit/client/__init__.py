@@ -61,7 +61,7 @@ class Chisubmit(object):
             "/courses/" + course_id
         )
         return chisubmit.client.course.Course(self, headers, data)
-    
+ 
     def create_course(self, course_id, name, git_usernames = None, git_staging_usernames = None, 
                       extension_policy = None, default_extensions = None):
         """
@@ -94,3 +94,29 @@ class Chisubmit(object):
             data = post_data
         )
         return chisubmit.client.course.Course(self, headers, data)
+
+    def get_users(self):
+        """
+        :calls: GET /users/
+        :rtype: List of :class:`chisubmit.client.users.User`
+        """
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/users/"
+        )
+        return [chisubmit.client.users.User(self, headers, elem) for elem in data]    
+    
+    def get_user(self, username):
+        """
+        :calls: GET /users/:username
+        :param username: string
+        :rtype: :class:`chisubmit.client.users.User`
+        """
+        assert isinstance(username, (str, unicode)), username
+        
+        headers, data = self._requester.request(
+            "GET",
+            "/users/" + username
+        )
+        return chisubmit.client.users.User(self, headers, data)    

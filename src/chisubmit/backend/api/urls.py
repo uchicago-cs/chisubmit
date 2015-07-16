@@ -22,6 +22,9 @@ urlpatterns = [
 
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/$', views.TeamList.as_view(), name="team-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)$', views.TeamDetail.as_view(), name="team-detail"),
+
+    url(URL_PREFIX + r'users/$', views.UserList.as_view(), name="user-list"),
+    url(URL_PREFIX + r'users/(?P<username>[a-zA-Z0-9_-]+)/$', views.UserDetail.as_view(), name="user-detail"),
     
 ]
 

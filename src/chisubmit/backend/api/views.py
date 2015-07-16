@@ -6,7 +6,7 @@ from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
     Assignment, Team
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
-    AssignmentSerializer, TeamSerializer
+    AssignmentSerializer, TeamSerializer, UserSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 
@@ -258,4 +258,62 @@ class TeamDetail(CourseQualifiedAPIView):
         team_obj = self.get_team(course, team)
         team_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)        
+    
+    
+class UserList(APIView):
+    def get(self, request, format=None):
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        if not (request.user.is_staff or request.user.is_superuser):
+            raise PermissionDenied
+        serializer = CourseSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    
+class UserDetail(APIView):
+            
+    def get_user(self, username):
+        try:
+            user = User.objects.get(username = username)
+            return user
+        except User.DoesNotExist:
+            raise Http404  
+            
+    def get(self, request, username, format=None):
+        if username != request.user.username and not (request.user.is_staff or request.user.is_superuser):
+            raise Http404        
+        user = self.get_user(username)
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)
+
+    def patch(self, request, username, format=None):
+        if not (request.user.is_staff or request.user.is_superuser):
+            if username == request.user.username:
+                raise PermissionDenied
+            else:
+                raise Http404  
+                  
+        user = self.get_user(username)
+        serializer = UserSerializer(user, data=request.data, partial=True, context={'request': request})        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, username, format=None):
+        if not (request.user.is_staff or request.user.is_superuser):
+            if username == request.user.username:
+                raise PermissionDenied
+            else:
+                raise Http404  
+        user = self.get_user(username)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)    
     

@@ -35,17 +35,20 @@ import sys
 from pprint import pprint
 from requests.exceptions import HTTPError, ConnectionError
 from chisubmit.cli.admin import admin
-from chisubmit.cli.instructor import instructor
-from chisubmit.cli.student import student
-from chisubmit.cli.grader import grader
+#from chisubmit.cli.instructor import instructor
+#from chisubmit.cli.student import student
+#from chisubmit.cli.grader import grader
 import getpass
-from chisubmit.client.user import User
 from docutils.utils.math.math2html import URL
+from chisubmit.client.requester import BadRequestException
+from chisubmit.client.exceptions import UnknownObjectException,\
+    ChisubmitRequestException
 config = None
 
 import chisubmit.common.log as log
 from chisubmit.config import Config
 from chisubmit import RELEASE
+from chisubmit.client import Chisubmit
 
 SUBCOMMANDS_NO_COURSE = [('course','create')]
 SUBCOMMANDS_DONT_SAVE = ['course-create', 'course-install', 'course-generate-distributable', 'gh-token-create', 'shell']
@@ -54,15 +57,16 @@ VERBOSE = False
 DEBUG = False 
 
 @click.group(name="chisubmit")
+@click.option('--api-url', type=str, default=None)
+@click.option('--api-key', type=str, default=None)
 @click.option('--conf', type=str, default=None)
 @click.option('--dir', type=str, default=None)
 @click.option('--course', type=str, default=None)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--debug', is_flag=True)
-@click.option('--testing', is_flag=True)
 @click.version_option(version=RELEASE)
 @click.pass_context
-def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
+def chisubmit_cmd(ctx, api_url, api_key, conf, dir, course, verbose, debug):
     global VERBOSE, DEBUG
     
     VERBOSE = verbose
@@ -73,14 +77,18 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
     config = Config(dir, conf)
     log.init_logging(verbose, debug)
 
-    if not config['api-key']:
-        raise click.BadParameter("Sorry, can't find your chisubmit api token")
+    if api_key is None:
+        if config['api-key'] is None:
+            raise click.BadParameter("You do not have any chisubmit credentials. Run chisubmit-get-credentials "
+                                     "to obtain your credentials or, if you have an api key, use the --api-key "
+                                     "option.")
+        else:
+            api_key = config['api-key']
 
-    if testing:
-        from chisubmit.backend.api import app 
-        session.connect_test(app, access_token = config['api-key'])
-    else:
-        session.connect(config['api-url'], config['api-key'])
+    if api_url is None:
+        api_url = config['api-url']
+
+    client = Chisubmit(api_token = api_key, base_url=api_url)
 
     if course:
         course_specified = True
@@ -89,6 +97,7 @@ def chisubmit_cmd(ctx, conf, dir, course, verbose, debug, testing):
         course_specified = False
         course_id = config['default-course']
 
+    ctx.obj["client"] = client
     ctx.obj["course_specified"] = course_specified
     ctx.obj["course_id"] = course_id
     ctx.obj["config"] = config
@@ -105,46 +114,37 @@ def chisubmit_cmd_wrapper():
 def cmd_wrapper(cmd):
     try:
         cmd.main()
-    except BadRequestError, bre:
+    except UnknownObjectException, uoe:
         print
         print "ERROR: There was an error processing this request"
         print
-        print "URL: %s" % bre.request.url
-        print "HTTP method: %s" % bre.request.method
-        print "Error(s):"
-        for noun, errors in bre.errors:
-            if len(errors) == 1:
-                print "  - %s: %s" % (noun, errors[0])
-            else:
-                print "  - %s:" % noun
-                for error in errors:
-                    print "    - %s" % error
-        print        
-    except HTTPError, he:
-        print "ERROR: chisubmit server returned an HTTP error"
-        print
-        print "URL: %s" % he.request.url
-        print "HTTP method: %s" % he.request.method
-        print "Status code: %i" % he.response.status_code
-        print "Message: %s" % he.response.reason
+        print "URL: %s" % uoe.url
+        print "HTTP method: %s" % uoe.method
+        print "Error: Not found (404)"
         if DEBUG:
             print
-            print "HTTP REQUEST"
-            print "------------"
-            print "%s %s" % (he.request.method, he.request.url)
+            uoe.print_debug_info()
+    except BadRequestException, bre:
+        print
+        print "ERROR: There was an error processing this request"
+        print
+        print "URL: %s" % bre.url
+        print "HTTP method: %s" % bre.method
+        print "Error(s):"
+        bre.print_errors()
+        if DEBUG:
             print
-            for hname, hvalue in he.request.headers.items():
-                print "%s: %s" % (hname, hvalue) 
+            bre.print_debug_info()
+    except ChisubmitRequestException, cre:
+        print "ERROR: chisubmit server returned an HTTP error"
+        print
+        print "URL: %s" % cre.url
+        print "HTTP method: %s" % cre.method
+        print "Status code: %i" % cre.status
+        print "Message: %s" % cre.reason
+        if DEBUG:
             print
-            if he.request.body is not None:
-                print he.request.body
-            print
-            print "HTTP RESPONSE"
-            print "-------------"
-            for hname, hvalue in he.response.headers.items():
-                print "%s: %s" % (hname, hvalue) 
-            print
-            print he.response._content
+            bre.print_debug_info()        
     except ConnectionError, ce:
         print "ERROR: Could not connect to chisubmit server"
         print "URL: %s" % ce.request.url
@@ -157,9 +157,9 @@ def cmd_wrapper(cmd):
         handle_unexpected_exception()
 
 chisubmit_cmd.add_command(admin)
-chisubmit_cmd.add_command(instructor)
-chisubmit_cmd.add_command(student)
-chisubmit_cmd.add_command(grader)
+#chisubmit_cmd.add_command(instructor)
+#chisubmit_cmd.add_command(student)
+#chisubmit_cmd.add_command(grader)
 
 
 @click.command(name="chisubmit-get-credentials")

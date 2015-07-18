@@ -34,24 +34,9 @@ import json
 import sys
 from requests.exceptions import HTTPError
 from chisubmit.client.exceptions import UnknownObjectException,\
-    ChisubmitRequestException
+    ChisubmitRequestException, BadRequestException
 
-class BadRequestError(HTTPError):
-    
-    def __init__(self, method, url, errors, *args, **kwargs):
-        self.method = method
-        self.url = url
-        self.errors = errors        
-        super(BadRequestError, self).__init__(*args, **kwargs)
-        
-    def print_errors(self):
-        print "HTTP request %s %s returned error code 400 (Bad Request)" %(self.method, self.url)
-        if len(self.errors) == 0:
-            print "No additional error messages returned."
-        else:
-            for noun, message in self.errors:
-                print "%s: %s" % (noun, message)
-    
+
 
 class Requester(object):
     
@@ -88,24 +73,19 @@ class Requester(object):
                                   data = data,
                                   headers = all_headers)
         
-        try:
-            data = response.json()
-        except ValueError, ve:
-            data = {"data": response.text}
-        
         if response.status_code == 400:
-            error_result = []
-            for noun, problem in data.get('errors', {}).items():
-                error_result.append((noun, problem))
-            raise BadRequestError(method = method,
-                                  url = url,
-                                  errors = error_result)        
+            raise BadRequestException(method, url, params, data, all_headers, response)        
         elif 400 < response.status_code < 500:
             if response.status_code == 404:
-                raise UnknownObjectException(response.status_code, response.reason, data)
+                raise UnknownObjectException(method, url, params, data, all_headers, response)
             else:
-                raise ChisubmitRequestException(response.status_code, response.reason, data)
+                raise ChisubmitRequestException(method, url, params, data, all_headers, response)
         elif 500 <= response.status_code < 600:
-            raise ChisubmitRequestException(response.status_code, response.reason, data)
+            raise ChisubmitRequestException(method, url, params, data, all_headers, response)
 
-        return headers, data
+        try:
+            response_data = response.json()
+        except ValueError:
+            response_data = {"data": response.text}
+
+        return response.headers, response_data

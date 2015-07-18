@@ -1,6 +1,5 @@
 import tempfile
 import os
-import json
 import yaml
 import sys
 import colorama
@@ -12,43 +11,9 @@ import string
 import re
 
 from click.testing import CliRunner
-#from chisubmit.cli import chisubmit_cmd
-from dateutil.parser import parse
-from chisubmit import client
+from chisubmit.client.exceptions import BadRequestException
 
 colorama.init()
-
-API_PREFIX = "/api/v1"
-
-class ChisubmitTestClient(object):
-        
-    def __init__(self, app, user_id, api_key):
-        self.user_id = user_id
-        self.api_key = api_key
-        
-        self.headers = {'content-type': 'application/json'}
-        
-        if self.api_key is not None:
-            self.headers["CHISUBMIT-API-KEY"] = self.api_key
-            
-        self.test_client = session.connect_test(app, api_key)
-
-    def get(self, resource):
-        return self.test_client.get(self.API_PREFIX + resource, headers = self.headers)
-
-    def post(self, resource, data):
-        if isinstance(data, dict):
-            datastr = json.dumps(data)
-        elif isinstance(data, basestring):
-            datastr = data
-        return self.test_client.post(self.API_PREFIX + resource, data = datastr, headers = self.headers)
-
-    def put(self, resource, data):
-        if isinstance(data, dict):
-            datastr = json.dumps(data)
-        elif isinstance(data, basestring):
-            datastr = data
-        return self.test_client.put(self.API_PREFIX + resource, data = datastr, headers = self.headers)
 
 
 def cli_test(func=None, isolated_filesystem = True):
@@ -63,7 +28,7 @@ def cli_test(func=None, isolated_filesystem = True):
                     func(self, runner, *args, **kwargs)
             else:
                 func(self, runner, *args, **kwargs)
-        except BadRequestError, bre:
+        except BadRequestException, bre:
             bre.print_errors()
             raise
     return new_func
@@ -187,145 +152,12 @@ class BaseChisubmitTestCase(unittest.TestCase):
         self.git_staging_user = user
         
     def add_api_key(self, git_type, apikey):
-        self.git_api_keys[git_type] = apikey        
+        self.git_api_keys[git_type] = apikey
     
-    def get_admin_test_client(self):
-        return ChisubmitTestClient(self.server.app, "admin", "admin")
-    
-    def get_api_client(self, api_token):
-        return client.Chisubmit(api_token=api_token, 
-                                base_url=API_PREFIX, 
-                                testing_app=self.server.app)
-    
-    def get_test_client(self, user = None):
-        if user is None:
-            return ChisubmitTestClient(self.server.app, "anonymous", None)
-        else:
-            return ChisubmitTestClient(self.server.app, user["id"], user["api_key"])
-        
     def assert_http_code(self, response, expected):
         self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
         
-    
-class ChisubmitTestCase(BaseChisubmitTestCase):
-        
-    def setUp(self):
-        self.server.init_db()
-        self.server.create_admin(api_key="admin")
-        
-        if hasattr(self, "FIXTURE"):
-            load_fixture(self.server.db, self.FIXTURE)
-        
-        
-    def tearDown(self):
-        self.server.db.session.remove()
-        self.server.db.drop_all()
-    
-
-class ChisubmitMultiTestCase(BaseChisubmitTestCase):
-        
-    @classmethod
-    def setUpClass(cls):
-        super(ChisubmitMultiTestCase, cls).setUpClass()
-        cls.server.init_db()
-        cls.server.create_admin(api_key="admin")
-        
-        if hasattr(cls, "FIXTURE"):
-            load_fixture(cls.server.db, cls.FIXTURE)
-        
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.server.db.session.remove()
-        cls.server.db.drop_all()
-        super(ChisubmitMultiTestCase, cls).tearDownClass()
-    
-class ChisubmitFixtureTestCase(ChisubmitMultiTestCase):
-    
-    def test_get_courses(self):        
-        for course in self.FIXTURE["courses"].values():
-            for instructor in course["instructors"]:
-                c = self.get_test_client(self.FIXTURE["users"][instructor])
-                response = c.get("courses")
-                self.assert_http_code(response, 200)
-         
-                expected_ncourses = len([c for c in self.FIXTURE["courses"].values()
-                                         if instructor in c["instructors"]])
-         
-                data = json.loads(response.get_data())        
-                self.assertIn("courses", data)
-                self.assertEquals(len(data["courses"]), expected_ncourses)
-                 
-    def test_get_course(self):
-        for course in self.FIXTURE["courses"].values():
-            for instructor in course["instructors"]:
-                c = self.get_test_client(self.FIXTURE["users"][instructor])
-                response = c.get("courses/" + course["id"])
-                self.assert_http_code(response, 200)
-                data = json.loads(response.get_data())        
-                self.assertIn("course", data)
-                self.assertEquals(data["course"]["name"], course["name"])
-                 
-        for course1 in self.FIXTURE["courses"].values():
-            for course2 in self.FIXTURE["courses"].values():
-                if course1 != course2:
-                    for instructor in course1["instructors"]:    
-                        c = self.get_test_client(self.FIXTURE["users"][instructor])
-                        response = c.get("courses/" + course2["id"])
-                        self.assert_http_code(response, 404)
- 
-    
-def load_fixture(db, fixture):
-    from chisubmit.backend.api.users.models import User
-    from chisubmit.backend.api.assignments.models import Assignment
-    from chisubmit.backend.api.courses.models import Course,\
-        CoursesInstructors, CoursesGraders, CoursesStudents
-        
-    user_objs = {}
-    
-    for u_id, user in fixture["users"].items():
-        u = User(first_name=user["first_name"], 
-                   last_name=user["last_name"], 
-                   id=user["id"],
-                   api_key=user["api_key"])
-        
-        user_objs[u_id] = u
-        db.session.add(u)
-
-    for c_id, course in fixture["courses"].items():
-        c = Course(id = course["id"],
-                   name = course["name"])
-        
-        db.session.add(c)
-        
-        if course.has_key("instructors"):
-            for instructor in course["instructors"]:
-                o = user_objs[instructor]
-                db.session.add(CoursesInstructors(instructor_id = o.id, 
-                                                  course_id     = c.id))
-        
-        if course.has_key("graders"):
-            for grader in course["graders"]:
-                o = user_objs[grader]
-                db.session.add(CoursesGraders(grader_id = o.id, 
-                                              course_id = c.id))
-
-        if course.has_key("students"):
-            for student in course["students"]:
-                o = user_objs[student]
-                db.session.add(CoursesStudents(student_id = o.id, 
-                                               course_id = c.id))
-
-        if course.has_key("assignments"):
-            for assignment in course["assignments"].values():
-                db.session.add(Assignment(id = assignment["id"], 
-                                          name = assignment["name"],
-                                          deadline = parse(assignment["deadline"]),
-                                          course_id = c.id))
-    
-    db.session.commit()
-        
-    
+   
 class ChisubmitIntegrationTestCase(ChisubmitTestCase):
         
     def create_user(self, admin_runner, user_id):

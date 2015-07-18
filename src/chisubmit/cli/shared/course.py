@@ -8,10 +8,10 @@ from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 @click.command(name="list")
 @click.pass_context
 def shared_course_list(ctx):
-    courses = Course.all()
+    courses = ctx.obj["client"].get_courses()
     
     for course in courses:
-        print course.id, course.name
+        print course.shortname, course.name
 
     return CHISUBMIT_SUCCESS
 

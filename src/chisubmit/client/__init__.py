@@ -33,7 +33,9 @@ from chisubmit.client.requester import Requester
 class Chisubmit(object):
     
     def __init__(self, api_token, base_url, deferred_save = False):
-        self._requester = Requester(api_token, base_url)
+        # TODO: Validate URL 
+        
+        self._requester = Requester(api_token, base_url.rstrip("/"))
         self._deferred_save = deferred_save
     
     def get_courses(self):

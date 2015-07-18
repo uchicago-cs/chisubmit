@@ -24,6 +24,13 @@ class Course(models.Model):
     def __unicode__(self):
         return u"%s: %s" % (self.shortname, self.name)
     
+    @classmethod
+    def get_by_course_id(cls, course_id):
+        try:
+            return cls.objects.get(shortname=course_id)
+        except cls.DoesNotExist:
+            return None          
+    
     def has_instructor(self, user):
         return self.instructors.filter(username=user.username).exists()
 

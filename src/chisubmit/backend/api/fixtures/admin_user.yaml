@@ -1,0 +1,20 @@
+-   model: auth.user
+    pk: 1
+    fields:
+        date_joined: "2015-06-18 20:29:21+00:00"
+        email: ''
+        first_name: 'F_admin'
+        groups: []
+        is_active: true
+        is_staff: true
+        is_superuser: true
+        last_login: null
+        last_name: 'L_admin'
+        password: pbkdf2_sha256$20000$tf9tfDLdQsE0$YoSK+Ig7X+Dwsq/cWjb7iBDF30Qw89KTcXQcQ3XNWbs=
+        user_permissions: []
+        username: admin
+-   model: authtoken.token
+    pk: admintoken
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 1   

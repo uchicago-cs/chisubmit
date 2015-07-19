@@ -1,6 +1,7 @@
-from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTests, ALL_USERS
+from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTestCase
+from chisubmit.tests.common import ALL_USERS
 
-class UserTests(ChisubmitClientLibsTests):
+class UserTests(ChisubmitClientLibsTestCase):
     
     fixtures = ['users', 'complete_course1']
     

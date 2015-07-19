@@ -1,8 +1,9 @@
 from chisubmit.backend.api.models import Course
-from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTests, COURSE1_USERS, COURSE2_USERS
+from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTestCase
+from chisubmit.tests.common import COURSE1_USERS, COURSE2_USERS
 from chisubmit.client.exceptions import UnknownObjectException
 
-class CourseTests(ChisubmitClientLibsTests):
+class CourseTests(ChisubmitClientLibsTestCase):
     
     fixtures = ['users', 'complete_course1']
     
@@ -103,7 +104,7 @@ class CourseTests(ChisubmitClientLibsTests):
         self.assertEquals(course.default_extensions, 10)
         
                  
-class CoursePermissionsTests(ChisubmitClientLibsTests):
+class CoursePermissionsTests(ChisubmitClientLibsTestCase):
     
     fixtures = ['users', 'complete_course1', 'complete_course2']
     

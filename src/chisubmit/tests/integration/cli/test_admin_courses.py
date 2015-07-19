@@ -1,15 +1,15 @@
-from chisubmit.tests.common import ChisubmitMultiTestCase, cli_test,\
-    ChisubmitCLITestClient, ChisubmitTestCase
-from chisubmit.tests.fixtures import users_and_courses
+from chisubmit.tests.common import cli_test, ChisubmitCLITestClient, ChisubmitCLITestCase,\
+    COURSE1_ID, COURSE1_NAME, COURSE2_ID, COURSE2_NAME
 from chisubmit.backend.api.models import Course
-    
-    
-class CLIAdminCourse(ChisubmitTestCase):
+
+class CLIAdminCourse(ChisubmitCLITestCase):
+            
+    fixtures = ['admin_user']
             
     @cli_test
     def test_admin_course_add(self, runner):
         
-        admin = ChisubmitCLITestClient("admin", "admin", runner)
+        admin, _, _, _ = self.create_clients(runner, "admin")
         
         course_id = u"cmsc12300"
         course_name = u"Foobarmentals of Foobar"
@@ -17,24 +17,26 @@ class CLIAdminCourse(ChisubmitTestCase):
         result = admin.run("admin course add", [course_id, course_name])
         self.assertEquals(result.exit_code, 0)
         
-        course = Course.get_by_course_id(course_id)
-        self.assertIsNotNone(course)
-        self.assertEquals(course.name, course_name)
- 
+        try:
+            course_obj = Course.objects.get(shortname=course_id)
+        except Course.DoesNotExist:
+            self.fail("Course was not added to database")  
+            
+        self.assertEquals(course_obj.shortname, course_id)                  
+        self.assertEquals(course_obj.name, course_name) 
         
-class CLIAdminCourseFixture(ChisubmitMultiTestCase):
+class CLIAdminCourseFixture(ChisubmitCLITestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'complete_course1', 'complete_course2']
         
     @cli_test
     def test_admin_course_list(self, runner):
-        admin = ChisubmitCLITestClient("admin", "admin", runner)
+        admin, _, _, _ = self.create_clients(runner, "admin")
         
         result = admin.run("admin course list")
 
         self.assertEquals(result.exit_code, 0)
 
-        print result.output
-        #for course in self.FIXTURE["courses"].values():            
-        #    self.assertIn(course["name"], result.output)
+        for val in [COURSE1_ID, COURSE1_NAME, COURSE2_ID, COURSE2_NAME]:            
+            self.assertIn(val, result.output)
             

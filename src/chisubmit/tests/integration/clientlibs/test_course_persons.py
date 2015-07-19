@@ -1,10 +1,8 @@
 from chisubmit.backend.api.models import Course
-from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTests,\
-    COURSE1_USERS, COURSE2_USERS, COURSE1_GRADERS, COURSE1_STUDENTS,\
-    COURSE1_INSTRUCTORS
-from chisubmit.client.exceptions import UnknownObjectException
+from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTestCase
+from chisubmit.tests.common import COURSE1_GRADERS, COURSE1_STUDENTS, COURSE1_INSTRUCTORS
 
-class CoursePersonTests(ChisubmitClientLibsTests):
+class CoursePersonTests(ChisubmitClientLibsTestCase):
     
     fixtures = ['users', 'complete_course1']
     

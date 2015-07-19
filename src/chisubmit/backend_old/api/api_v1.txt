@@ -20,6 +20,8 @@
 
 /courses/:course/assignments/:assignment [GET, PATCH, DELETE]
 
+/courses/:course/assignments/:assignment/register [POST]
+
 /courses/:course/assignments/:assignment/rubric [GET, POST]
 
 /courses/:course/assignments/:assignment/rubric/:rubric_component [GET, PATCH, DELETE]

@@ -21,7 +21,7 @@ test_suites = {"api": "chisubmit.tests.unit.api",
          
 unit_tests = ["api"]
 
-integration_tests = ["clientlibs"]
+integration_tests = ["clientlibs", "cli"]
 
 complete_tests = ["complete1", "complete2", "complete3"]
  

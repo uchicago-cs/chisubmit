@@ -48,8 +48,8 @@ def admin_course(ctx):
 @click.argument('name', type=str)
 @click.pass_context
 def admin_course_add(ctx, course_id, name):
-    course = Course(id = course_id,
-                    name = name)
+    course = ctx.obj["client"].create_course(course_id = course_id,
+                                             name = name)
     
     return CHISUBMIT_SUCCESS
 

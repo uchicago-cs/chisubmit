@@ -12,7 +12,7 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
         assignments = course.get_assignments()
         
         self.assertEquals(len(assignments), len(COURSE1_ASSIGNMENTS))
-        self.assertItemsEqual([a.shortname for a in assignments], COURSE1_ASSIGNMENTS)
+        self.assertItemsEqual([a.assignment_id for a in assignments], COURSE1_ASSIGNMENTS)
         
     def test_get_assignment(self):
         c = self.get_api_client("admintoken")
@@ -22,5 +22,5 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
         for assignment_id in COURSE1_ASSIGNMENTS:
             assignment = course.get_assignment(assignment_id)
             
-            self.assertEquals(assignment.shortname, assignment_id)
+            self.assertEquals(assignment.assignment_id, assignment_id)
             

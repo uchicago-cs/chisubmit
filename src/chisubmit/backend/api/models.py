@@ -14,7 +14,7 @@ AllExceptAdmin = set([CourseRoles.INSTRUCTOR, CourseRoles.GRADER, CourseRoles.ST
 Students = set([CourseRoles.STUDENT])
 
 class Course(models.Model):
-    shortname = models.SlugField(unique = True)
+    course_id = models.SlugField(unique = True)
     name = models.CharField(max_length=64)
     
     instructors = models.ManyToManyField(User, through='Instructor', related_name="instructor_in")
@@ -22,12 +22,12 @@ class Course(models.Model):
     students = models.ManyToManyField(User, through='Student', related_name="student_in")
     
     def __unicode__(self):
-        return u"%s: %s" % (self.shortname, self.name)
+        return u"%s: %s" % (self.course_id, self.name)
     
     @classmethod
     def get_by_course_id(cls, course_id):
         try:
-            return cls.objects.get(shortname=course_id)
+            return cls.objects.get(course_id=course_id)
         except cls.DoesNotExist:
             return None          
     
@@ -86,7 +86,7 @@ class Instructor(models.Model):
     git_staging_username = models.CharField(max_length=64, null=True)
 
     def __unicode__(self):
-        return u"Instructor %s of %s" % (self.user.username, self.course.shortname) 
+        return u"Instructor %s of %s" % (self.user.username, self.course.course_id) 
 
     class Meta:
         unique_together = ("user", "course")
@@ -101,7 +101,7 @@ class Grader(models.Model):
     conflicts = models.ManyToManyField("Student", blank=True)
     
     def __unicode__(self):
-        return u"Grader %s of %s" % (self.user.username, self.course.shortname)     
+        return u"Grader %s of %s" % (self.user.username, self.course.course_id)     
     
     class Meta:
         unique_together = ("user", "course")    
@@ -116,14 +116,14 @@ class Student(models.Model):
     dropped = models.BooleanField(default = False)
     
     def __unicode__(self):
-        return u"Student %s of %s" % (self.user.username, self.course.shortname)     
+        return u"Student %s of %s" % (self.user.username, self.course.course_id)     
     
     class Meta:
         unique_together = ("user", "course")    
 
 class Assignment(models.Model):
     course = models.ForeignKey(Course)
-    shortname = models.SlugField(unique = True)
+    assignment_id = models.SlugField(unique = True)
     name = models.CharField(max_length=64)
     deadline = models.DateTimeField()
 
@@ -132,7 +132,7 @@ class Assignment(models.Model):
     max_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
     
     def __unicode__(self):
-        return u"Assignment %s of %s" % (self.shortname, self.course.shortname)     
+        return u"Assignment %s of %s" % (self.assignment_id, self.course.course_id)     
 
 class RubricComponent(models.Model):    
     assignment = models.ForeignKey(Assignment)

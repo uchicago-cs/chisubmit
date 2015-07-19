@@ -38,7 +38,7 @@ class UserSerializer(serializers.Serializer):
     
 
 class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
-    shortname = serializers.SlugField()
+    course_id = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     
     url = serializers.SerializerMethodField()    
@@ -60,7 +60,7 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
                       "default_extensions": GradersAndStudents
                     }
     
-    readonly_fields = { "shortname": AllExceptAdmin,
+    readonly_fields = { "course_id": AllExceptAdmin,
                         "name": AllExceptAdmin,
                         "git_usernames": AllExceptAdmin,
                         "git_staging_usernames": AllExceptAdmin,
@@ -69,28 +69,28 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
                       }
 
     def get_url(self, obj):
-        return reverse('course-detail', args=[obj.shortname], request=self.context["request"])
+        return reverse('course-detail', args=[obj.course_id], request=self.context["request"])
 
     def get_instructors_url(self, obj):
-        return reverse('instructor-list', args=[obj.shortname], request=self.context["request"])    
+        return reverse('instructor-list', args=[obj.course_id], request=self.context["request"])    
 
     def get_graders_url(self, obj):
-        return reverse('grader-list', args=[obj.shortname], request=self.context["request"])    
+        return reverse('grader-list', args=[obj.course_id], request=self.context["request"])    
     
     def get_students_url(self, obj):
-        return reverse('student-list', args=[obj.shortname], request=self.context["request"])    
+        return reverse('student-list', args=[obj.course_id], request=self.context["request"])    
     
     def get_assignments_url(self, obj):
-        return reverse('assignment-list', args=[obj.shortname], request=self.context["request"])      
+        return reverse('assignment-list', args=[obj.course_id], request=self.context["request"])      
 
     def get_teams_url(self, obj):
-        return reverse('team-list', args=[obj.shortname], request=self.context["request"])      
+        return reverse('team-list', args=[obj.course_id], request=self.context["request"])      
     
     def create(self, validated_data):
         return Course.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        instance.shortname = validated_data.get('shortname', instance.shortname)
+        instance.course_id = validated_data.get('course_id', instance.course_id)
         instance.name = validated_data.get('name', instance.name)
         instance.git_usernames = validated_data.get('git_usernames', instance.git_usernames)
         instance.git_staging_usernames = validated_data.get('git_staging_usernames', instance.git_staging_usernames)
@@ -117,7 +117,7 @@ class InstructorSerializer(serializers.Serializer, FieldPermissionsMixin):
     readonly_fields = { }     
     
     def get_url(self, obj):
-        return reverse('instructor-detail', args=[self.context["course"].shortname, obj.user.username], request=self.context["request"])
+        return reverse('instructor-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     
     def create(self, validated_data):
         return Instructor.objects.create(**validated_data)
@@ -146,7 +146,7 @@ class GraderSerializer(serializers.Serializer, FieldPermissionsMixin):
     readonly_fields = { }     
     
     def get_url(self, obj):
-        return reverse('grader-detail', args=[self.context["course"].shortname, obj.user.username], request=self.context["request"])
+        return reverse('grader-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     
     def create(self, validated_data):
         return Grader.objects.create(**validated_data)
@@ -178,7 +178,7 @@ class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
                       }     
     
     def get_url(self, obj):
-        return reverse('student-detail', args=[self.context["course"].shortname, obj.user.username], request=self.context["request"])
+        return reverse('student-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     
     def create(self, validated_data):
         return Student.objects.create(**validated_data)
@@ -193,7 +193,7 @@ class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     
 class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
-    shortname = serializers.SlugField()
+    assignment_id = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     deadline = serializers.DateTimeField()
     
@@ -202,7 +202,7 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
     min_students = serializers.IntegerField(default=1, min_value=1)
     max_students = serializers.IntegerField(default=1, min_value=1)
     
-    readonly_fields = { "shortname": GradersAndStudents,
+    readonly_fields = { "assignment_id": GradersAndStudents,
                         "name": GradersAndStudents,
                         "deadline": GradersAndStudents,
                         "min_students": GradersAndStudents,
@@ -210,13 +210,13 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
                       }       
     
     def get_url(self, obj):
-        return reverse('assignment-detail', args=[self.context["course"].shortname, obj.shortname], request=self.context["request"])
+        return reverse('assignment-detail', args=[self.context["course"].course_id, obj.assignment_id], request=self.context["request"])
     
     def create(self, validated_data):
         return Assignment.objects.create(**validated_data)
     
     def update(self, instance, validated_data):
-        instance.shortname = validated_data.get('shortname', instance.shortname)
+        instance.assignment_id = validated_data.get('assignment_id', instance.assignment_id)
         instance.name = validated_data.get('name', instance.name)
         instance.deadline = validated_data.get('deadline', instance.deadline)
         instance.min_students = validated_data.get('min_students', instance.min_students)
@@ -239,7 +239,7 @@ class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
                       }       
     
     def get_url(self, obj):
-        return reverse('team-detail', args=[self.context["course"].shortname, obj.name], request=self.context["request"])
+        return reverse('team-detail', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
     
     def create(self, validated_data):
         return Team.objects.create(**validated_data)

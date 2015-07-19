@@ -18,7 +18,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_add_instructor_by_username(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertFalse(course_obj.instructors.filter(username="instructor2").exists())
         
         course = c.get_course("cmsc40100")
@@ -33,7 +33,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_add_instructor_by_user(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertFalse(course_obj.instructors.filter(username="instructor2").exists())
         
         course = c.get_course("cmsc40100")
@@ -49,7 +49,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_remove_instructor(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertTrue(course_obj.instructors.filter(username="instructor1").exists())
         
         course = c.get_course("cmsc40100")
@@ -69,7 +69,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_add_grader_by_username(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertFalse(course_obj.graders.filter(username="grader3").exists())
         
         course = c.get_course("cmsc40100")
@@ -84,7 +84,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_add_grader_by_user(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertFalse(course_obj.graders.filter(username="grader3").exists())
         
         course = c.get_course("cmsc40100")
@@ -100,7 +100,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_remove_grader(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertTrue(course_obj.graders.filter(username="grader1").exists())
         
         course = c.get_course("cmsc40100")
@@ -120,7 +120,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_add_student_by_username(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertFalse(course_obj.students.filter(username="student5").exists())
         
         course = c.get_course("cmsc40100")
@@ -135,7 +135,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_add_student_by_user(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertFalse(course_obj.students.filter(username="student5").exists())
         
         course = c.get_course("cmsc40100")
@@ -151,7 +151,7 @@ class CoursePersonTests(ChisubmitClientLibsTestCase):
     def test_remove_student(self):
         c = self.get_api_client("admintoken")
 
-        course_obj = Course.objects.get(shortname="cmsc40100")
+        course_obj = Course.objects.get(course_id="cmsc40100")
         self.assertTrue(course_obj.students.filter(username="student1").exists())
         
         course = c.get_course("cmsc40100")

@@ -32,7 +32,7 @@ class CourseTests(APITestCase):
 
         url = reverse('course-detail', args=["cmsc40100"])
         response = self.client.patch(url, data={"name":"FOOBAR"})
-        c = Course.objects.get(shortname='cmsc40100')
+        c = Course.objects.get(course_id='cmsc40100')
         self.assertEqual(c.name, "FOOBAR") 
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)   
@@ -43,7 +43,7 @@ class CourseTests(APITestCase):
 
         url = reverse('course-detail', args=["cmsc40100"])
         response = self.client.patch(url, data={"name":"FOOBAR"})
-        c = Course.objects.get(shortname='cmsc40100')
+        c = Course.objects.get(course_id='cmsc40100')
         self.assertEqual(c.name, "Introduction to Software Testing") 
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)   

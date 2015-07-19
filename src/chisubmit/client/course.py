@@ -39,7 +39,7 @@ class Course(ChisubmitAPIObject):
                                    attrtype=APIStringType, 
                                    editable=False),    
     
-                       "shortname": Attribute(name="shortname", 
+                       "course_id": Attribute(name="course_id", 
                                        attrtype=APIStringType, 
                                        editable=True),    
         
@@ -93,7 +93,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.shortname + "/instructors/"
+            "/courses/" + self.course_id + "/instructors/"
         )
         return [chisubmit.client.users.Instructor(self._api_client, headers, elem) for elem in data]
     
@@ -119,7 +119,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "POST",
-            "/courses/" + self.shortname + "/instructors/",
+            "/courses/" + self.course_id + "/instructors/",
             data = post_data
         )
         return chisubmit.client.users.Instructor(self._api_client, headers, data)    
@@ -141,7 +141,7 @@ class Course(ChisubmitAPIObject):
         
         _ = self._api_client._requester.request(
             "DELETE",
-            "/courses/" + self.shortname + "/instructors/" + username
+            "/courses/" + self.course_id + "/instructors/" + username
         )
         return None
     
@@ -153,7 +153,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.shortname + "/graders/"
+            "/courses/" + self.course_id + "/graders/"
         )
         return [chisubmit.client.users.Grader(self._api_client, headers, elem) for elem in data]    
     
@@ -179,7 +179,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "POST",
-            "/courses/" + self.shortname + "/graders/",
+            "/courses/" + self.course_id + "/graders/",
             data = post_data
         )
         return chisubmit.client.users.Grader(self._api_client, headers, data)        
@@ -201,7 +201,7 @@ class Course(ChisubmitAPIObject):
         
         _ = self._api_client._requester.request(
             "DELETE",
-            "/courses/" + self.shortname + "/graders/" + username
+            "/courses/" + self.course_id + "/graders/" + username
         )
         return None
         
@@ -214,7 +214,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.shortname + "/students/"
+            "/courses/" + self.course_id + "/students/"
         )
         return [chisubmit.client.users.Student(self._api_client, headers, elem) for elem in data]    
     
@@ -242,7 +242,7 @@ class Course(ChisubmitAPIObject):
                     
         headers, data = self._api_client._requester.request(
             "POST",
-            "/courses/" + self.shortname + "/students/",
+            "/courses/" + self.course_id + "/students/",
             data = post_data
         )
         return chisubmit.client.users.Student(self._api_client, headers, data)       
@@ -264,7 +264,7 @@ class Course(ChisubmitAPIObject):
         
         _ = self._api_client._requester.request(
             "DELETE",
-            "/courses/" + self.shortname + "/students/" + username
+            "/courses/" + self.course_id + "/students/" + username
         )
         return None      
     
@@ -276,7 +276,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.shortname + "/assignments/"
+            "/courses/" + self.course_id + "/assignments/"
         )
         return [chisubmit.client.assignment.Assignment(self._api_client, headers, elem) for elem in data]    
     
@@ -288,7 +288,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.shortname + "/assignments/" + assignment_id
+            "/courses/" + self.course_id + "/assignments/" + assignment_id
         )
         return chisubmit.client.assignment.Assignment(self._api_client, headers, data)       
     
@@ -300,7 +300,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.shortname + "/teams/"
+            "/courses/" + self.course_id + "/teams/"
         )
         return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]                    
     

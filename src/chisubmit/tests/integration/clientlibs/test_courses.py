@@ -28,11 +28,11 @@ class CourseTests(ChisubmitClientLibsTestCase):
         self.assertEquals(course.name, "Advanced Software Testing")        
         
         try:
-            course_obj = Course.objects.get(shortname="cmsc40110")
+            course_obj = Course.objects.get(course_id="cmsc40110")
         except Course.DoesNotExist:
             self.fail("Course was not added to database")  
             
-        self.assertEquals(course_obj.shortname, "cmsc40110")                  
+        self.assertEquals(course_obj.course_id, "cmsc40110")                  
         self.assertEquals(course_obj.name, "Advanced Software Testing")                  
         
         
@@ -48,7 +48,7 @@ class CourseTests(ChisubmitClientLibsTestCase):
         self.assertEquals(course.default_extensions, 10)
                  
         try:
-            course_obj = Course.objects.get(shortname="cmsc40100")
+            course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
@@ -67,7 +67,7 @@ class CourseTests(ChisubmitClientLibsTestCase):
         self.assertEquals(course.default_extensions, 10)
                  
         try:
-            course_obj = Course.objects.get(shortname="cmsc40100")
+            course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
@@ -86,7 +86,7 @@ class CourseTests(ChisubmitClientLibsTestCase):
         self.assertEquals(course.default_extensions, 10)
                  
         try:
-            course_obj = Course.objects.get(shortname="cmsc40100")
+            course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
@@ -96,7 +96,7 @@ class CourseTests(ChisubmitClientLibsTestCase):
         course.save()                   
         
         try:
-            course_obj = Course.objects.get(shortname="cmsc40100")
+            course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             

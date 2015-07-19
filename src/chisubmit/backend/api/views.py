@@ -42,9 +42,9 @@ class CourseQualifiedAPIView(APIView):
         
         try:
             if kwargs.has_key("course"):
-                course_shortname = kwargs.pop("course")
+                course_id = kwargs.pop("course")
                 try:
-                    course = Course.objects.get(shortname=course_shortname)
+                    course = Course.objects.get(course_id=course_id)
                 except Course.DoesNotExist:
                     raise Http404                           
             else:
@@ -105,7 +105,7 @@ class PersonList(CourseQualifiedAPIView):
         if serializer.is_valid():
             user = serializer.validated_data["user"]
             if self.person_class.objects.filter(course=course, user=user).exists():
-                return Response({"username": ["%s is already a %s in %s" % (user.username, self.person_str, course.shortname)]}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"username": ["%s is already a %s in %s" % (user.username, self.person_str, course.course_id)]}, status=status.HTTP_400_BAD_REQUEST)
             serializer.save(course=course)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -192,7 +192,7 @@ class AssignmentDetail(CourseQualifiedAPIView):
             
     def get_assignment(self, course, assignment):
         try:
-            assignment = Assignment.objects.get(course = course, shortname = assignment)
+            assignment = Assignment.objects.get(course = course, assignment_id = assignment)
             return assignment
         except Assignment.DoesNotExist:
             raise Http404  

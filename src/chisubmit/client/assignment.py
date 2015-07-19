@@ -37,7 +37,7 @@ class Assignment(ChisubmitAPIObject):
                                        attrtype=APIStringType, 
                                        editable=False),  
                        
-                       "shortname": Attribute(name="shortname", 
+                       "assignment_id": Attribute(name="assignment_id", 
                                        attrtype=APIStringType, 
                                        editable=True),  
     

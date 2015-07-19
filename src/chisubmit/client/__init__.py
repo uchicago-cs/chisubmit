@@ -78,7 +78,7 @@ class Chisubmit(object):
         """
         assert isinstance(course_id, (str, unicode)), course_id
         
-        post_data = {"shortname": course_id,
+        post_data = {"course_id": course_id,
                      "name": name}
         
         if git_usernames is not None:

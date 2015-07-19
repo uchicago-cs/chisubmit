@@ -2,7 +2,7 @@
     pk: 2
     fields:
         name: Advanced Software Testing
-        shortname: cmsc40110 
+        course_id: cmsc40110 
         default_extensions: 0
         extension_policy: per-student
         git_staging_usernames: user-id
@@ -70,7 +70,7 @@
         max_students: 1
         min_students: 1
         name: Homework 1
-        shortname: hw1
+        assignment_id: hw1
 -   model: api.assignment
     pk: 4
     fields: 
@@ -79,4 +79,4 @@
         max_students: 1
         min_students: 1
         name: Homework 2
-        shortname: hw2
+        assignment_id: hw2

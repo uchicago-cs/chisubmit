@@ -11,7 +11,7 @@ def shared_course_list(ctx):
     courses = ctx.obj["client"].get_courses()
     
     for course in courses:
-        print course.shortname, course.name
+        print course.course_id, course.name
 
     return CHISUBMIT_SUCCESS
 

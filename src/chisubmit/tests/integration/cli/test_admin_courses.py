@@ -18,11 +18,11 @@ class CLIAdminCourse(ChisubmitCLITestCase):
         self.assertEquals(result.exit_code, 0)
         
         try:
-            course_obj = Course.objects.get(shortname=course_id)
+            course_obj = Course.objects.get(course_id=course_id)
         except Course.DoesNotExist:
             self.fail("Course was not added to database")  
             
-        self.assertEquals(course_obj.shortname, course_id)                  
+        self.assertEquals(course_obj.course_id, course_id)                  
         self.assertEquals(course_obj.name, course_name) 
         
 class CLIAdminCourseFixture(ChisubmitCLITestCase):

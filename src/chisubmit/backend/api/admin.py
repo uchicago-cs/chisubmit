@@ -11,7 +11,7 @@ class StudentAdmin(admin.ModelAdmin):
     list_display = ('user', 'course', 'dropped')
 
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('shortname', 'name', 'deadline', 'course')
+    list_display = ('assignment_id', 'name', 'deadline', 'course')
 
 admin.site.register(models.Course)
 admin.site.register(models.Instructor, InstructorAdmin)

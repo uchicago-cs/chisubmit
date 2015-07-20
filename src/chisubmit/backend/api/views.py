@@ -9,6 +9,7 @@ from chisubmit.backend.api.serializers import CourseSerializer,\
     AssignmentSerializer, TeamSerializer, UserSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
+from django.db import Error
 
 class CourseList(APIView):
     def get(self, request, format=None):
@@ -21,10 +22,19 @@ class CourseList(APIView):
     def post(self, request, format=None):
         if not (request.user.is_staff or request.user.is_superuser):
             raise PermissionDenied
+        
         serializer = CourseSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            course_id = serializer.validated_data["course_id"]
+            if Course.get_by_course_id(course_id) is not None:
+                msg = "There is already a course with course_id = %s" % course_id
+                return Response({"course_id": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CourseQualifiedAPIView(APIView):
@@ -81,9 +91,14 @@ class CourseDetail(CourseQualifiedAPIView):
     def patch(self, request, course, format=None):
         serializer = CourseSerializer(course, data=request.data, partial=True, context={'request': request})
         serializer.filter_initial_data(course, request.user)
+        
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, course, format=None):
@@ -106,7 +121,12 @@ class PersonList(CourseQualifiedAPIView):
             user = serializer.validated_data["user"]
             if self.person_class.objects.filter(course=course, user=user).exists():
                 return Response({"username": ["%s is already a %s in %s" % (user.username, self.person_str, course.course_id)]}, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save(course=course)
+
+            try:
+                serializer.save(course=course)
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -132,7 +152,10 @@ class PersonDetail(CourseQualifiedAPIView):
         serializer = self.person_serializer(person, data=request.data, partial=True, context={'request': request, 'course': course})        
         serializer.filter_initial_data(course, request.user)
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -184,7 +207,14 @@ class AssignmentList(CourseQualifiedAPIView):
     def post(self, request, course, format=None):
         serializer = AssignmentSerializer(data=request.data, context={'request': request, 'course': course})
         if serializer.is_valid():
-            serializer.save(course=course)
+            assignment_id = serializer.validated_data["assignment_id"]
+            if course.get_assignment(assignment_id) is not None:
+                msg = "There is already an assignment in course %s with assignment_id = %s" % (course.course_id, assignment_id)
+                return Response({"assignment_id": [msg]}, status=status.HTTP_400_BAD_REQUEST)   
+            try:
+                serializer.save(course=course)
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     
@@ -207,7 +237,10 @@ class AssignmentDetail(CourseQualifiedAPIView):
         serializer = AssignmentSerializer(assignment_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
         serializer.filter_initial_data(course, request.user)
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -226,7 +259,10 @@ class TeamList(CourseQualifiedAPIView):
     def post(self, request, course, format=None):
         serializer = TeamSerializer(data=request.data, context={'request': request, 'course': course})
         if serializer.is_valid():
-            serializer.save(course=course)
+            try:
+                serializer.save(course=course)
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)        
     
@@ -273,7 +309,10 @@ class UserList(APIView):
             raise PermissionDenied
         serializer = CourseSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     
@@ -303,7 +342,10 @@ class UserDetail(APIView):
         user = self.get_user(username)
         serializer = UserSerializer(user, data=request.data, partial=True, context={'request': request})        
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

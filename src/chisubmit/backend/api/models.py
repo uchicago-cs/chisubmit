@@ -29,8 +29,8 @@ class Course(models.Model):
         try:
             return cls.objects.get(course_id=course_id)
         except cls.DoesNotExist:
-            return None          
-    
+            return None
+            
     def has_instructor(self, user):
         return self.instructors.filter(username=user.username).exists()
 
@@ -57,6 +57,12 @@ class Course(models.Model):
         if user.is_staff or user.is_superuser:
             roles.add(CourseRoles.ADMIN)
         return roles
+    
+    def get_assignment(self, assignment_id):
+        try:
+            return Assignment.objects.get(course__course_id=self.course_id, assignment_id=assignment_id)
+        except Assignment.DoesNotExist:
+            return None
     
     # OPTIONS
     GIT_USERNAME_USER = 'user-id'
@@ -123,16 +129,19 @@ class Student(models.Model):
 
 class Assignment(models.Model):
     course = models.ForeignKey(Course)
-    assignment_id = models.SlugField(unique = True)
+    assignment_id = models.SlugField()
     name = models.CharField(max_length=64)
     deadline = models.DateTimeField()
 
     # Options
     min_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
-    max_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
-    
+    max_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])  
+            
     def __unicode__(self):
         return u"Assignment %s of %s" % (self.assignment_id, self.course.course_id)     
+
+    class Meta:
+        unique_together = ("assignment_id", "course")    
 
 class RubricComponent(models.Model):    
     assignment = models.ForeignKey(Assignment)

@@ -36,6 +36,7 @@ from chisubmit.client.course import Course
 from chisubmit.common.utils import create_connection
 from chisubmit.cli.shared.course import shared_course_list
 import operator
+from chisubmit.client.exceptions import UnknownObjectException
 
 @click.group(name="course")
 @click.pass_context
@@ -48,8 +49,14 @@ def admin_course(ctx):
 @click.argument('name', type=str)
 @click.pass_context
 def admin_course_add(ctx, course_id, name):
-    course = ctx.obj["client"].create_course(course_id = course_id,
-                                             name = name)
+    try:
+        course = ctx.obj["client"].get_course(course_id = course_id)
+        print "ERROR: Cannot create course."
+        print "       Course with course_id = %s already exists." % course_id
+        ctx.exit(CHISUBMIT_FAIL)
+    except UnknownObjectException, uoe:
+        course = ctx.obj["client"].create_course(course_id = course_id,
+                                                 name = name)
     
     return CHISUBMIT_SUCCESS
 

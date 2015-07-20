@@ -40,11 +40,18 @@ class ChisubmitRequestException(Exception):
         return self.__response.reason
 
     @property
-    def data(self):
-        return self.__data
+    def json(self):    
+        try:
+            return self.__response.json()
+        except ValueError:
+            return {"data": self.__response.text}  
+
+    @property
+    def response_data(self):
+        return self.__response.text
 
     def __str__(self):
-        return str(self.status) + " " + self.reason + " " + self.data.get("detail", str(self.data))
+        return "HTTP %i %s (%s %s)" % (self.status, self.reason, self.method, self.url)
     
     def print_debug_info(self):
         print "HTTP REQUEST"
@@ -99,15 +106,27 @@ class UnknownObjectException(ChisubmitRequestException):
 class BadRequestException(ChisubmitRequestException):
     
     def __init__(self, *args, **kwargs):
-        #TODO: Initialize errors
-        
         super(BadRequestException, self).__init__(*args, **kwargs)
         
+        try:
+            self.errors = self.json
+            if any([not isinstance(k, (str, unicode)) for k in self.errors.keys()]):
+                raise ValueError
+            if any([not isinstance(v, (list, tuple)) for v in self.errors.values()]):
+                raise ValueError
+            self.valid_errors = True        
+        except ValueError:
+            self.errors = {}
+            self.valid_errors = False
+              
     def print_errors(self):
-        print "HTTP request %s %s returned error code 400 (Bad Request)" % (self.method, self.url)
-        if len(self.errors) == 0:
-            print "No additional error messages returned."
+        if self.valid_errors:
+            for origin, reasons in self.errors.items():
+                print origin
+                for r in reasons:
+                    print " - %s" % r
+                print
         else:
-            for noun, message in self.errors:
-                print "%s: %s" % (noun, message)
-    
+            print "HTTP 400 response included incorrectly formatted error data:"
+            print self.response_data
+            

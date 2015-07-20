@@ -290,7 +290,37 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.course_id + "/assignments/" + assignment_id
         )
-        return chisubmit.client.assignment.Assignment(self._api_client, headers, data)       
+        return chisubmit.client.assignment.Assignment(self._api_client, headers, data)
+    
+    def create_assignment(self, assignment_id, name, deadline, min_students = None, max_students = None):
+        """
+        :calls: POST /courses/:course/assignments/
+        :param assignment_id: string
+        :param name: string
+        :param deadline: string
+        :param min_students: int
+        :param max_students: int
+        :rtype: :class:`chisubmit.client.assignment.Assignment`
+        """
+        assert isinstance(assignment_id, (str, unicode)), assignment_id
+        
+        # TODO: Convert/validate date
+        
+        post_data = {"assignment_id": assignment_id,
+                     "name": name,
+                     "deadline": deadline}
+        
+        if min_students is not None:
+            post_data["min_students"] = min_students
+        if max_students is not None:
+            post_data["max_students"] = max_students
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.course_id + "/assignments/",
+            data = post_data
+        )
+        return chisubmit.client.assignment.Assignment(self._api_client, headers, data)    
     
     def get_teams(self):
         """

@@ -1,7 +1,8 @@
 from chisubmit.backend.api.models import Course
 from chisubmit.tests.integration.clientlibs import ChisubmitClientLibsTestCase
 from chisubmit.tests.common import COURSE1_USERS, COURSE2_USERS
-from chisubmit.client.exceptions import UnknownObjectException
+from chisubmit.client.exceptions import UnknownObjectException,\
+    BadRequestException
 
 class CourseTests(ChisubmitClientLibsTestCase):
     
@@ -145,4 +146,41 @@ class CoursePermissionsTests(ChisubmitClientLibsTestCase):
                 c.get_course("cmsc40100")  
         
               
-                 
+class CourseValidationTests(ChisubmitClientLibsTestCase):
+    
+    fixtures = ['users', 'complete_course1', 'complete_course2']
+    
+    def test_create_course_invalid_id(self):
+        c = self.get_api_client("admintoken")
+        
+        with self.assertRaises(BadRequestException) as cm:
+            course = c.create_course(course_id = "cmsc 40200",
+                                     name = "Advanced Validation Testing")
+        
+        bre = cm.exception
+        self.assertItemsEqual(bre.errors.keys(), ["course_id"])
+        self.assertEqual(len(bre.errors["course_id"]), 1)
+        
+    def test_create_course_multiple_errors(self):
+        c = self.get_api_client("admintoken")
+        
+        with self.assertRaises(BadRequestException) as cm:
+            course = c.create_course(course_id = "cmsc 40210",
+                                     name = None)
+        
+        bre = cm.exception
+        self.assertItemsEqual(bre.errors.keys(), ["course_id", "name"])
+        self.assertEqual(len(bre.errors["course_id"]), 1)        
+        self.assertEqual(len(bre.errors["name"]), 1)        
+          
+    def test_create_course_existing_course(self):
+        c = self.get_api_client("admintoken")
+        
+        with self.assertRaises(BadRequestException) as cm:
+            course = c.create_course(course_id = "cmsc40100",
+                                     name = "Introduction to Software Testing")
+        
+        bre = cm.exception
+        self.assertItemsEqual(bre.errors.keys(), ["course_id"])
+        self.assertEqual(len(bre.errors["course_id"]), 1)
+        

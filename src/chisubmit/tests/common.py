@@ -11,6 +11,8 @@ from rest_framework.test import APILiveServerTestCase
 from click.testing import CliRunner
 from chisubmit.client.exceptions import BadRequestException
 from chisubmit.cli import chisubmit_cmd
+from chisubmit.backend.api.models import Course
+from django.contrib.auth.models import User
 
 colorama.init()
 
@@ -155,28 +157,26 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         self.git_api_keys[git_type] = apikey
     
     def assert_http_code(self, response, expected):
-        self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
+        self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))                
         
-    def create_user(self, admin_runner, user_id):
-        fname = "f_" + user_id
-        lname = "l_" + user_id
-        email = user_id + "@example.org"
-        result = admin_runner.run("admin user add", [user_id, fname, lname, email])
+    def create_user(self, admin_runner, username):
+        fname = "f_" + username
+        lname = "l_" + username
+        email = username + "@example.org"
+        result = admin_runner.run("admin user add", [username, fname, lname, email])
         self.assertEquals(result.exit_code, 0)
             
-        user = User.from_id(user_id)
-        self.assertIsNotNone(user)
-        self.assertEquals(user.id, user_id)            
-        self.assertEquals(user.first_name, fname)            
-        self.assertEquals(user.last_name, lname)            
-        self.assertEquals(user.email, email)      
+        try:
+            user_obj = User.objects.get(username=username)
+        except User.DoesNotExist:
+            self.fail("User was not added to database")              
+
+        self.assertEquals(user_obj.username, username)            
+        self.assertEquals(user_obj.first_name, fname)            
+        self.assertEquals(user_obj.last_name, lname)            
+        self.assertEquals(user_obj.email, email)      
         
-        # TODO: We manually set the API key here, since the CLI
-        # and the server are not completely set up for fetching
-        # API keys yet. 
-        user.api_key = user_id
-        self.server.db.session.add(user)
-        self.server.db.session.commit()
+        # TODO: Add token
 
     def create_clients(self, runner, admin_id, instructor_ids = [], grader_ids = [], student_ids = [], course_id=None, verbose=False):
         base_url = self.live_server_url + "/api/v1"
@@ -205,7 +205,7 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         result = admin.run("admin course add", [course_id, course_name])
         self.assertEquals(result.exit_code, 0)
         
-        course = Course.from_id(course_id)
+        course = Course.get_by_course_id(course_id)
         self.assertIsNotNone(course)
         self.assertEquals(course.name, course_name)
         

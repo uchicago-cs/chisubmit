@@ -30,11 +30,28 @@ class FieldPermissionsMixin(object):
                     self.initial_data.pop(f)                
                 
         
-class UserSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=30, read_only=True)
-    first_name = serializers.CharField(max_length=30, read_only=True)
-    last_name = serializers.CharField(max_length=30, read_only=True)
-    email = serializers.EmailField(read_only=True)    
+class UserSerializer(serializers.Serializer, FieldPermissionsMixin):
+    username = serializers.CharField(max_length=30)
+    first_name = serializers.CharField(max_length=30)
+    last_name = serializers.CharField(max_length=30)
+    email = serializers.EmailField()    
+    
+    readonly_fields = { "username": AllExceptAdmin,
+                        "first_name": AllExceptAdmin,
+                        "last_name": AllExceptAdmin,
+                        "email": AllExceptAdmin
+                      }    
+    
+    def create(self, validated_data):
+        return User.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.username = validated_data.get('username', instance.username)
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.save()
+        return instance      
     
 
 class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):

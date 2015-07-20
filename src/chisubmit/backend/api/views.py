@@ -307,13 +307,19 @@ class UserList(APIView):
     def post(self, request, format=None):
         if not (request.user.is_staff or request.user.is_superuser):
             raise PermissionDenied
-        serializer = CourseSerializer(data=request.data, context={'request': request})
+        serializer = UserSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
+            username = serializer.validated_data["username"]
             try:
-                serializer.save()
-            except Error, e:
-                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                user = User.objects.get(username=username)
+                msg = "There is already a username with username = %s" % (username)
+                return Response({"username": [msg]}, status=status.HTTP_400_BAD_REQUEST)                               
+            except User.DoesNotExist:
+                try:
+                    serializer.save()
+                except Error, e:
+                    return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     
 class UserDetail(APIView):

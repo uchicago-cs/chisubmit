@@ -122,3 +122,26 @@ class Chisubmit(object):
             "/users/" + username
         )
         return chisubmit.client.users.User(self, headers, data)    
+    
+    def create_user(self, username, first_name, last_name, email):
+        """
+        :calls: POST /users/
+        :param username: string
+        :param first_name: string
+        :param last_name: string
+        :param email: string
+        :rtype: :class:`chisubmit.client.users.User`
+        """
+        assert isinstance(username, (str, unicode)), username
+        
+        post_data = {"username": username,
+                     "first_name": first_name,
+                     "last_name": last_name,
+                     "email": email}
+        
+        headers, data = self._requester.request(
+            "POST",
+            "/users/",
+            data = post_data
+        )
+        return chisubmit.client.users.User(self, headers, data)    

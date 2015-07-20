@@ -1,4 +1,4 @@
-from chisubmit.tests.common import cli_test, ChisubmitIntegrationTestCase
+from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local,\
     set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
@@ -6,7 +6,9 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from datetime import timedelta
 import os
 
-class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
+class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
+        
+    fixtures = ['admin_user']
         
     @cli_test
     def test_complete_with_extensions_per_team(self, runner):
@@ -20,7 +22,7 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitIntegrationTestCase):
         
         all_users = instructor_ids + grader_ids + student_ids
         
-        admin, instructors, graders, students = self.create_clients(runner, course_id, admin_id, instructor_ids, grader_ids, student_ids)
+        admin, instructors, graders, students = self.create_clients(runner, admin_id, instructor_ids, grader_ids, student_ids, course_id, verbose = True)
         self.create_users(admin, all_users)
         
         self.create_course(admin, course_id, course_name)

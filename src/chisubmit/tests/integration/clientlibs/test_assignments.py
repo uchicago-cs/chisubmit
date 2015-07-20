@@ -38,11 +38,11 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
         self.assertEquals(assignment.assignment_id, "pa3")
         self.assertEquals(assignment.name, "Programming Assignment 3")
         
-        try:
-            course_obj = Course.get_by_course_id("cmsc40100")
-            assignment_obj = course_obj.get_assignment("pa3")
-        except Assignment.DoesNotExist:
-            self.fail("Assignment was not added to database")  
+        course_obj = Course.get_by_course_id("cmsc40100")
+        self.assertIsNotNone(course_obj)
+        
+        assignment_obj = course_obj.get_assignment("pa3")
+        self.assertIsNotNone(assignment_obj, "Assignment was not added to database")
             
         self.assertEquals(assignment_obj.assignment_id, "pa3")                  
         self.assertEquals(assignment_obj.name, "Programming Assignment 3")                  

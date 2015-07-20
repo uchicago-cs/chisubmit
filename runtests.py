@@ -15,9 +15,9 @@ test_suites = {"api": "chisubmit.tests.unit.api",
                "clientlibs": "chisubmit.tests.integration.clientlibs",
                "cli": "chisubmit.tests.integration.cli",
          
-               "complete1": "chisubmit.tests.integration.complete.complete1",
-               "complete2": "chisubmit.tests.integration.complete.complete2",
-               "complete3": "chisubmit.tests.integration.complete.complete3"}
+               "complete1": "chisubmit.tests.integration.complete.test_complete1",
+               "complete2": "chisubmit.tests.integration.complete.test_complete2",
+               "complete3": "chisubmit.tests.integration.complete.test_complete3"}
          
 unit_tests = ["api"]
 
@@ -70,14 +70,9 @@ def runtests(failfast, quiet, verbose, buffer,
         
     if tests in complete_tests:
         ran = True
-        test_class = integration_tests[tests]
-        suite = unittest.TestSuite()
-        for name in unittest.TestLoader().getTestCaseNames(test_class):
-            test = test_class(name)
-            configure_integration_test(test, test_config, integration_git_server, integration_git_staging)
-            suite.addTest(test)
-        
-        runner.run(suite)
+        # TODO: Need to pass test object to configure_complete_test for git servers to be set correctly
+        # configure_complete_test(test, test_config, integration_git_server, integration_git_staging)
+        runner.run_tests([test_suites[tests]])
         
     if not ran:
         try:
@@ -86,7 +81,7 @@ def runtests(failfast, quiet, verbose, buffer,
             print "Unknown test: %s" % tests
     
     
-def configure_integration_test(test, config, git_server, git_staging):
+def configure_complete_test(test, config, git_server, git_staging):
     if config is None and (git_server is not None or git_staging is not None):
         print "ERROR: You have specified a Git server or staging server, but have"
         print "       not provided a configuration file."

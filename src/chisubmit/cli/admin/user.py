@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
 #
@@ -32,6 +31,7 @@ import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.user import User
+from chisubmit.client.exceptions import UnknownObjectException
 
 @click.group(name="user")
 @click.pass_context
@@ -39,22 +39,22 @@ def admin_user(ctx):
     pass
 
 @click.command(name="add")
-@click.argument('user_id', type=str)
+@click.argument('username', type=str)
 @click.argument('first_name', type=str)
 @click.argument('last_name', type=str)
 @click.argument('email', type=str)
 @click.pass_context
-def admin_user_add(ctx, user_id, first_name, last_name, email):
-    user = User.from_id(user_id)
-    
-    if user is not None:
-        print "User %s already exists." % user_id
-        ctx.exit(CHISUBMIT_FAIL)    
-    
-    user = User(id = user_id,
-                first_name = first_name,
-                last_name = last_name,
-                email = email)
+def admin_user_add(ctx, username, first_name, last_name, email):
+    try:
+        user = ctx.obj["client"].get_user(username = username)
+        print "ERROR: Cannot create user."
+        print "       Username with user_id = %s already exists." % username
+        ctx.exit(CHISUBMIT_FAIL)
+    except UnknownObjectException, uoe:
+        user = ctx.obj["client"].create_user(username = username,
+                                             first_name = first_name,
+                                             last_name = last_name,
+                                             email = email)
 
     return CHISUBMIT_SUCCESS
 

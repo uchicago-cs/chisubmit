@@ -1,57 +1,55 @@
-from chisubmit.tests.common import ChisubmitTestCase, ChisubmitCLITestClient,\
-    cli_test
-from chisubmit.tests.fixtures import complete_course
+from chisubmit.tests.common import ChisubmitCLITestClient,\
+    cli_test, ChisubmitCLITestCase
 from chisubmit.cli import chisubmit_get_credentials_cmd
-from chisubmit.backend.api.users.models import User
+from rest_framework.authtoken.models import Token
     
-class CLIGetChisubmitCredentials(ChisubmitTestCase):
-            
-    FIXTURE = complete_course
-            
+class CLIGetChisubmitCredentials(ChisubmitCLITestCase):
+                    
+    fixtures = ['users']
+                
     @cli_test
     def test_auth1(self, runner):
-        instructor = ChisubmitCLITestClient("instructor1", None, runner,
-                                            verbose = True)
+        admin, instructors, _, _ = self.create_clients(runner, "admin", instructor_ids=["instructor1"])
         
-        user = User.from_id("instructor1")
-        user.api_key = None
-        self.server.db.session.add(user)
-        self.server.db.session.commit()
+        instructor = instructors[0]
+        
+        token = Token.objects.get(user__username="instructor1")
+        self.assertEqual(token.key, "instructor1token")    
+        token.delete()
         
         result = instructor.run(None, 
                                 cmd = chisubmit_get_credentials_cmd,
-                                cmd_input = "instructor1\n"+self.auth_password+'\n')
+                                cmd_input = "instructor1\ninstructor1\n")
         self.assertEquals(result.exit_code, 0)
         
-        user = User.from_id("instructor1")
-        self.assertIsNotNone(user.api_key)
-        self.assertNotEquals(user.api_key, "instructor1")
+        token = Token.objects.get(user__username="instructor1")
+        self.assertNotEqual(token.key, "instructor1token")    
 
     @cli_test
     def test_auth2(self, runner):
-        instructor = ChisubmitCLITestClient("instructor1", None, runner,
-                                            verbose = True)
+        admin, instructors, _, _ = self.create_clients(runner, "admin", instructor_ids=["instructor1"])
+        
+        instructor = instructors[0]
                 
         result = instructor.run(None, 
                                 cmd = chisubmit_get_credentials_cmd,
-                                cmd_input = "instructor1\n"+self.auth_password+'\n')
+                                cmd_input = "instructor1\ninstructor1\n")
         self.assertEquals(result.exit_code, 0)
         
-        user = User.from_id("instructor1")
-        self.assertIsNotNone(user.api_key)
-        self.assertEquals(user.api_key, "instructor1")
+        token = Token.objects.get(user__username="instructor1")
+        self.assertEqual(token.key, "instructor1token")
 
     @cli_test
     def test_auth3(self, runner):
-        instructor = ChisubmitCLITestClient("instructor1", None, runner,
-                                            verbose = True)
+        admin, instructors, _, _ = self.create_clients(runner, "admin", instructor_ids=["instructor1"])
+        
+        instructor = instructors[0]
                 
         result = instructor.run(None, 
                                 ["--reset"],
                                 cmd = chisubmit_get_credentials_cmd,
-                                cmd_input = "instructor1\n"+self.auth_password+'\n')
+                                cmd_input = "instructor1\ninstructor1\n")
         self.assertEquals(result.exit_code, 0)
         
-        user = User.from_id("instructor1")
-        self.assertIsNotNone(user.api_key)
-        self.assertNotEquals(user.api_key, "instructor1")
+        token = Token.objects.get(user__username="instructor1")
+        self.assertNotEqual(token.key, "instructor1token")

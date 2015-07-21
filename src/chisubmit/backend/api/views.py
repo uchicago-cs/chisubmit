@@ -10,6 +10,9 @@ from chisubmit.backend.api.serializers import CourseSerializer,\
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.db import Error
+from rest_framework.authentication import BasicAuthentication,\
+    TokenAuthentication
+from rest_framework.authtoken.models import Token
 
 class CourseList(APIView):
     def get(self, request, format=None):
@@ -322,7 +325,7 @@ class UserList(APIView):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     
-class UserDetail(APIView):
+class BaseUserDetail(APIView):
             
     def get_user(self, username):
         try:
@@ -331,14 +334,14 @@ class UserDetail(APIView):
         except User.DoesNotExist:
             raise Http404  
             
-    def get(self, request, username, format=None):
+    def _get(self, request, username, format=None):
         if username != request.user.username and not (request.user.is_staff or request.user.is_superuser):
             raise Http404        
         user = self.get_user(username)
         serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
 
-    def patch(self, request, username, format=None):
+    def _patch(self, request, username, format=None):
         if not (request.user.is_staff or request.user.is_superuser):
             if username == request.user.username:
                 raise PermissionDenied
@@ -355,7 +358,7 @@ class UserDetail(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, username, format=None):
+    def _delete(self, request, username, format=None):
         if not (request.user.is_staff or request.user.is_superuser):
             if username == request.user.username:
                 raise PermissionDenied
@@ -365,3 +368,71 @@ class UserDetail(APIView):
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)    
     
+class UserDetail(BaseUserDetail):    
+    
+    def get(self, request, username, format=None):
+        return self._get(request, username, format)
+
+    def patch(self, request, username, format=None):
+        return self._patch(request, username, format)
+
+    def delete(self, request, username, format=None):
+        return self._delete(request, username, format)    
+    
+class AuthUserDetail(BaseUserDetail):    
+    
+    def get(self, request, format=None):
+        return self._get(request, request.user.username, format)
+
+    def patch(self, request, format=None):
+        return self._patch(request, request.user.username, format)
+
+    def delete(self, request, format=None):
+        return self._delete(request, request.user.username, format)
+    
+class BaseUserToken(APIView):
+    
+    authentication_classes = (BasicAuthentication, TokenAuthentication)
+    
+    def _get(self, request, username, format=None):
+        try:
+            user = User.objects.get(username = username)
+        except User.DoesNotExist:
+            raise Http404          
+        
+        if not (request.user.is_staff or request.user.is_superuser or username == request.user.username):
+            raise Http404
+        
+        reset = "true" in request.query_params.get("reset", [])
+        
+        if reset:
+            try:
+                token = Token.objects.get(user__username=username)
+                old_token = token.key
+                token.delete()
+            except Token.DoesNotExist:
+                old_token = None
+        
+            token = Token.objects.create(user=user)
+            
+            return Response({'old_token': old_token, 'token': token.key, 'new': True}, status=status.HTTP_201_CREATED)
+        else:
+            token, created = Token.objects.get_or_create(user=user)
+        
+            if created:
+                return Response({'old_token': None, 'token': token.key, 'new': True}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({'old_token': None, 'token': token.key, 'new': False}, status=status.HTTP_200_OK)
+            
+class UserToken(BaseUserToken):    
+    
+    def get(self, request, username, format=None):
+        return self._get(request, username, format)
+
+    
+class AuthUserToken(BaseUserToken):    
+    
+    def get(self, request, format=None):
+        return self._get(request, request.user.username, format)
+        
+        

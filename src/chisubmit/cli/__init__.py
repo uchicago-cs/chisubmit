@@ -42,7 +42,7 @@ import getpass
 from docutils.utils.math.math2html import URL
 from chisubmit.client.requester import BadRequestException
 from chisubmit.client.exceptions import UnknownObjectException,\
-    ChisubmitRequestException
+    ChisubmitRequestException, UnauthorizedException
 config = None
 
 import chisubmit.common.log as log
@@ -88,7 +88,7 @@ def chisubmit_cmd(ctx, api_url, api_key, conf, dir, course, verbose, debug):
     if api_url is None:
         api_url = config['api-url']
 
-    client = Chisubmit(api_token = api_key, base_url=api_url)
+    client = Chisubmit(api_key, base_url=api_url)
 
     if course:
         course_specified = True
@@ -124,6 +124,16 @@ def cmd_wrapper(cmd):
         if DEBUG:
             print
             uoe.print_debug_info()
+    except UnauthorizedException, ue:
+        print
+        print "ERROR: Your chisubmit credentials are invalid"
+        print
+        print "URL: %s" % ue.url
+        print "HTTP method: %s" % ue.method
+        print "Error: Unauthorized (401)"
+        if DEBUG:
+            print
+            uoe.print_debug_info()            
     except BadRequestException, bre:
         print
         print "ERROR: There was an error processing this request"
@@ -167,14 +177,13 @@ chisubmit_cmd.add_command(admin)
 @click.option('--dir', type=str, default=None)
 @click.option('--verbose', is_flag=True)
 @click.option('--debug', is_flag=True)
-@click.option('--user', prompt='Enter your chisubmit username')
+@click.option('--api-url', type=str, default=None)
+@click.option('--username', prompt='Enter your chisubmit username')
 @click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
-@click.option('--url', type=str)
 @click.option('--no-save', is_flag=True)
 @click.option('--reset', is_flag=True)
-@click.option('--testing', is_flag=True)
 @click.pass_context
-def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, user, password, url, no_save, reset, testing):
+def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, username, password, no_save, reset):
     global VERBOSE, DEBUG
     
     VERBOSE = verbose
@@ -182,45 +191,35 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, user, password
         
     config = Config(dir, conf)
 
-    server_url = None
-    if testing:
-        from chisubmit.backend.api import app 
-        session.connect_test(app)
-    else:
-        if config['api-url'] is None and url is None:
-            print "No server URL specified. Please add it to your chisubmit.conf file"
-            print "or use the --url option"
-            ctx.exit(CHISUBMIT_FAIL)
-            
-        if url is not None:
-            server_url = url
-        else:
-            server_url = config['api-url']
-            
-        session.connect(server_url)
-            
+    if api_url is None:
+        api_url = config['api-url']
+
+    if api_url is None:
+        print "No server URL specified. Please add it to your chisubmit.conf file"
+        print "or use the --url option"
+        ctx.exit(CHISUBMIT_FAIL)
+
+    client = Chisubmit(username, password=password, base_url=api_url)
+
     try:
-        token, exists_prior, is_new = User.get_token(user, password, reset)
-    except HTTPError, he:
-        if he.response.status_code == 401:
-            print "ERROR: Incorrect username/password"
-            ctx.exit(CHISUBMIT_FAIL)
-        else:
-            raise    
+        token, created = client.get_user_token(reset = reset)
+    except UnauthorizedException, ue:
+        print "ERROR: Incorrect username/password"
+        ctx.exit(CHISUBMIT_FAIL)
     except ConnectionError, ce:
         print "ERROR: Could not connect to chisubmit server"
-        print "URL: %s" % server_url
+        print "URL: %s" % api_url
         ctx.exit(CHISUBMIT_FAIL) 
 
     if token:
         config['api-key'] = token
         if config['api-url'] is None and not no_save:
-            config['api-url'] = url
+            config['api-url'] = api_url
 
         if not no_save:
             config.save()
 
-        if is_new:
+        if created:
             ttype = "NEW"
         else:
             ttype = "EXISTING"
@@ -231,7 +230,7 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, user, password
             click.echo("")
             click.echo("The token has been stored in your chisubmit configuration file.")
             click.echo("You should now be able to use the chisubmit commands.")
-        if exists_prior and is_new:
+        if reset and created:
             click.echo("")
             click.echo("Your previous chisubmit access token has been cancelled.")
             click.echo("Make sure you run chisubmit-get-credentials on any other")

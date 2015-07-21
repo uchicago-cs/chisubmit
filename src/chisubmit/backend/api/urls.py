@@ -25,7 +25,10 @@ urlpatterns = [
 
     url(URL_PREFIX + r'users/$', views.UserList.as_view(), name="user-list"),
     url(URL_PREFIX + r'users/(?P<username>[a-zA-Z0-9_-]+)/$', views.UserDetail.as_view(), name="user-detail"),
+    url(URL_PREFIX + r'users/(?P<username>[a-zA-Z0-9_-]+)/token/$', views.UserToken.as_view(), name="user-token"),
     
+    url(URL_PREFIX + r'user/$', views.AuthUserDetail.as_view(), name="auth-user-detail"),
+    url(URL_PREFIX + r'user/token/$', views.AuthUserToken.as_view(), name="auth-user-token"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

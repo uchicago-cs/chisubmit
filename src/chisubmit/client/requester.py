@@ -34,20 +34,23 @@ import json
 import sys
 from requests.exceptions import HTTPError
 from chisubmit.client.exceptions import UnknownObjectException,\
-    ChisubmitRequestException, BadRequestException
+    ChisubmitRequestException, BadRequestException, UnauthorizedException
+import base64
 
 
 
 class Requester(object):
     
-    def __init__(self, api_token, base_url):
+    def __init__(self, login_or_token, password, base_url):
         
         self.__base_url = base_url
         
         self.__headers = {}
         self.__headers['content-type'] = 'application/json'
-        if api_token is not None:
-            self.__headers["Authorization"] = "Token %s" % api_token
+        if login_or_token is not None and password is not None:
+            self.__headers["Authorization"] = "Basic " + base64.b64encode('%s:%s' % (login_or_token, password))
+        elif login_or_token is not None:
+            self.__headers["Authorization"] = "Token %s" % login_or_token
         
         self.__session = Session()
 
@@ -76,6 +79,8 @@ class Requester(object):
         if response.status_code == 400:
             raise BadRequestException(method, url, params, data, all_headers, response)        
         elif 400 < response.status_code < 500:
+            if response.status_code == 401:
+                raise UnauthorizedException(method, url, params, data, all_headers, response)
             if response.status_code == 404:
                 raise UnknownObjectException(method, url, params, data, all_headers, response)
             else:

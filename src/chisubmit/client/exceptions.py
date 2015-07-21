@@ -95,7 +95,11 @@ class ChisubmitRequestException(Exception):
         except ValueError:
             response_data = self.__response.text
             print response_data
-        
+    
+    
+class UnauthorizedException(ChisubmitRequestException):
+    def __init__(self, *args, **kwargs):
+        super(UnauthorizedException, self).__init__(*args, **kwargs) 
     
     
 class UnknownObjectException(ChisubmitRequestException):

@@ -13,6 +13,7 @@ from chisubmit.client.exceptions import BadRequestException
 from chisubmit.cli import chisubmit_cmd
 from chisubmit.backend.api.models import Course
 from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 colorama.init()
 
@@ -176,7 +177,9 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         self.assertEquals(user_obj.last_name, lname)            
         self.assertEquals(user_obj.email, email)      
         
-        # TODO: Add token
+        # Creating a custom token cannot be done throught the API or CLI, so
+        # we create a Token object directly.
+        Token.objects.create(key=username+"token", user=user_obj)
 
     def create_clients(self, runner, admin_id, instructor_ids = [], grader_ids = [], student_ids = [], course_id=None, verbose=False):
         base_url = self.live_server_url + "/api/v1"

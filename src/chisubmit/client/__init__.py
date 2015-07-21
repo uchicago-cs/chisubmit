@@ -32,10 +32,10 @@ from chisubmit.client.requester import Requester
 
 class Chisubmit(object):
     
-    def __init__(self, api_token, base_url, deferred_save = False):
+    def __init__(self, login_or_token, base_url, password = None, deferred_save = False):
         # TODO: Validate URL 
         
-        self._requester = Requester(api_token, base_url.rstrip("/"))
+        self._requester = Requester(login_or_token, password, base_url.rstrip("/"))
         self._deferred_save = deferred_save
     
     def get_courses(self):
@@ -109,19 +109,53 @@ class Chisubmit(object):
         )
         return [chisubmit.client.users.User(self, headers, elem) for elem in data]    
     
-    def get_user(self, username):
+    def get_user(self, username = None):
         """
-        :calls: GET /users/:username
+        :calls: GET /users/:username or GET /user
         :param username: string
         :rtype: :class:`chisubmit.client.users.User`
         """
-        assert isinstance(username, (str, unicode)), username
+        assert isinstance(username, (str, unicode)) or username is None, username
         
-        headers, data = self._requester.request(
-            "GET",
-            "/users/" + username
-        )
-        return chisubmit.client.users.User(self, headers, data)    
+        if username is None:
+            headers, data = self._requester.request(
+                "GET",
+                "/user"
+            )            
+        else:        
+            headers, data = self._requester.request(
+                "GET",
+                "/users/" + username
+            )
+        return chisubmit.client.users.User(self, headers, data)
+    
+    def get_user_token(self, username = None, reset=False):
+        """
+        :calls: GET /users/:username/token or GET /user/token
+        :param username: string
+        :rtype: token: string, created: bool
+        """
+        assert isinstance(username, (str, unicode)) or username is None, username
+        
+        if reset:
+            params = {"reset":"true"}
+        else:
+            params = {}
+        
+        if username is None:
+            headers, data = self._requester.request(
+                "GET",
+                "/user/token",
+                params = params
+            )            
+        else:        
+            headers, data = self._requester.request(
+                "GET",
+                "/users/" + username + "/token",
+                params = params
+            )
+        
+        return data["token"], data["new"]    
     
     def create_user(self, username, first_name, last_name, email):
         """

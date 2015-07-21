@@ -91,9 +91,9 @@ def gen_api_key():
     
 def create_connection(course, config, staging = False):
     if not staging:
-        connstr = course.options["git-server-connstr"]
+        connstr = course.git_server_connstr
     else:
-        connstr = course.options["git-staging-connstr"]
+        connstr = course.git_staging_connstr
 
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()

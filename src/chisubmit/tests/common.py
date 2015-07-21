@@ -11,7 +11,7 @@ from rest_framework.test import APILiveServerTestCase
 from click.testing import CliRunner
 from chisubmit.client.exceptions import BadRequestException
 from chisubmit.cli import chisubmit_cmd
-from chisubmit.backend.api.models import Course
+from chisubmit.backend.api.models import Course, Student
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
@@ -188,7 +188,7 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         
         instructors = []
         for instructor_id in instructor_ids:
-            instructors.append(ChisubmitCLITestClient(base_url, instructor_id+"token", instructor_id, runner, git_credentials=self.git_api_keys,  verbose = verbose, course = course_id))
+            instructors.append(ChisubmitCLITestClient(base_url, instructor_id, instructor_id+"token", runner, git_credentials=self.git_api_keys,  verbose = verbose, course = course_id))
 
         graders = []
         for grader_id in grader_ids:
@@ -220,17 +220,15 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         git_server_connstr = self.git_server_connstr
         git_staging_connstr = self.git_staging_connstr
 
-        result = admin.run("admin course set-option %s git-server-connstr %s" % (course_id, git_server_connstr))
+        result = admin.run("admin course set-attribute %s git_server_connstr %s" % (course_id, git_server_connstr))
         self.assertEquals(result.exit_code, 0)
 
-        result = admin.run("admin course set-option %s git-staging-connstr %s" % (course_id, git_staging_connstr))
+        result = admin.run("admin course set-attribute %s git_staging_connstr %s" % (course_id, git_staging_connstr))
         self.assertEquals(result.exit_code, 0)
         
-        course = Course.from_id(course_id)
-        self.assertIn("git-server-connstr", course.options)
-        self.assertIn("git-staging-connstr", course.options)
-        self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
-        self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
+        course = Course.get_by_course_id(course_id)
+        self.assertEquals(course.git_server_connstr, git_server_connstr)
+        self.assertEquals(course.git_staging_connstr, git_staging_connstr)
         
         result = admin.run("admin course unsetup-repo %s" % (course_id))
         self.assertEquals(result.exit_code, 0)
@@ -264,8 +262,8 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
             else:
                 git_username = self.git_server_user
     
-            result = instructors[0].run("instructor user set-repo-option", 
-                                    ["instructor", instructors[0].user_id, "git-username", git_username])
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                    ["instructor", instructors[0].user_id, "git_username", git_username])
             self.assertEquals(result.exit_code, 0)
 
         for grader in graders:
@@ -274,8 +272,8 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
             else:
                 git_username = self.git_server_user
     
-            result = instructors[0].run("instructor user set-repo-option", 
-                                        ["grader", graders[0].user_id, "git-username", git_username])
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                        ["grader", graders[0].user_id, "git_username", git_username])
             self.assertEquals(result.exit_code, 0)
                 
         result = admin.run("admin course update-repo-access", [course_id])
@@ -293,12 +291,9 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
             result = student.run("student course set-git-username", [git_username])
             self.assertEquals(result.exit_code, 0)
             
-            course_student = CoursesStudents.query.filter_by(
-                course_id=course_id).filter_by(
-                student_id=student.user_id).first()
+            student_obj = Student.objects.get(course__course_id = course_id, user__username = student.user_id)
                 
-            self.assertIn("git-username", course_student.repo_info)
-            self.assertEquals(course_student.repo_info["git-username"], git_username)
+            self.assertEquals(student_obj.git_username, git_username)
 
 
     def create_team_repos(self, admin, course_id, teams, students_team):

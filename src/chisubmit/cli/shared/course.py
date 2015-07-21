@@ -1,7 +1,9 @@
 import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.course import Course
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, get_course_or_exit,\
+    api_obj_set_attribute, get_instructor_or_exit, get_grader_or_exit,\
+    get_student_or_exit
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
@@ -65,3 +67,20 @@ def shared_course_get_git_credentials(ctx, course, username, password, no_save, 
             print "chisubmit has been configured to use this token from now on."
 
     return CHISUBMIT_SUCCESS
+
+@click.command(name="set-user-attribute")
+@click.argument('user_type', type=click.Choice(["instructor", "grader", "student"]))
+@click.argument('username', type=str)
+@click.argument('attr_name', type=str)
+@click.argument('attr_value', type=str)
+@pass_course
+@click.pass_context
+def shared_course_set_user_attribute(ctx, course, user_type, username, attr_name, attr_value):
+    if user_type == "instructor":
+        user = get_instructor_or_exit(ctx, course, username)
+    elif user_type == "grader":
+        user = get_grader_or_exit(ctx, course, username)
+    elif user_type == "student":
+        user = get_student_or_exit(ctx, course, username)
+    
+    api_obj_set_attribute(ctx, user, attr_name, attr_value)

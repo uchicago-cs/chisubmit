@@ -35,8 +35,8 @@ import sys
 from pprint import pprint
 from requests.exceptions import HTTPError, ConnectionError
 from chisubmit.cli.admin import admin
-#from chisubmit.cli.instructor import instructor
-#from chisubmit.cli.student import student
+from chisubmit.cli.instructor import instructor
+from chisubmit.cli.student import student
 #from chisubmit.cli.grader import grader
 import getpass
 from docutils.utils.math.math2html import URL
@@ -167,8 +167,8 @@ def cmd_wrapper(cmd):
         handle_unexpected_exception()
 
 chisubmit_cmd.add_command(admin)
-#chisubmit_cmd.add_command(instructor)
-#chisubmit_cmd.add_command(student)
+chisubmit_cmd.add_command(instructor)
+chisubmit_cmd.add_command(student)
 #chisubmit_cmd.add_command(grader)
 
 

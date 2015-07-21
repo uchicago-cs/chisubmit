@@ -27,10 +27,10 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         
         self.create_course(admin, course_id, course_name)
 
-        result = admin.run("admin course set-option %s default-extensions 2" % (course_id))
+        result = admin.run("admin course set-attribute %s default_extensions 2" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
-        result = admin.run("admin course set-option %s extension-policy per_team" % (course_id))
+        result = admin.run("admin course set-attribute %s extension_policy per-team" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)

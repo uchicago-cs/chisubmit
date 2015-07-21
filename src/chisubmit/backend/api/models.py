@@ -13,6 +13,15 @@ GradersAndStudents = set([CourseRoles.GRADER, CourseRoles.STUDENT])
 AllExceptAdmin = set([CourseRoles.INSTRUCTOR, CourseRoles.GRADER, CourseRoles.STUDENT])
 Students = set([CourseRoles.STUDENT])
 
+class OwnerPermissions(Enum):
+    READ = 0
+    WRITE = 1
+
+Read = set([OwnerPermissions.READ])
+Write = set([OwnerPermissions.WRITE])
+ReadWrite = Read | Write
+
+
 class Course(models.Model):
     course_id = models.SlugField(unique = True)
     name = models.CharField(max_length=64)
@@ -79,6 +88,8 @@ class Course(models.Model):
         (EXT_PER_STUDENT, 'Extensions per student'),
     )
     
+    git_server_connstr = models.CharField(max_length=64, null=True)
+    git_staging_connstr = models.CharField(max_length=64, null=True)
     git_usernames = models.CharField(max_length=16, choices=GIT_USERNAME_CHOICES, default=GIT_USERNAME_USER)
     git_staging_usernames = models.CharField(max_length=16, choices=GIT_USERNAME_CHOICES, default=GIT_USERNAME_USER)
     extension_policy = models.CharField(max_length=16, choices=EXT_CHOICES, default=EXT_PER_STUDENT)

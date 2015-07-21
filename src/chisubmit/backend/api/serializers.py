@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from chisubmit.backend.api.models import Course, GradersAndStudents, AllExceptAdmin,\
-    Students, Student, Instructor, Grader, Team, Assignment
+    Students, Student, Instructor, Grader, Team, Assignment, ReadWrite,\
+    OwnerPermissions, Read
 from django.contrib.auth.models import User
 from rest_framework.reverse import reverse
 
@@ -18,17 +19,20 @@ class FieldPermissionsMixin(object):
         
         return data
         
-    def filter_initial_data(self, course, user, raise_exception=False):
+    def filter_initial_data(self, course, user, is_owner=False, raise_exception=False):
         roles = course.get_roles(user)
         fields = self.initial_data.keys()
+        owner_override = getattr(self, "owner_override", {})
+
         for f in fields:
             if hasattr(self, "hidden_fields") and f in self.hidden_fields:
-                if roles.issubset(self.hidden_fields[f]):
-                    self.initial_data.pop(f)
-            elif hasattr(self, "readonly_fields") and  f in self.readonly_fields:
-                if roles.issubset(self.readonly_fields[f]):
-                    self.initial_data.pop(f)                
-                
+                if not (is_owner and OwnerPermissions.READ in owner_override.get(f, [])):
+                    if roles.issubset(self.hidden_fields[f]):
+                        self.initial_data.pop(f)
+            elif hasattr(self, "readonly_fields") and f in self.readonly_fields:
+                if not (is_owner and OwnerPermissions.WRITE in owner_override.get(f, [])):
+                    if roles.issubset(self.readonly_fields[f]):
+                        self.initial_data.pop(f)                
         
 class UserSerializer(serializers.Serializer, FieldPermissionsMixin):
     username = serializers.CharField(max_length=30)
@@ -66,12 +70,15 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
     teams_url = serializers.SerializerMethodField()
     
     
+    git_server_connstr = serializers.CharField(max_length=64, required=False)
+    git_staging_connstr = serializers.CharField(max_length=64, required=False)
     git_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
     git_staging_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
     extension_policy = serializers.ChoiceField(choices=Course.EXT_CHOICES, default=Course.EXT_PER_STUDENT)
     default_extensions = serializers.IntegerField(default=0, min_value=0)    
     
-    hidden_fields = { "git_usernames": GradersAndStudents,
+    hidden_fields = { "git_staging_connstr": Students,    
+                      "git_usernames": GradersAndStudents,
                       "git_staging_usernames": GradersAndStudents,
                       "extension_policy": GradersAndStudents,
                       "default_extensions": GradersAndStudents
@@ -79,6 +86,8 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     readonly_fields = { "course_id": AllExceptAdmin,
                         "name": AllExceptAdmin,
+                        "git_server_connstr": AllExceptAdmin,
+                        "git_staging_connstr": AllExceptAdmin,                        
                         "git_usernames": AllExceptAdmin,
                         "git_staging_usernames": AllExceptAdmin,
                         "extension_policy": AllExceptAdmin,
@@ -109,6 +118,8 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
     def update(self, instance, validated_data):
         instance.course_id = validated_data.get('course_id', instance.course_id)
         instance.name = validated_data.get('name', instance.name)
+        instance.git_server_connstr = validated_data.get('git_server_connstr', instance.git_server_connstr)
+        instance.git_staging_connstr = validated_data.get('git_staging_connstr', instance.git_staging_connstr)
         instance.git_usernames = validated_data.get('git_usernames', instance.git_usernames)
         instance.git_staging_usernames = validated_data.get('git_staging_usernames', instance.git_staging_usernames)
         instance.extension_policy = validated_data.get('extension_policy', instance.extension_policy)
@@ -131,7 +142,10 @@ class InstructorSerializer(serializers.Serializer, FieldPermissionsMixin):
     hidden_fields = { "git_username": AllExceptAdmin,
                       "git_staging_username": AllExceptAdmin }
     
-    readonly_fields = { }     
+    readonly_fields = { }
+    
+    owner_override = {"git_username": ReadWrite,
+                      "git_staging_username": ReadWrite }
     
     def get_url(self, obj):
         return reverse('instructor-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
@@ -141,7 +155,7 @@ class InstructorSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     def update(self, instance, validated_data):
         instance.git_username = validated_data.get('git_username', instance.git_username)
-        instance.git_staging_username = validated_data.get('git_staging_username', instance.extensions)
+        instance.git_staging_username = validated_data.get('git_staging_username', instance.git_staging_username)
         instance.save()
         return instance    
     
@@ -162,6 +176,9 @@ class GraderSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     readonly_fields = { }     
     
+    owner_override = {"git_username": ReadWrite,
+                      "git_staging_username": ReadWrite }    
+    
     def get_url(self, obj):
         return reverse('grader-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     
@@ -170,7 +187,7 @@ class GraderSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     def update(self, instance, validated_data):
         instance.git_username = validated_data.get('git_username', instance.git_username)
-        instance.git_staging_username = validated_data.get('git_staging_username', instance.extensions)
+        instance.git_staging_username = validated_data.get('git_staging_username', instance.git_staging_username)
         instance.save()
         return instance       
     
@@ -188,12 +205,15 @@ class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
     extensions = serializers.IntegerField(default=0, min_value=0)
     dropped = serializers.BooleanField(default=False)
     
-    hidden_fields = { "dropped": Students }
+    hidden_fields = { "git_username": Students, 
+                      "dropped": Students }
     
     readonly_fields = { "extensions": GradersAndStudents,
                         "dropped": GradersAndStudents
                       }     
     
+    owner_override = { "git_username": ReadWrite }
+        
     def get_url(self, obj):
         return reverse('student-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     

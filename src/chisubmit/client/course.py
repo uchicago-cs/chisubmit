@@ -32,6 +32,7 @@ import chisubmit.client.assignment
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
     APIStringType, APIIntegerType
 from chisubmit.client.users import User
+import datetime
 
 class Course(ChisubmitAPIObject):
     
@@ -46,6 +47,14 @@ class Course(ChisubmitAPIObject):
                        "name": Attribute(name="name", 
                                          attrtype=APIStringType, 
                                          editable=True),    
+
+                       "git_server_connstr": Attribute(name="git_server_connstr", 
+                                                  attrtype=APIStringType, 
+                                                  editable=True),    
+
+                       "git_staging_connstr": Attribute(name="git_staging_connstr", 
+                                                  attrtype=APIStringType, 
+                                                  editable=True),    
         
                        "git_usernames": Attribute(name="git_usernames", 
                                                   attrtype=APIStringType, 
@@ -96,6 +105,18 @@ class Course(ChisubmitAPIObject):
             "/courses/" + self.course_id + "/instructors/"
         )
         return [chisubmit.client.users.Instructor(self._api_client, headers, elem) for elem in data]
+
+    def get_instructor(self, username):
+        """
+        :calls: GET /courses/:course/instructors/:instructor
+        :rtype: :class:`chisubmit.client.users.Instructor`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/instructors/" + username
+        )
+        return chisubmit.client.users.Instructor(self._api_client, headers, data)
     
     def add_instructor(self, user_or_username, git_username = None, git_staging_username = None):
         """
@@ -156,6 +177,18 @@ class Course(ChisubmitAPIObject):
             "/courses/" + self.course_id + "/graders/"
         )
         return [chisubmit.client.users.Grader(self._api_client, headers, elem) for elem in data]    
+
+    def get_grader(self, username):
+        """
+        :calls: GET /courses/:course/graders/:grader
+        :rtype: :class:`chisubmit.client.users.Grader`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/graders/" + username
+        )
+        return chisubmit.client.users.Grader(self._api_client, headers, data)    
     
     def add_grader(self, user_or_username, git_username = None, git_staging_username = None):
         """
@@ -217,6 +250,18 @@ class Course(ChisubmitAPIObject):
             "/courses/" + self.course_id + "/students/"
         )
         return [chisubmit.client.users.Student(self._api_client, headers, elem) for elem in data]    
+    
+    def get_student(self, username):
+        """
+        :calls: GET /courses/:course/students/:grader
+        :rtype: :class:`chisubmit.client.users.Student`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/students/" + username
+        )
+        return chisubmit.client.users.Student(self._api_client, headers, data)        
     
     def add_student(self, user_or_username, git_username = None, extensions = None, dropped = None):
         """
@@ -303,12 +348,18 @@ class Course(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.assignment.Assignment`
         """
         assert isinstance(assignment_id, (str, unicode)), assignment_id
+        assert isinstance(deadline, (str, unicode)) or isinstance(deadline, datetime.datetime), deadline
         
         # TODO: Convert/validate date
+        if isinstance(deadline, (str, unicode)):
+            # TODO: validate date
+            deadline_str = deadline
+        elif isinstance(deadline, datetime.datetime):
+            deadline_str = deadline.isoformat(sep=" ")
         
         post_data = {"assignment_id": assignment_id,
                      "name": name,
-                     "deadline": deadline}
+                     "deadline": deadline_str}
         
         if min_students is not None:
             post_data["min_students"] = min_students
@@ -332,5 +383,30 @@ class Course(ChisubmitAPIObject):
             "GET",
             "/courses/" + self.course_id + "/teams/"
         )
-        return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]                    
+        return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]        
     
+    def get_team(self, team_id):
+        """
+        :calls: GET /courses/:course/teams/
+        :rtype: :class:`chisubmit.client.team.Team`
+        """
+        
+        assert isinstance(team_id, (str, unicode)), team_id
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/teams/" + team_id
+        )
+        return chisubmit.client.team.Team(self._api_client, headers, data)    
+    
+    def delete(self):
+        """
+        :calls: DELETE /courses/:course
+        :rtype: None
+        """
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.course_id 
+        )
+        return None    

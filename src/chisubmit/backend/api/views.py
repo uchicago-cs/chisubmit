@@ -152,8 +152,9 @@ class PersonDetail(CourseQualifiedAPIView):
 
     def patch(self, request, course, username, format=None):
         person = self.get_person(course, username)
+        is_owner = (request.user.username == username)
         serializer = self.person_serializer(person, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+        serializer.filter_initial_data(course, request.user, is_owner)
         if serializer.is_valid():
             try:
                 serializer.save()

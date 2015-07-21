@@ -1,12 +1,9 @@
 import click
 from chisubmit.cli.common import pass_course, DATETIME
-from chisubmit.client.assignment import Assignment, GradeComponent
+from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from dateutil.parser import parse
-from chisubmit.common.utils import convert_datetime_to_utc,\
-    convert_datetime_to_local
+from chisubmit.common.utils import convert_datetime_to_utc
 import operator
-from chisubmit.cli.shared.course import shared_course_list
 from chisubmit.cli.shared.assignment import shared_assignment_list
 
 
@@ -25,16 +22,9 @@ def instructor_assignment(ctx):
 def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
     deadline = convert_datetime_to_utc(deadline)
     
-    assignment = Assignment(id = assignment_id,
-                            name = name,
-                            deadline = deadline,
-                            course_id = course.id)
+    course.create_assignment(assignment_id, name, deadline)
     
     return CHISUBMIT_SUCCESS
-
-
-
-
 
 
 @click.command(name="add-grade-component")

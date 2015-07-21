@@ -148,7 +148,7 @@ class ChisubmitAPIObject(object):
         
         if self._api_client._deferred_save:
             self.dirty = {api_attr: False for api_attr in self._api_attributes}
-        
+
         self._initAttributes()
         self._updateAttributes(attributes)
 
@@ -165,7 +165,7 @@ class ChisubmitAPIObject(object):
     def _updateAttributes(self, attributes):
         for attrname, attrvalue in attributes.items():
             api_attr = self.__get_api_attr(attrname)
-            
+
             if api_attr is None:
                 raise NoSuchAttributeException(attrname, attrvalue)
             else:
@@ -214,7 +214,7 @@ class ChisubmitAPIObject(object):
             else:
                 #value = api_attr.to_json(attrvalue)
                 patch_data[attrname] = attrvalue
-            
+        
         headers, data = self._api_client._requester.request(
             "PATCH",
             self.url,

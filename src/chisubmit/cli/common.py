@@ -41,7 +41,6 @@ def get_course_or_exit(ctx, course_id):
         print "Course %s does not exist" % course_id
         ctx.exit(CHISUBMIT_FAIL)    
 
-
 def get_user_or_exit(ctx, username):
     try:
         user = ctx.obj["client"].get_user(username = username)
@@ -49,11 +48,17 @@ def get_user_or_exit(ctx, username):
     except UnknownObjectException:
         print "User %s does not exist" % username
         ctx.exit(CHISUBMIT_FAIL)    
+
+def get_assignment_or_exit(ctx, course, assignment_id):
+    try:
+        return course.get_assignment(assignment_id = assignment_id)
+    except UnknownObjectException:
+        print "Assignment %s does not exist" % assignment_id
+        ctx.exit(CHISUBMIT_FAIL)
         
 def get_team_or_exit(ctx, course, team_id):
     try:
-        team = course.get_team(team_id = team_id)
-        return team
+        return course.get_team(team_id = team_id)
     except UnknownObjectException:
         print "Team %s does not exist" % team_id
         ctx.exit(CHISUBMIT_FAIL)

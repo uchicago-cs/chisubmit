@@ -46,14 +46,15 @@ class AttributeValidationException(AttributeException):
 
 
 class AttributeType(object):
-    STRING = 1,
-    INTEGER = 2,
-    DATETIME = 3,
-    BOOLEAN = 4,
-    OBJECT = 5,
-    LIST = 6
+    STRING = 1
+    INTEGER = 2
+    DECIMAL = 3
+    DATETIME = 4
+    BOOLEAN = 5
+    OBJECT = 6
+    LIST = 7
         
-    primitive_types = [STRING, INTEGER, DATETIME, BOOLEAN]
+    primitive_types = [STRING, INTEGER, DECIMAL, DATETIME, BOOLEAN]
     composite_types = [OBJECT, LIST]
     
     def __init__(self, attrtype, subtype = None):
@@ -75,6 +76,9 @@ class AttributeType(object):
         elif self.attrtype == AttributeType.INTEGER:
             if not isinstance(value, (int, long)):
                 raise AttributeTypeException(value, self)
+            return value
+        elif self.attrtype == AttributeType.DECIMAL:
+            # TODO
             return value
         elif self.attrtype == AttributeType.BOOLEAN:
             if not isinstance(value, bool):
@@ -115,6 +119,7 @@ class AttributeType(object):
 
 APIStringType = AttributeType(AttributeType.STRING)
 APIIntegerType = AttributeType(AttributeType.INTEGER)
+APIDecimalType = AttributeType(AttributeType.DECIMAL)
 APIDateTimeType = AttributeType(AttributeType.DATETIME)
 APIBooleanType = AttributeType(AttributeType.BOOLEAN)
 

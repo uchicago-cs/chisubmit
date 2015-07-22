@@ -87,6 +87,7 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
     print course.course_id, course.name
 
     if include_users:
+        print
         print "INSTRUCTORS"
         print "-----------"
         for i in course.get_instructors():

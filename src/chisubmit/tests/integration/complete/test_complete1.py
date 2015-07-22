@@ -48,12 +48,12 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
                                     ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor assignment add-grade-component", 
-                                    ["pa1", "tests", "The PA1 Tests", "50"])
+        result = instructors[0].run("instructor assignment add-rubric-component", 
+                                    ["pa1", "The PA1 Tests", "50"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor assignment add-grade-component", 
-                                    ["pa1", "design", "The PA1 Design", "50"])
+        result = instructors[0].run("instructor assignment add-rubric-component", 
+                                    ["pa1", "The PA1 Design", "50"])
         self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=49)
@@ -63,12 +63,12 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
                                     ["pa2", "Programming Assignment 2", deadline])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor assignment add-grade-component", 
-                                    ["pa2", "tests", "The PA2 Tests", "50"])
+        result = instructors[0].run("instructor assignment add-rubric-component", 
+                                    ["pa2", "The PA2 Tests", "50"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor assignment add-grade-component", 
-                                    ["pa2", "design", "The PA2 Design", "50"])
+        result = instructors[0].run("instructor assignment add-rubric-component", 
+                                    ["pa2", "The PA2 Design", "50"])
         self.assertEquals(result.exit_code, 0)
         
         

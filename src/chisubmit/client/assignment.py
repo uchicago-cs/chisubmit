@@ -28,7 +28,7 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
-    APIIntegerType, APIDateTimeType
+    APIIntegerType, APIDateTimeType, APIDecimalType
 
 
 class Assignment(ChisubmitAPIObject):
@@ -60,4 +60,60 @@ class Assignment(ChisubmitAPIObject):
                        "rubric_url": Attribute(name="rubric_url", 
                                                     attrtype=APIStringType, 
                                                     editable=False),                       
-                      }    
+                      }
+    
+    def get_rubric_components(self):
+        """
+        :calls: GET /courses/:course/assignments/:assignment/rubric
+        :rtype: List of :class:`chisubmit.client.assignment.RubricComponent`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.url + "/rubric"
+        )
+        return [RubricComponent(self._api_client, headers, elem) for elem in data]    
+    
+    
+    def create_rubric_component(self, description, points, order = None):
+        """
+        :calls: POST /courses/:course/assignments/:assignment/rubric
+        :param description: string
+        :param points: float
+        :param order: int
+        :rtype: :class:`chisubmit.client.assignment.RubricComponent`
+        """
+        assert isinstance(description, (str, unicode)), description
+        
+        post_data = {"description": description,
+                     "points": points}
+        
+        if order is not None:
+            post_data["order"] = order
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.url + "/rubric",
+            data = post_data
+        )
+        return RubricComponent(self._api_client, headers, data)        
+    
+class RubricComponent(ChisubmitAPIObject):
+
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),  
+                       
+                       "description": Attribute(name="name", 
+                                                attrtype=APIStringType, 
+                                                editable=True),  
+    
+                       "order": Attribute(name="order", 
+                                          attrtype=APIIntegerType, 
+                                          editable=True),  
+    
+                       "points": Attribute(name="points", 
+                                           attrtype=APIDecimalType, 
+                                           editable=True)
+                                              
+                      }        

@@ -55,5 +55,9 @@ class Assignment(ChisubmitAPIObject):
      
                        "max_students": Attribute(name="extensions", 
                                                attrtype=APIIntegerType, 
-                                               editable=True)
+                                               editable=True),
+                       
+                       "rubric_url": Attribute(name="rubric_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),                       
                       }    

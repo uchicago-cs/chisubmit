@@ -3,10 +3,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
-    Assignment, Team
+    Assignment, Team, RubricComponent
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
-    AssignmentSerializer, TeamSerializer, UserSerializer
+    AssignmentSerializer, TeamSerializer, UserSerializer,\
+    RubricComponentSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.db import Error
@@ -164,6 +165,9 @@ class PersonDetail(CourseQualifiedAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, course, username, format=None):
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied        
+        
         person = self.get_person(course, username)
         person.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)    
@@ -249,9 +253,85 @@ class AssignmentDetail(CourseQualifiedAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, course, assignment, format=None):
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied        
+
         assignment_obj = self.get_assignment(course, assignment)
         assignment_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)    
+    
+class RubricList(CourseQualifiedAPIView):
+    def get_assignment(self, course, assignment):
+        try:
+            assignment = Assignment.objects.get(course = course, assignment_id = assignment)
+            return assignment
+        except Assignment.DoesNotExist:
+            raise Http404      
+    
+    def get(self, request, course, assignment, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        rubric_components = assignment_obj.get_rubric_components()
+        serializer = RubricComponentSerializer(rubric_components, many=True, context={'request': request, 'course': course, 'assignment': assignment_obj})
+        return Response(serializer.data)
+
+    def post(self, request, course, assignment, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        serializer = RubricComponentSerializer(data=request.data, context={'request': request, 'course': course, 'assignment': assignment_obj})
+        if serializer.is_valid():
+            description = serializer.validated_data["description"]
+            rubric_description = assignment_obj.get_rubric_component_by_description(description)
+            if rubric_description is not None:
+                msg = "There is already a rubric component in assignment %s with description = '%s'" % (assignment, description)
+                return Response({"description": [msg]}, status=status.HTTP_400_BAD_REQUEST)   
+            try:
+                serializer.save(assignment = assignment_obj)
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    
+class RubricDetail(CourseQualifiedAPIView):
+    def get_assignment(self, course, assignment):
+        try:
+            assignment = Assignment.objects.get(course = course, assignment_id = assignment)
+            return assignment
+        except Assignment.DoesNotExist:
+            raise Http404   
+            
+    def get_rubric_component(self, assignment, rubric_component):
+        try:
+            return RubricComponent.objects.get(assignment=assignment, pk=rubric_component)
+        except RubricComponent.DoesNotExist:
+            raise Http404  
+
+    def get(self, request, course, assignment, rubric_component, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        rubric_component_obj = self.get_rubric_component(assignment_obj, rubric_component)
+        serializer = RubricComponentSerializer(rubric_component_obj, context={'request': request, 'course': course, 'assignment': assignment_obj})
+        return Response(serializer.data)
+
+    def patch(self, request, course, assignment, rubric_component, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        rubric_component_obj = self.get_rubric_component(assignment_obj, rubric_component)
+        serializer = RubricComponentSerializer(rubric_component_obj, data=request.data, partial=True, context={'request': request, 'course': course, 'assignment': assignment_obj})
+        serializer.filter_initial_data(course, request.user)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, course, assignment, rubric_component, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+        rubric_component_obj = self.get_rubric_component(assignment_obj, rubric_component)
+
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied        
+        
+        rubric_component_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)        
     
     
 class TeamList(CourseQualifiedAPIView):
@@ -275,9 +355,9 @@ class TeamDetail(CourseQualifiedAPIView):
             
     def get_team(self, course, team):
         try:
-            team_obj = Assignment.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, name = team)
             return team_obj
-        except Assignment.DoesNotExist:
+        except Team.DoesNotExist:
             raise Http404  
 
     def get(self, request, course, team, format=None):
@@ -296,6 +376,10 @@ class TeamDetail(CourseQualifiedAPIView):
 
     def delete(self, request, course, team, format=None):
         team_obj = self.get_team(course, team)
+
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied        
+        
         team_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)        
     

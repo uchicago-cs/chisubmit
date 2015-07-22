@@ -151,6 +151,21 @@ class Assignment(models.Model):
     def __unicode__(self):
         return u"Assignment %s of %s" % (self.assignment_id, self.course.course_id)     
 
+    def get_rubric_components(self):
+        return list(RubricComponent.objects.filter(assignment=self))
+    
+    def get_rubric_component_by_id(self, rc_id):
+        try:
+            return RubricComponent.objects.get(pk = rc_id)
+        except RubricComponent.DoesNotExist:
+            return None
+
+    def get_rubric_component_by_description(self, description):
+        try:
+            return RubricComponent.objects.get(assignment = self, description = description)
+        except RubricComponent.DoesNotExist:
+            return None
+
     class Meta:
         unique_together = ("assignment_id", "course")    
 

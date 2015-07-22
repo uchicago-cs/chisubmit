@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from chisubmit.backend.api.models import Course, GradersAndStudents, AllExceptAdmin,\
     Students, Student, Instructor, Grader, Team, Assignment, ReadWrite,\
-    OwnerPermissions, Read
+    OwnerPermissions, Read, RubricComponent
 from django.contrib.auth.models import User
 from rest_framework.reverse import reverse
 
@@ -234,7 +234,8 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
     name = serializers.CharField(max_length=64)
     deadline = serializers.DateTimeField()
     
-    url = serializers.SerializerMethodField()   
+    url = serializers.SerializerMethodField()
+    rubric_url = serializers.SerializerMethodField()
     
     min_students = serializers.IntegerField(default=1, min_value=1)
     max_students = serializers.IntegerField(default=1, min_value=1)
@@ -248,6 +249,9 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     def get_url(self, obj):
         return reverse('assignment-detail', args=[self.context["course"].course_id, obj.assignment_id], request=self.context["request"])
+
+    def get_rubric_url(self, obj):
+        return reverse('rubric-list', args=[self.context["course"].course_id, obj.assignment_id], request=self.context["request"])
     
     def create(self, validated_data):
         return Assignment.objects.create(**validated_data)
@@ -260,6 +264,32 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.max_students = validated_data.get('max_students', instance.max_students)
         instance.save()
         return instance    
+  
+
+class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
+    order = serializers.IntegerField(default=1, min_value=1)
+    description = serializers.CharField(max_length=64)
+    points = serializers.DecimalField(max_digits=5, decimal_places=2)
+    
+    url = serializers.SerializerMethodField()   
+    
+    readonly_fields = { "order": GradersAndStudents,
+                        "description": GradersAndStudents,
+                        "points": GradersAndStudents
+                      }       
+    
+    def get_url(self, obj):
+        return reverse('rubric-detail', args=[self.context["course"].course_id, self.context["assignment"].assignment_id, obj.pk], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return RubricComponent.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.order = validated_data.get('order', instance.order)
+        instance.description = validated_data.get('description', instance.description)
+        instance.points = validated_data.get('points', instance.points)
+        instance.save()
+        return instance
     
     
 class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):

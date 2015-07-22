@@ -21,6 +21,11 @@ Read = set([OwnerPermissions.READ])
 Write = set([OwnerPermissions.WRITE])
 ReadWrite = Read | Write
 
+def get_user_by_username(username):
+    try:
+        return User.objects.get(username=username)
+    except User.DoesNotExist:
+        return None    
 
 class Course(models.Model):
     course_id = models.SlugField(unique = True)
@@ -41,13 +46,31 @@ class Course(models.Model):
             return None
             
     def has_instructor(self, user):
-        return self.instructors.filter(username=user.username).exists()
+        return Instructor.objects.filter(course=self, user=user).exists()
+    
+    def get_instructor(self, user):
+        try:
+            return Instructor.objects.get(course=self, user=user)
+        except Instructor.DoesNotExist:
+            return None        
 
     def has_grader(self, user):
-        return self.graders.filter(username=user.username).exists()
+        return Grader.objects.filter(course=self, user=user).exists()
+
+    def get_grader(self, user):
+        try:
+            return Grader.objects.get(course=self, user=user)
+        except Grader.DoesNotExist:
+            return None        
 
     def has_student(self, user):
-        return self.students.filter(username=user.username).exists()
+        return Student.objects.filter(course=self, user=user).exists()
+    
+    def get_student(self, user):
+        try:
+            return Student.objects.get(course=self, user=user)
+        except Student.DoesNotExist:
+            return None        
 
     def has_user(self, user):
         return self.has_student(user) or self.has_instructor(user) or self.has_grader(user) 
@@ -72,6 +95,9 @@ class Course(models.Model):
             return Assignment.objects.get(course__course_id=self.course_id, assignment_id=assignment_id)
         except Assignment.DoesNotExist:
             return None
+        
+    def get_teams_with_students(self, students):
+        return Team.objects.filter(students__in = students).distinct()
     
     # OPTIONS
     GIT_USERNAME_USER = 'user-id'
@@ -186,11 +212,30 @@ class Team(models.Model):
     extensions = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     active = models.BooleanField(default = True)
     
+    students = models.ManyToManyField(Student, through='TeamMember', related_name="team_member_in")
+    
     registrations = models.ManyToManyField(Assignment, through='Registration') 
+    
+    def is_registered_for_assignment(self, assignment):
+        return self.registrations.filter(assignment_id = assignment.assignment_id).exists()
+    
+    def get_registration(self, assignment):
+        try:
+            return Registration.objects.get(assignment = assignment)
+        except Registration.DoesNotExist:
+            return None        
     
     class Meta:
         unique_together = ("course", "name")
         
+class TeamMember(models.Model):
+    student = models.ForeignKey(Student)
+    team = models.ForeignKey(Team)
+    
+    confirmed = models.BooleanField(default = False)
+    
+    class Meta:
+        unique_together = ("student", "team")        
         
 class Registration(models.Model):
     team = models.ForeignKey(Team)

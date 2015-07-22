@@ -3,11 +3,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
-    Assignment, Team, RubricComponent
+    Assignment, Team, RubricComponent, get_user_by_username, TeamMember,\
+    Registration
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
     AssignmentSerializer, TeamSerializer, UserSerializer,\
-    RubricComponentSerializer
+    RubricComponentSerializer, RegistrationSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.db import Error
@@ -333,6 +334,149 @@ class RubricDetail(CourseQualifiedAPIView):
         rubric_component_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)        
     
+class Register(CourseQualifiedAPIView):
+    def get_assignment(self, course, assignment):
+        try:
+            return Assignment.objects.get(course = course, assignment_id = assignment)
+        except Assignment.DoesNotExist:
+            raise Http404
+
+    def post(self, request, course, assignment, format=None):
+        assignment_obj = self.get_assignment(course, assignment)
+    
+        user_student_obj = course.get_student(request.user)
+        if user_student_obj is None:
+            msg = "You are not a student in course '%s'" % (course.course_id)
+            return Response({"user": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Adding dict() because apparently serializers.ListField won't stomach a QueryDict 
+        serializer = RegistrationSerializer(data=dict(request.data))
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)              
+
+        students_usernames = serializer.validated_data["students"]
+        if request.user.username not in students_usernames:
+            msg = "The list of students does not include you."
+            return Response({"students": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+            
+        students_errors = []
+        student_objs = [user_student_obj]
+        for student in [s for s in students_usernames if s != request.user.username]:
+            user = get_user_by_username(student)
+            
+            if user is not None:
+                student_obj = course.get_student(user)
+            else:
+                student_obj = None
+            
+            if user is None or student_obj is None:
+                msg = "User '%s' is either not a valid user or not a student in course '%s'" % (student, course.course_id)
+                students_errors.append(msg)
+            else:
+                student_objs.append(student_obj)
+                
+        if len(students_errors) > 0:
+            return Response({"students": students_errors}, status=status.HTTP_400_BAD_REQUEST)
+                    
+        if len(students_usernames) < assignment_obj.min_students or len(students_usernames) > assignment_obj.max_students:
+            if assignment_obj.min_students == assignment_obj.max_students:
+                if assignment_obj.min_students == 1:
+                    msg = "You specified %i students, but this assignment only accepts individual registrations." % (len(students_usernames))                                    
+                else: 
+                    msg = "You specified %i students, but this assignment requires teams of %i students" % (len(students_usernames), assignment_obj.min_students)
+            else:                
+                msg = "You specified %i students, but this assignment requires teams with at least %i students and at most %i students" % (len(students_usernames), assignment_obj.min_students, assignment_obj.max_students)
+            return Response({"students": [msg]}, status=status.HTTP_400_BAD_REQUEST)            
+            
+        create_team = False
+        create_registration = False
+        teams = course.get_teams_with_students(student_objs)                
+                
+        if len(teams) > 0:
+            # Teams that have the assignment, but are *not* a perfect match
+            have_assignment = []
+            students_have_assignment = set()
+            perfect_match = None
+            
+            for t in teams:
+                team_student_usernames = [u.user.username for u in t.students.all()]
+                if len(team_student_usernames) == len(students_usernames):
+                    match = True
+                    for s in students_usernames:
+                        if s not in team_student_usernames:
+                            match = False
+                            break
+                        
+                    if match:
+                        if perfect_match is None:
+                            perfect_match = t
+                        else:
+                            # There shouldn't be more than one perfect match
+                            error_msg = "There is more than one team with the exact same students in it." \
+                                        "Please notify your instructor."  
+                            return Response({"fatal": [msg]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)            
+                    else:
+                        if t.is_registered_for_assignment(assignment_obj):
+                            have_assignment.append(t)
+                            students_have_assignment.update([s for s in team_student_usernames if s in students_usernames])
+                else:
+                    if t.is_registered_for_assignment(assignment_obj):
+                        have_assignment.append(t)
+                        students_have_assignment.update([s for s in team_student_usernames if s in students_usernames])
+
+            if len(have_assignment) > 0:
+                error_msg = "'%s' is already registered for assignment '%s' in another team"
+                error_msgs = [error_msg % (s, assignment_obj.assignment_id) for s in students_have_assignment]
+                return Response({"students": error_msgs}, status=status.HTTP_400_BAD_REQUEST)                
+                    
+            if perfect_match is not None:
+                if perfect_match.is_registered_for_assignment(assignment_obj):
+                    tm = perfect_match.teammember_set.get(student = user_student_obj)
+                    tm.confirmed = True
+                    tm.save()
+                else:
+                    registration = Registration.objects.create(team = perfect_match,
+                                                               assignment = assignment_obj)   
+                    create_registration = True
+            else:
+                create_team = True                        
+        else:
+            create_team = True
+            
+        if create_team:
+            team_name = "-".join(sorted(students_usernames))
+
+            if course.extension_policy == "per-team":
+                default_extensions = course.default_extensions
+                extensions = default_extensions
+            else:
+                extensions = 0                
+        
+            team = Team.objects.create(course = course,
+                                       name = team_name,
+                                       extensions = extensions)
+
+            for student_obj in student_objs:
+                if student_obj.user == request.user:
+                    confirmed = True
+                else:
+                    confirmed = False
+                
+                team_member = TeamMember.objects.create(student = student_obj,
+                                                        team = team,
+                                                        confirmed = confirmed)
+                
+            registration = Registration.objects.create(team = team,
+                                                       assignment = assignment_obj)           
+            
+            create_registration = True     
+                
+        if create_team or create_registration:
+            response_status = status.HTTP_201_CREATED
+        else:
+            response_status = status.HTTP_200_OK
+            
+        return Response({"todo": ["todo"]}, status=response_status)        
     
 class TeamList(CourseQualifiedAPIView):
     def get(self, request, course, format=None):
@@ -520,4 +664,5 @@ class AuthUserToken(BaseUserToken):
     def get(self, request, format=None):
         return self._get(request, request.user.username, format)
         
-        
+
+

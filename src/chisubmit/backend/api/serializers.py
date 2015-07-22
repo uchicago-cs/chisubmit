@@ -292,6 +292,12 @@ class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance
     
     
+class RegistrationSerializer(serializers.Serializer):
+    students =  serializers.ListField(
+                                      child = serializers.CharField()
+                                      )
+    
+    
 class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
     name = serializers.SlugField()
     extensions = serializers.IntegerField(default=1, min_value=1)

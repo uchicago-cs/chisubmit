@@ -23,6 +23,7 @@ urlpatterns = [
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/rubric$', views.RubricList.as_view(), name="rubric-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/rubric/(?P<rubric_component>[0-9]+)$', views.RubricDetail.as_view(), name="rubric-detail"),
 
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/register', views.Register.as_view(), name="register"),
 
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/$', views.TeamList.as_view(), name="team-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)$', views.TeamDetail.as_view(), name="team-detail"),

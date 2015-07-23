@@ -26,6 +26,9 @@ COURSE1_USERS = COURSE1_INSTRUCTORS + COURSE1_GRADERS + COURSE1_STUDENTS
 COURSE1_ASSIGNMENTS = ["pa1", "pa2"]
 COURSE1_RUBRICS = {"pa1": ["First Task", "Second Task"],
                    "pa2": ["First Task", "Second Task", "Third Task"],}
+COURSE1_TEAMS = ["student1-student2", "student3-student4"]
+COURSE1_TEAM_MEMBERS = {"student1-student2": ["student1", "student2"],
+                        "student3-student4": ["student3", "student4"]}
 
 COURSE2_ID = "cmsc40110"
 COURSE2_NAME = "Advanced Software Testing"

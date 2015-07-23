@@ -226,3 +226,15 @@ class ChisubmitAPIObject(object):
             data=patch_data
         )
         self._updateAttributes(data)
+        
+    def delete(self):
+        """
+        :calls: DELETE :url
+        :rtype: None
+        """
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            self.url 
+        )
+        return None           

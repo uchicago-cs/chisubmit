@@ -304,8 +304,8 @@ class RegistrationRequestSerializer(serializers.Serializer):
     
 class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
     name = serializers.SlugField()
-    extensions = serializers.IntegerField(default=1, min_value=1)
-    active = serializers.BooleanField()
+    extensions = serializers.IntegerField(default=0, min_value=0)
+    active = serializers.BooleanField(default = True)
         
     url = serializers.SerializerMethodField()
     students_url = serializers.SerializerMethodField()
@@ -364,6 +364,8 @@ class TeamMemberSerializer(serializers.Serializer, FieldPermissionsMixin):
                                   )
     student = StudentSerializer(read_only=True)
     confirmed = serializers.BooleanField(default=False)
+    
+    readonly_fields = { "confirmed": GradersAndStudents }        
 
     def get_url(self, obj):
         return reverse('teammember-detail', args=[self.context["course"].course_id, obj.team.name, obj.student.user.username], request=self.context["request"])
@@ -386,10 +388,16 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
     assignment = AssignmentSerializer(read_only=True, required=False) 
     grader_username = PersonRelatedField(
                                          source = "grader",
-                                         queryset=Grader.objects.all()
+                                         queryset=Grader.objects.all(),
+                                         required = False
                                          )
-    grader = GraderSerializer(read_only=True)
+    grader = GraderSerializer(read_only=True, required=False)
     #TODO: final_submission
+
+    hidden_fields = { 
+                      "grader_username": Students,
+                      "grader": Students                      
+                    }   
 
     def get_url(self, obj):
         return reverse('registration-detail', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])

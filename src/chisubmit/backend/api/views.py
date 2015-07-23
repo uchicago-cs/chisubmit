@@ -546,6 +546,10 @@ class TeamMemberList(CourseQualifiedAPIView):
         
         serializer = TeamMemberSerializer(data=request.data, context={'request': request, 'course': course})
         if serializer.is_valid():
+            student = serializer.validated_data["student"]
+            if TeamMember.objects.filter(team=team_obj, student=student).exists():
+                return Response({"username": ["%s is already a member of team %s" % (student.user.username, team_obj.name)]}, status=status.HTTP_400_BAD_REQUEST)
+            
             try:
                 serializer.save(team = team_obj)
             except Error, e:

@@ -96,6 +96,12 @@ class Course(models.Model):
         except Assignment.DoesNotExist:
             return None
         
+    def get_team(self, team_name):
+        try:
+            return Team.objects.get(course=self, name=team_name)
+        except Assignment.DoesNotExist:
+            return None        
+        
     def get_teams_with_students(self, students):
         return Team.objects.filter(students__in = students).distinct()
     
@@ -224,8 +230,14 @@ class Team(models.Model):
     
     def get_registration(self, assignment):
         try:
-            return Registration.objects.get(assignment = assignment)
+            return self.registration_set.get(assignment = assignment)
         except Registration.DoesNotExist:
+            return None        
+
+    def get_team_member(self, student):
+        try:
+            return self.teammember_set.get(student = student)
+        except TeamMember.DoesNotExist:
             return None        
     
     class Meta:

@@ -29,6 +29,7 @@
 
 import chisubmit.client.users
 import chisubmit.client.assignment
+import chisubmit.client.team
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
     APIStringType, APIIntegerType
 from chisubmit.client.users import User
@@ -381,7 +382,7 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.course_id + "/teams/"
+            self.teams_url
         )
         return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]        
     
@@ -395,18 +396,31 @@ class Course(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            "/courses/" + self.course_id + "/teams/" + team_id
+            self.teams_url + team_id
         )
         return chisubmit.client.team.Team(self._api_client, headers, data)    
     
-    def delete(self):
+    def create_team(self, name, extensions = None, active = None):
         """
-        :calls: DELETE /courses/:course
-        :rtype: None
+        :calls: POST /courses/:course/teams/
+        :param name: string
+        :param extensions: int
+        :param active: bool
+        :rtype: :class:`chisubmit.client.team.Team`
         """
+        assert isinstance(name, (str, unicode)), name
+
+        post_data = { "name": name }
         
-        _ = self._api_client._requester.request(
-            "DELETE",
-            "/courses/" + self.course_id 
+        if extensions is not None:
+            post_data["extensions"] = extensions
+        if active is not None:
+            post_data["active"] = active
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.teams_url,
+            data = post_data
         )
-        return None    
+        return chisubmit.client.team.Team(self._api_client, headers, data)        
+    

@@ -31,8 +31,6 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.client.user import User
-from chisubmit.client.course import Course
 from chisubmit.common.utils import create_connection
 from chisubmit.cli.shared.course import shared_course_list,\
     shared_course_set_user_attribute

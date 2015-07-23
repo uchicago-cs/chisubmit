@@ -30,7 +30,6 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.client.user import User
 from chisubmit.client.exceptions import UnknownObjectException
 
 @click.group(name="user")

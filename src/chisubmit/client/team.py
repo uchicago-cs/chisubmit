@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
 #
@@ -28,131 +27,188 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from chisubmit.client import CourseQualifiedApiObject, JSONObject
-from chisubmit.client import session
-from chisubmit.client.user import User
-import json
-from chisubmit.common.utils import convert_datetime_to_utc, get_datetime_now_utc
-from dateutil import parser
-from datetime import timedelta
+from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
+    APIIntegerType, APIBooleanType, APIObjectType
+from chisubmit.client.users import Student, User, Grader
+from chisubmit.client.assignment import Assignment
 
-class Grade(JSONObject):
-    
-    _api_attrs = ('points','grade_component_id')
 
-class StudentTeam(JSONObject):
-    
-    _api_attrs = ('status',)
-    _has_one = {'user': ('student', User)}
+class Team(ChisubmitAPIObject):
 
-class AssignmentTeam(JSONObject):
-    
-    _api_attrs = ('extensions_used', 'commit_sha', 'submitted_at', 'assignment_id', 'penalties')
-    _has_one = {'grader': ('grader', User)}
-    _has_many = {'grades': 'grades'}
-    
-    def __init__(self, *args, **kwargs):
-        if kwargs.has_key("submitted_at"):
-            if kwargs["submitted_at"] is not None and not hasattr(kwargs["submitted_at"], 'isoformat'):
-                kwargs["submitted_at"] = convert_datetime_to_utc(parser.parse(kwargs['submitted_at']))
-                
-        super(AssignmentTeam, self).__init__(*args, **kwargs)    
-    
-    def get_total_penalties(self):
-        return sum([p for p in self.penalties.values()])
-        
-    def get_total_grade(self):
-        points = sum([g.points for g in self.grades])
-                
-        return points + self.get_total_penalties()
-    
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),
 
+                       "students_url": Attribute(name="students_url", 
+                                                 attrtype=APIStringType, 
+                                                 editable=False),  
+                       
+                       "assignments_url": Attribute(name="assignments_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),  
+                       
+                       "name": Attribute(name="name", 
+                                         attrtype=APIStringType, 
+                                         editable=True),  
     
-class Team(CourseQualifiedApiObject):
+                       "extensions": Attribute(name="extensions", 
+                                               attrtype=APIIntegerType, 
+                                               editable=True),  
+     
+                       "active": Attribute(name="active", 
+                                           attrtype=APIBooleanType, 
+                                           editable=True),
+                      }
+    
+    def get_team_members(self):
+        """
+        :calls: GET /courses/:course/teams/:team/students/
+        :rtype: List of :class:`chisubmit.client.team.TeamMember`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.students_url
+        )
+        return [TeamMember(self._api_client, headers, elem) for elem in data]        
+    
+    def get_team_member(self, username):
+        """
+        :calls: GET /courses/:course/teams/:team/students/:username
+        :rtype: :class:`chisubmit.client.team.TeamMember`
+        """
+        
+        assert isinstance(username, (str, unicode)), username
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.students_url + username
+        )
+        return TeamMember(self._api_client, headers, data)      
+    
+    def add_team_member(self, user_or_username, confirmed = None):
+        """
+        :calls: POST /courses/:course/teams/:team/students/
+        :rtype: :class:`chisubmit.client.team.TeamMember`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username}
+        
+        if confirmed is not None:
+            post_data["confirmed"] = confirmed
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.students_url,
+            data = post_data
+        )
+        return TeamMember(self._api_client, headers, data)         
+    
+    def get_assignment_registrations(self):
+        """
+        :calls: GET /courses/:course/teams/:team/assignments/
+        :rtype: List of :class:`chisubmit.client.team.Registration`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.assignments_url
+        )
+        return [Registration(self._api_client, headers, elem) for elem in data]        
+    
+    def get_assignment_registration(self, assignment_id):
+        """
+        :calls: GET /courses/:course/teams/:team/assignments/:assignment
+        :rtype: :class:`chisubmit.client.team.Registration`
+        """
+        
+        assert isinstance(assignment_id, (str, unicode)), assignment_id
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.assignments_url + assignment_id
+        )
+        return Registration(self._api_client, headers, data)     
+      
+    def add_assignment_registration(self, assignment_or_assignment_id, grader_or_grader_username = None):
+        """
+        :calls: POST /courses/:course/teams/:team/assignments/
+        :rtype: :class:`chisubmit.client.team.Registration`
+        """
+        
+        assert isinstance(assignment_or_assignment_id, (str, unicode)) or isinstance(assignment_or_assignment_id, Assignment) 
+        assert grader_or_grader_username is None or isinstance(grader_or_grader_username, (str, unicode)) or isinstance(grader_or_grader_username, Grader) 
+        
+        if isinstance(assignment_or_assignment_id, (str, unicode)):
+            assignment_id = assignment_or_assignment_id
+        elif isinstance(assignment_or_assignment_id, User):
+            assignment_id = assignment_or_assignment_id.assignment_id
+        
+        post_data = {"assignment_id": assignment_id}
+        
+        if grader_or_grader_username is not None:
+            if isinstance(grader_or_grader_username, (str, unicode)):
+                grader_username = grader_or_grader_username
+            elif isinstance(grader_or_grader_username, User):
+                grader_username = grader_or_grader_username.user.username
+            post_data["grader_username"] = grader_username
 
-    _api_attrs = ('id', 'active', 'course_id', 'extensions_available', 'extras')
-    _primary_key = 'id'    
-    _updatable_attributes = ('active',)
-    _has_many = {'students': 'students_teams',
-                 'assignments': 'assignments_teams',
-                 }    
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.assignments_url,
+            data = post_data
+        )
+        return Registration(self._api_client, headers, data)         
     
-    def has_assignment(self, assignment_id):        
-        return self.get_assignment(assignment_id) is not None    
-    
-    def get_assignment(self, assignment_id):
-        ats = [at for at in self.assignments if at.assignment_id == assignment_id]
-        
-        if len(ats) == 1:
-            return ats[0]
-        else:
-            return None        
-        
-    def has_submitted(self, assignment_id):
-        assignment = self.get_assignment(assignment_id)
-        if assignment is None:
-            return False
-        else:
-            if assignment.submitted_at is not None:
-                return True
-            else:
-                return False        
-        
-    def has_assignment_ready_for_grading(self, assignment, when=None):
-        ta = self.get_assignment(assignment.id)
-        
-        if ta is None:
-            return False
-        
-        if ta.submitted_at is None:
-            return False
-        
-        if when is None:
-            when = get_datetime_now_utc()
-            
-        deadline = assignment.deadline + timedelta(days=ta.extensions_used)
-        
-        if when > deadline:
-            return True
-        else:
-            return False
-    
-    def add_student(self, student):
-        attrs = {'team_id': self.id, 'student_id': student.id}
-        data = json.dumps({'students': {'add': [attrs]}})
-        session.put(self.url(), data=data)
+class TeamMember(ChisubmitAPIObject):
 
-    def add_assignment(self, assignment):
-        attrs = {'team_id': self.id, 'assignment_id': assignment.id}
-        data = json.dumps({'assignments': {'add': [attrs]}})
-        session.put(self.url(), data=data)
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),
 
-    def set_assignment_grade(self, assignment_id, grade_component_id, points):
-        attrs = {'assignment_id': assignment_id, 'grade_component_id': grade_component_id, 'points': points}
-        data = json.dumps({'grades': {'add': [attrs]}})
-        session.put(self.url(), data=data)
+                       "username": Attribute(name="username", 
+                                            attrtype=APIStringType, 
+                                            editable=False),  
+    
+                       "student": Attribute(name="student", 
+                                            attrtype=APIObjectType(Student), 
+                                            editable=False),  
+                       
+                       "confirmed": Attribute(name="confirmed", 
+                                              attrtype=APIBooleanType, 
+                                              editable=True),                       
+                      }
+    
+class Registration(ChisubmitAPIObject):
 
-    def set_assignment_penalties(self, assignment_id, penalties):
-        attrs = {'assignment_id': assignment_id, 'penalties': penalties}
-        data = json.dumps({'grades': {'penalties': [attrs]}})
-        session.put(self.url(), data=data)
-        
-    def set_assignment_grader(self, assignment_id, grader_id):
-        attrs = {'assignment_id': assignment_id, 'grader_id': grader_id}
-        data = json.dumps({'assignments': {'update': [attrs]}})
-        session.put(self.url(), data=data)        
-        
-    def is_complete(self):
-        return all([s.status == 1 for s in self.students])
-        
-    def get_confirmed_students(self):
-        return [s for s in self.students if s.status == 1]
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),
+
+                       "assignment_id": Attribute(name="assignment_id", 
+                                                  attrtype=APIStringType, 
+                                                  editable=False),  
     
-    def get_unconfirmed_students(self):
-        return [s for s in self.students if s.status == 0]            
+                       "assignment": Attribute(name="assignment", 
+                                               attrtype=APIObjectType(Assignment), 
+                                               editable=False),  
+
+                       "grader_username": Attribute(name="grader_username", 
+                                            attrtype=APIStringType, 
+                                            editable=False),  
     
-    def set_extra(self, name, value):
-        data = {"extras": [ {'name': name, 'value': value} ] }
-        data = json.dumps(data)
-        session.put(self.url(), data=data) 
-    
+                       "grader": Attribute(name="user", 
+                                        attrtype=APIObjectType(Student), 
+                                        editable=False),  
+                       
+                       "confirmed": Attribute(name="confirmed", 
+                                              attrtype=APIBooleanType, 
+                                              editable=True),                       
+                      }        

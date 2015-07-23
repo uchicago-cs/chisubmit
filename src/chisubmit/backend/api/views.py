@@ -8,7 +8,8 @@ from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
     AssignmentSerializer, TeamSerializer, UserSerializer,\
-    RubricComponentSerializer, RegistrationRequestSerializer, RegistrationSerializer, TeamMemberSerializer
+    RubricComponentSerializer, RegistrationRequestSerializer, RegistrationSerializer, TeamMemberSerializer,\
+    RegistrationResponseSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.db import Error
@@ -430,10 +431,13 @@ class Register(CourseQualifiedAPIView):
                 return Response({"students": error_msgs}, status=status.HTTP_400_BAD_REQUEST)                
                     
             if perfect_match is not None:
+                team = perfect_match
                 if perfect_match.is_registered_for_assignment(assignment_obj):
                     tm = perfect_match.teammember_set.get(student = user_student_obj)
                     tm.confirmed = True
                     tm.save()
+                    
+                    registration = perfect_match.get_registration(assignment_obj)
                 else:
                     registration = Registration.objects.create(team = perfect_match,
                                                                assignment = assignment_obj)   
@@ -476,7 +480,14 @@ class Register(CourseQualifiedAPIView):
         else:
             response_status = status.HTTP_200_OK
             
-        return Response({"todo": ["todo"]}, status=response_status)        
+        response_data = {"new_team": create_team,
+                         "team": team,
+                         "team_members": list(team.get_team_members()),
+                         "registration": registration
+                         }
+            
+        serializer = RegistrationResponseSerializer(response_data, context={'request': request, 'course': course})            
+        return Response(serializer.data, status=response_status)        
     
 class TeamList(CourseQualifiedAPIView):
     def get(self, request, course, format=None):

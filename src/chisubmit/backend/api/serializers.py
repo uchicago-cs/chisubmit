@@ -294,13 +294,7 @@ class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.points = validated_data.get('points', instance.points)
         instance.save()
         return instance
-    
-    
-class RegistrationRequestSerializer(serializers.Serializer):
-    students = serializers.ListField(
-                                      child = serializers.CharField()
-                                      )
-    
+
     
 class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
     name = serializers.SlugField()
@@ -408,3 +402,16 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
     def update(self, instance, validated_data):
         return instance            
     
+
+class RegistrationRequestSerializer(serializers.Serializer):
+    students = serializers.ListField(
+                                      child = serializers.CharField()
+                                      )
+    
+class RegistrationResponseSerializer(serializers.Serializer):
+    new_team = serializers.BooleanField()
+    team = TeamSerializer()
+    team_members = serializers.ListField(
+                                         child = TeamMemberSerializer()
+                                         )
+    registration = RegistrationSerializer()    

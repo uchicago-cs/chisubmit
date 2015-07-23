@@ -228,12 +228,18 @@ class Team(models.Model):
     def is_registered_for_assignment(self, assignment):
         return self.registrations.filter(assignment_id = assignment.assignment_id).exists()
     
+    def get_registrations(self):
+        return self.registration_set.all()    
+    
     def get_registration(self, assignment):
         try:
             return self.registration_set.get(assignment = assignment)
         except Registration.DoesNotExist:
             return None        
 
+    def get_team_members(self):
+        return self.teammember_set.all()
+        
     def get_team_member(self, student):
         try:
             return self.teammember_set.get(student = student)

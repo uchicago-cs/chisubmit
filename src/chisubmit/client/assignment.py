@@ -28,8 +28,8 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
-    APIIntegerType, APIDateTimeType, APIDecimalType
-
+    APIIntegerType, APIDateTimeType, APIDecimalType, APIBooleanType,\
+    APIObjectType, APIListType
 
 class Assignment(ChisubmitAPIObject):
 
@@ -96,7 +96,24 @@ class Assignment(ChisubmitAPIObject):
             self.url + "/rubric",
             data = post_data
         )
-        return RubricComponent(self._api_client, headers, data)        
+        return RubricComponent(self._api_client, headers, data)
+    
+    def register(self, students):
+        """
+        :calls: POST /courses/:course/assignments/:assignment/register
+        :param students: list of string
+        :rtype: :class:`chisubmit.client.assignment.RegistrationResponse`
+        """
+        assert isinstance(students, (list, tuple)), students
+        
+        post_data = { "students": students }
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.url + "/register",
+            data = post_data
+        )
+        return RegistrationResponse(self._api_client, headers, data)       
     
 class RubricComponent(ChisubmitAPIObject):
 
@@ -117,3 +134,27 @@ class RubricComponent(ChisubmitAPIObject):
                                            editable=True)
                                               
                       }        
+    
+class RegistrationResponse(ChisubmitAPIObject):
+    
+    _api_attributes = {
+
+                       "new_team": Attribute(name="new_team", 
+                                         attrtype=APIBooleanType, 
+                                         editable=False),  
+                       
+                       "team": Attribute(name="team", 
+                                         attrtype=APIObjectType("chisubmit.client.team.Team"), 
+                                         editable=False),  
+
+                       "team_members": Attribute(name="team_members", 
+                                         attrtype=APIListType(APIObjectType("chisubmit.client.team.TeamMember")), 
+                                         editable=False),
+
+                       "registration": Attribute(name="registration", 
+                                          attrtype=APIObjectType("chisubmit.client.team.Registration"), 
+                                          editable=False),  
+                                              
+                      }
+    
+        

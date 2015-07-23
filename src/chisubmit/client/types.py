@@ -111,8 +111,7 @@ class AttributeType(object):
                 raise AttributeTypeException(value, self)
             rvalue = []
             for item in value:
-                checked_item = self.subtype.check(item, headers, api_client)
-                rvalue.append(checked_item)
+                rvalue.append(self.subtype.to_python(item, headers, api_client))
             return rvalue
         elif self.attrtype == AttributeType.OBJECT:
             if not isinstance(value, dict):

@@ -63,8 +63,17 @@ class AttributeType(object):
         
         assert(subtype is None or 
                (attrtype == self.LIST and isinstance(subtype, AttributeType)) or
+               (attrtype == self.OBJECT and isinstance(subtype, basestring)) or 
                (attrtype == self.OBJECT and issubclass(subtype, ChisubmitAPIObject)))
                
+        # Based on http://stackoverflow.com/questions/547829/how-to-dynamically-load-a-python-class
+        if attrtype == self.OBJECT and isinstance(subtype, basestring):
+            subtypel = subtype.split(".")
+            mod = __import__(".".join(subtypel[:-1]), fromlist=subtypel[-1])
+            klass = getattr(mod, subtypel[-1])
+            assert issubclass(klass, ChisubmitAPIObject)
+            subtype = klass
+            
         self.attrtype = attrtype
         self.subtype = subtype
         

@@ -98,12 +98,15 @@ class Course(models.Model):
         
     def get_team(self, team_name):
         try:
-            return Team.objects.get(course=self, name=team_name)
+            return self.team_set.get(name=team_name)
         except Assignment.DoesNotExist:
             return None        
+
+    def get_teams(self):
+        return self.team_set.all()
         
     def get_teams_with_students(self, students):
-        return Team.objects.filter(students__in = students).distinct()
+        return self.team_set.filter(students__in = students).distinct()
     
     # OPTIONS
     GIT_USERNAME_USER = 'user-id'

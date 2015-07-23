@@ -53,7 +53,7 @@ class Assignment(ChisubmitAPIObject):
                                                 attrtype=APIIntegerType, 
                                                 editable=True),  
      
-                       "max_students": Attribute(name="extensions", 
+                       "max_students": Attribute(name="max_students", 
                                                attrtype=APIIntegerType, 
                                                editable=True),
                        

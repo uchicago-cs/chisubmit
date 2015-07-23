@@ -359,7 +359,6 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
             
             team_commits.append(commits)
             
-            
         for team1, students1 in zip(teams, students_team):
             for team2, students2 in zip(teams, students_team):
                 if team1 != team2:
@@ -379,11 +378,11 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
                 partner_args += ["--partner", p.user_id]
         
             s.run("student assignment register", 
-                  [ assignment_id, "--team-name", team_name] + partner_args)
+                  [ assignment_id ] + partner_args)
 
             s.run("student team show", [team_name])
         
-        
+        return 
         students_in_team = [User.from_id(s.user_id) for s in student_clients]
         
         ts = Team.find_teams_with_students(course_id, students_in_team)

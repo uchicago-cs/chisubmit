@@ -1,7 +1,7 @@
 import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import create_connection
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, get_team_or_exit
 from chisubmit.cli.shared.team import shared_team_list, shared_team_show
 import tempfile
 from chisubmit.repos.local import LocalGitRepo
@@ -18,10 +18,7 @@ def student_team(ctx):
 @pass_course
 @click.pass_context
 def student_repo_check(ctx, course, team_id):
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist or you do not have access to it" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
+    team = get_team_or_exit(ctx, course, team_id)
     
     conn = create_connection(course, ctx.obj['config'])
     

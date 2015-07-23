@@ -16,6 +16,7 @@ from django.db import Error
 from rest_framework.authentication import BasicAuthentication,\
     TokenAuthentication
 from rest_framework.authtoken.models import Token
+from twisted.protocols.ftp import PermissionDeniedError
 
 class CourseList(APIView):
     def get(self, request, format=None):
@@ -491,11 +492,20 @@ class Register(CourseQualifiedAPIView):
     
 class TeamList(CourseQualifiedAPIView):
     def get(self, request, course, format=None):
-        teams = Team.objects.filter(course = course.pk)
+        student = course.get_student(request.user)
+        
+        if student is not None:
+            teams = course.get_teams_with_students([student])
+        else:
+            teams = course.get_teams()            
+        
         serializer = TeamSerializer(teams, many=True, context={'request': request, 'course': course})
         return Response(serializer.data)
 
     def post(self, request, course, format=None):
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied
+
         serializer = TeamSerializer(data=request.data, context={'request': request, 'course': course})
         if serializer.is_valid():
             try:
@@ -508,20 +518,26 @@ class TeamList(CourseQualifiedAPIView):
     
 class TeamDetail(CourseQualifiedAPIView):
             
-    def get_team(self, course, team):
+    def get_team(self, request, course, team):
         try:
             team_obj = Team.objects.get(course = course, name = team)
+            student_obj = course.get_student(request.user)
+            
+            if student_obj is not None:
+                if team_obj.get_team_member(student_obj) is None:
+                    raise Http404
             return team_obj
         except Team.DoesNotExist:
             raise Http404  
 
     def get(self, request, course, team, format=None):
-        team_obj = self.get_team(course, team)
+        team_obj = self.get_team(request, course, team)
+        
         serializer = TeamSerializer(team_obj, context={'request': request, 'course': course})
         return Response(serializer.data)
 
     def patch(self, request, course, team, format=None):
-        team_obj = self.get_team(course, team)
+        team_obj = self.get_team(request, course, team)
         serializer = TeamSerializer(team_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
         serializer.filter_initial_data(course, request.user)
         if serializer.is_valid():
@@ -530,7 +546,7 @@ class TeamDetail(CourseQualifiedAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, course, team, format=None):
-        team_obj = self.get_team(course, team)
+        team_obj = self.get_team(request, course, team)
 
         if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
             raise PermissionDenied        

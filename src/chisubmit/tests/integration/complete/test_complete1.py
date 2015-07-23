@@ -35,7 +35,7 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)
         
-        teams = ["the-flaming-foobars", "the-magnificent-mallocs"]        
+        teams = ["student1-student2", "student3-student4"]        
 
         students_team = [students[0:2], students[2:4]]
 
@@ -46,6 +46,14 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa1", "Programming Assignment 1", deadline])
+        self.assertEquals(result.exit_code, 0)        
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa1", "min_students", "2"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa1", "max_students", "2"])
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor assignment add-rubric-component", 
@@ -61,6 +69,14 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa2", "Programming Assignment 2", deadline])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa2", "min_students", "2"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa2", "max_students", "2"])
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor assignment add-rubric-component", 
@@ -92,18 +108,17 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         self.assertIn(teams[1], result.output)
         self.assertNotIn(teams[0], result.output)
         
+        result = students_team[0][0].run("student team show", [teams[0]])
+        self.assertEquals(result.exit_code, 0)        
+
         result = students_team[0][0].run("student team show", [teams[1]])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
 
+        result = students_team[1][0].run("student team show", [teams[1]])
+        self.assertEquals(result.exit_code, 0)
+
         result = students_team[1][0].run("student team show", [teams[0]])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
-
-
-        result = instructors[0].run("instructor team set-attribute", [teams[0], "alias", "foobar "+teams[0]])
-        self.assertEquals(result.exit_code, 0)
-
-        result = instructors[0].run("instructor team set-attribute", [teams[1], "alias", "foobar "+teams[1]])
-        self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor team list")
         self.assertEquals(result.exit_code, 0)
@@ -114,7 +129,6 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         result = instructors[0].run("instructor team show", [teams[1]])
         self.assertEquals(result.exit_code, 0)
 
-        
         team_git_paths, team_git_repos, team_commits = self.create_team_repos(admin, course_id, teams, students_team)
         
         # Try to submit without enough extensions

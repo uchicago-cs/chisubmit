@@ -4,7 +4,8 @@ from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import convert_datetime_to_utc
 import operator
-from chisubmit.cli.shared.assignment import shared_assignment_list
+from chisubmit.cli.shared.assignment import shared_assignment_list,\
+    shared_assignment_set_attribute
 
 
 @click.group(name="assignment")
@@ -107,6 +108,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
 
 
 instructor_assignment.add_command(shared_assignment_list)
+instructor_assignment.add_command(shared_assignment_set_attribute)
 
 instructor_assignment.add_command(instructor_assignment_add)
 instructor_assignment.add_command(instructor_assignment_add_rubric_component)

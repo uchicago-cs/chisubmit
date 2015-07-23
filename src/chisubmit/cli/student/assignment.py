@@ -4,7 +4,7 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import convert_datetime_to_local,\
     create_connection, get_datetime_now_utc, compute_extensions_needed
 from dateutil.parser import parse
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, get_assignment_or_exit
 from chisubmit.cli.shared.assignment import shared_assignment_list
 from datetime import timedelta
 
@@ -17,15 +17,15 @@ def student_assignment(ctx):
 
 @click.command(name="register")
 @click.argument('assignment_id', type=str)
-@click.option('--team-name', type=str)
 @click.option('--partner', type=str, multiple=True)
 @pass_course
 @click.pass_context
-def student_assignment_register(ctx, course, assignment_id, team_name, partner):
-    a = Assignment.from_id(course.id, assignment_id)
-        
-    a.register(team_name = team_name,
-               partners = partner)
+def student_assignment_register(ctx, course, assignment_id, partner):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    
+    user = ctx.obj["client"].get_user()
+    
+    assignment.register(students = partner + (user.username,))
     
     return CHISUBMIT_SUCCESS
 

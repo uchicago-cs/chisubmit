@@ -216,6 +216,9 @@ class Team(models.Model):
     
     registrations = models.ManyToManyField(Assignment, through='Registration') 
     
+    def __unicode__(self):
+        return u"Team %s in %s" % (self.name, self.course.course_id)         
+    
     def is_registered_for_assignment(self, assignment):
         return self.registrations.filter(assignment_id = assignment.assignment_id).exists()
     

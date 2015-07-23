@@ -28,6 +28,16 @@ urlpatterns = [
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/$', views.TeamList.as_view(), name="team-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)$', views.TeamDetail.as_view(), name="team-detail"),
 
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/students/$', views.TeamMemberList.as_view(), name="teammember-list"),
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/students/(?P<student>[a-zA-Z0-9_-]+)$', views.TeamMemberDetail.as_view(), name="teammember-detail"),
+
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/$', views.RegistrationList.as_view(), name="registration-list"),
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)$', views.RegistrationDetail.as_view(), name="registration-detail"),
+
+    #url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions$', views.SubmissionList.as_view(), name="submission-detail"),
+    #url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions/(?P<submission>[a-zA-Z0-9_-]+)$', views.SubmissionDetail.as_view(), name="submission-detail"),
+
+
     url(URL_PREFIX + r'users/$', views.UserList.as_view(), name="user-list"),
     url(URL_PREFIX + r'users/(?P<username>[a-zA-Z0-9_-]+)/$', views.UserDetail.as_view(), name="user-detail"),
     url(URL_PREFIX + r'users/(?P<username>[a-zA-Z0-9_-]+)/token/$', views.UserToken.as_view(), name="user-token"),

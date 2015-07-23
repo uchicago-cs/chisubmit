@@ -131,7 +131,7 @@ class Course(ChisubmitAPIObject):
         elif isinstance(user_or_username, User):
             username = user_or_username.username
         
-        post_data = {"username": username }
+        post_data = {"username": username}
         
         if git_username is not None:
             post_data["git_username"] = git_username

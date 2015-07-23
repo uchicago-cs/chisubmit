@@ -1,0 +1,11 @@
+-   model: api.registration
+    pk: 1
+    fields:
+        team: 1
+        assignment: 1
+-   model: api.registration
+    pk: 2
+    fields:
+        team: 2
+        assignment: 1
+ 

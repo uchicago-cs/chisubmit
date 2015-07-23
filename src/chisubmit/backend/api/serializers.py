@@ -1,9 +1,13 @@
 from rest_framework import serializers
 from chisubmit.backend.api.models import Course, GradersAndStudents, AllExceptAdmin,\
     Students, Student, Instructor, Grader, Team, Assignment, ReadWrite,\
-    OwnerPermissions, Read, RubricComponent
+    OwnerPermissions, Read, RubricComponent, TeamMember, Registration
 from django.contrib.auth.models import User
 from rest_framework.reverse import reverse
+from rest_framework.relations import RelatedField
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.encoding import smart_text
+from django.utils.translation import ugettext_lazy
 
 class FieldPermissionsMixin(object):
     def get_filtered_data(self, course, user):
@@ -292,8 +296,8 @@ class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance
     
     
-class RegistrationSerializer(serializers.Serializer):
-    students =  serializers.ListField(
+class RegistrationRequestSerializer(serializers.Serializer):
+    students = serializers.ListField(
                                       child = serializers.CharField()
                                       )
     
@@ -303,7 +307,9 @@ class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
     extensions = serializers.IntegerField(default=1, min_value=1)
     active = serializers.BooleanField()
         
-    url = serializers.SerializerMethodField()   
+    url = serializers.SerializerMethodField()
+    students_url = serializers.SerializerMethodField()
+    assignments_url = serializers.SerializerMethodField()
 
     hidden_fields = { "active": Students }       
         
@@ -313,6 +319,12 @@ class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     def get_url(self, obj):
         return reverse('team-detail', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
+
+    def get_students_url(self, obj):
+        return reverse('teammember-list', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
+
+    def get_assignments_url(self, obj):
+        return reverse('registration-list', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
     
     def create(self, validated_data):
         return Team.objects.create(**validated_data)
@@ -323,4 +335,68 @@ class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.active = validated_data.get('active', instance.min_students)
         instance.save()
         return instance         
+    
+class PersonRelatedField(RelatedField):
+    default_error_messages = {
+        'does_not_exist': ugettext_lazy('Object with username={value} does not exist.'),
+        'invalid': ugettext_lazy('Invalid value.'),
+    }
+    
+    def __init__(self, **kwargs):    
+        super(PersonRelatedField, self).__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        try:
+            return self.get_queryset().get(user__username = data)
+        except ObjectDoesNotExist:
+            self.fail('does_not_exist', value=smart_text(data))
+        except (TypeError, ValueError):
+            self.fail('invalid')
+
+    def to_representation(self, obj):
+        return obj.user.username
+
+    
+class TeamMemberSerializer(serializers.Serializer, FieldPermissionsMixin):    
+    url = serializers.SerializerMethodField()
+    username = PersonRelatedField(source = "student",
+                                  queryset=Student.objects.all()
+                                  )
+    student = StudentSerializer(read_only=True)
+    confirmed = serializers.BooleanField(default=False)
+
+    def get_url(self, obj):
+        return reverse('teammember-detail', args=[self.context["course"].course_id, obj.team.name, obj.student.user.username], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return TeamMember.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.confirmed = validated_data.get('confirmed', instance.confirmed)
+        instance.save()
+        return instance
+    
+class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):    
+    url = serializers.SerializerMethodField()
+    assignment_id = serializers.SlugRelatedField(
+        source="assignment",
+        queryset=Assignment.objects.all(),
+        slug_field='assignment_id'
+    )
+    assignment = AssignmentSerializer(read_only=True, required=False) 
+    grader_username = PersonRelatedField(
+                                         source = "grader",
+                                         queryset=Grader.objects.all()
+                                         )
+    grader = GraderSerializer(read_only=True)
+    #TODO: final_submission
+
+    def get_url(self, obj):
+        return reverse('registration-detail', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return Registration.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        return instance            
     

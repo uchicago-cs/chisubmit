@@ -3,7 +3,7 @@ from chisubmit.tests.common import COURSE1_ASSIGNMENTS, COURSE2_ASSIGNMENTS,\
     COURSE1_TEAMS, COURSE1_TEAM_MEMBERS
 from chisubmit.client.exceptions import BadRequestException
 from chisubmit.backend.api.models import Course, Assignment, TeamMember,\
-    Registration
+    Registration, Submission
 
 class TeamTests(ChisubmitClientLibsTestCase):
     
@@ -183,5 +183,67 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
             
             self.assertEquals(len(registrations), 2)
             self.assertItemsEqual([r.assignment_id for r in registrations], ["pa1", "pa2"])
-            self.assertItemsEqual([r.assignment.assignment_id for r in registrations], ["pa1", "pa2"])            
+            self.assertItemsEqual([r.assignment.assignment_id for r in registrations], ["pa1", "pa2"])
+            
+class SubmissionTests(ChisubmitClientLibsTestCase):
+    
+    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations_with_submissions']    
+    
+    def test_get_submissions(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        
+        team = course.get_team("student1-student2")
+        registration = team.get_assignment_registration("pa1")
+        submissions = registration.get_submissions()
+            
+        self.assertEquals(len(submissions), 2)
+        self.assertIn(registration.final_submission_id, [s.id for s in submissions])
+
+        team = course.get_team("student3-student4")
+        registration = team.get_assignment_registration("pa1")
+        submissions = registration.get_submissions()
+            
+        self.assertEquals(len(submissions), 1)
+        self.assertEquals(submissions[0].id, registration.final_submission_id)
+        
+    def test_get_submission(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        
+        for t in COURSE1_TEAMS:        
+            team = course.get_team(t)
+            registration = team.get_assignment_registration("pa1")
+            final_submission_id = registration.final_submission_id
+            submission = registration.get_submission(final_submission_id)
+
+            self.assertEqual(submission.id, final_submission_id)
+            
+    def test_create_submission(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        
+        for t in COURSE1_TEAMS:        
+            team = course.get_team(t)
+            registration = team.get_assignment_registration("pa1")
+            submissions = registration.get_submissions()
+            n_submissions = len(submissions)
+            
+            sha = "COMMITSHA" + team.name
+            submission = registration.add_submission(sha, 42)
+
+            self.assertEqual(submission.extensions_used, 42)
+            self.assertEqual(submission.commit_sha, sha)
+            
+            submission_objs = Submission.objects.filter(pk = submission.id)
+            self.assertEquals(len(submission_objs), 1)
+            submission_obj = submission_objs[0]
+            self.assertEqual(submission_obj.extensions_used, 42)
+            self.assertEqual(submission_obj.commit_sha, sha)
+            
+            submissions = registration.get_submissions()
+            self.assertEquals(len(submissions), n_submissions + 1)
                 

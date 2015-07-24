@@ -275,7 +275,7 @@ class Submission(models.Model):
     registration = models.ForeignKey(Registration) 
     extensions_used = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
-    submitted_at = models.DateTimeField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
         
 class Grade(models.Model):
     team = models.ForeignKey(Team)

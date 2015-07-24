@@ -28,7 +28,7 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
-    APIIntegerType, APIBooleanType, APIObjectType
+    APIIntegerType, APIBooleanType, APIObjectType, APIDateTimeType
 from chisubmit.client.users import Student, User, Grader
 from chisubmit.client.assignment import Assignment
 
@@ -186,6 +186,29 @@ class TeamMember(ChisubmitAPIObject):
                                               editable=True),                       
                       }
     
+class Submission(ChisubmitAPIObject):
+
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),
+
+                       "id": Attribute(name="id", 
+                                       attrtype=APIIntegerType, 
+                                       editable=False),  
+    
+                       "extensions_used": Attribute(name="extensions_used", 
+                                               attrtype=APIIntegerType, 
+                                               editable=True),  
+
+                       "commit_sha": Attribute(name="commit_sha", 
+                                            attrtype=APIStringType, 
+                                            editable=True),  
+    
+                       "submitted_at": Attribute(name="submitted_at", 
+                                        attrtype=APIDateTimeType, 
+                                        editable=True)                    
+                      }          
+    
 class Registration(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 
@@ -201,14 +224,106 @@ class Registration(ChisubmitAPIObject):
                                                editable=False),  
 
                        "grader_username": Attribute(name="grader_username", 
-                                            attrtype=APIStringType, 
-                                            editable=False),  
+                                                    attrtype=APIStringType, 
+                                                    editable=True),  
     
-                       "grader": Attribute(name="user", 
+                       "grader": Attribute(name="grader", 
                                         attrtype=APIObjectType(Student), 
                                         editable=False),  
                        
-                       "confirmed": Attribute(name="confirmed", 
-                                              attrtype=APIBooleanType, 
-                                              editable=True),                       
-                      }        
+                       "submissions_url": Attribute(name="submissions_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),     
+                                              
+                       "final_submission_id": Attribute(name="final_submission_id", 
+                                                     attrtype=APIIntegerType, 
+                                                     editable=True),
+
+                       "final_submission": Attribute(name="final_submission", 
+                                                     attrtype=APIObjectType(Submission), 
+                                                     editable=False),
+                       
+                       "final_submission_url": Attribute(name="final_submission_url", 
+                                                         attrtype=APIStringType, 
+                                                         editable=False),                                     
+                      }
+    
+    def get_submissions(self):
+        """
+        :calls: GET /courses/:course/teams/:team/assignments/:assignment/submissions
+        :rtype: List of :class:`chisubmit.client.team.Submission`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.submissions_url
+        )
+        return [Submission(self._api_client, headers, elem) for elem in data]        
+    
+    def get_submission(self, submission):
+        """
+        :calls: GET /courses/:course/teams/:team/assignments/:assignment/submissions/:submission
+        :rtype: :class:`chisubmit.client.team.Submission`
+        """
+        
+        assert isinstance(submission, int), submission
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.submissions_url + str(submission)
+        )
+        return Submission(self._api_client, headers, data)      
+    
+    def add_submission(self, commit_sha, extensions_used = None, submitted_at = None):
+        """
+        :calls: POST /courses/:course/teams/:team/assignments/:assignment/submissions/
+        :rtype: :class:`chisubmit.client.team.Submission`
+        """
+        
+        post_data = {"commit_sha": commit_sha}
+        
+        if extensions_used is not None:
+            post_data["extensions_used"] = extensions_used
+        if submitted_at is not None:
+            post_data["submitted_at"] = submitted_at
+
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.submissions_url,
+            data = post_data
+        )
+        return Submission(self._api_client, headers, data)
+    
+    def submit(self, commit_sha, extensions, ignore_deadline = False):
+        """
+        :calls: POST /courses/:course/teams/:team/assignments/:assignment/submit/
+        :rtype: :class:`chisubmit.client.team.Submission`
+        """
+        
+        post_data = {"commit_sha": commit_sha,
+                     "extensions": extensions,
+                     "ignore_deadline": ignore_deadline}
+                
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.url + "submit/",
+            data = post_data
+        )
+        return SubmissionResponse(self._api_client, headers, data)    
+    
+class SubmissionResponse(ChisubmitAPIObject):
+    
+    _api_attributes = {
+                       "submission": Attribute(name="registration", 
+                                               attrtype=APIObjectType(Submission), 
+                                               editable=False),  
+                                              
+                       "extensions_before": Attribute(name="extensions_before", 
+                                                      attrtype=APIIntegerType, 
+                                                      editable=False),  
+
+                       "extensions_after": Attribute(name="extensions_before", 
+                                                     attrtype=APIIntegerType, 
+                                                     editable=False),  
+                       }    
+    

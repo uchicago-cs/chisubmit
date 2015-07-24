@@ -4,12 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
     Assignment, Team, RubricComponent, get_user_by_username, TeamMember,\
-    Registration
+    Registration, Submission
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
     AssignmentSerializer, TeamSerializer, UserSerializer,\
     RubricComponentSerializer, RegistrationRequestSerializer, RegistrationSerializer, TeamMemberSerializer,\
-    RegistrationResponseSerializer
+    RegistrationResponseSerializer, SubmissionSerializer,\
+    SubmissionRequestSerializer, SubmissionResponseSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.db import Error
@@ -677,6 +678,113 @@ class RegistrationDetail(CourseQualifiedAPIView):
         registration_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)    
         
+class Submit(CourseQualifiedAPIView):
+    def get_registration(self, request, course, team, assignment):
+        try:
+            team_obj = Team.objects.get(course = course, name = team)
+            student_obj = course.get_student(request.user)
+            
+            if student_obj is not None:
+                if team_obj.get_team_member(student_obj) is None:
+                    raise Http404            
+            
+            registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
+            return registration_obj
+        except (Team.DoesNotExist, Registration.DoesNotExist):
+            raise Http404  
+
+    def post(self, request, course, team, assignment, format=None):
+        registration_obj = self.get_registration(request, course, team, assignment)
+    
+        serializer = SubmissionRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)              
+
+            
+        response_data = {"submission": None,
+                         "extensions_before": 0,
+                         "extensions_after": 0
+                         }
+            
+        serializer = SubmissionResponseSerializer(response_data, context={'request': request, 'course': course})            
+        return Response(serializer.data, status=status.HTTP_201_CREATED)        
+        
+
+class SubmissionList(CourseQualifiedAPIView):
+            
+    def get_registration(self, request, course, team, assignment):
+        try:
+            team_obj = Team.objects.get(course = course, name = team)
+            student_obj = course.get_student(request.user)
+            
+            if student_obj is not None:
+                if team_obj.get_team_member(student_obj) is None:
+                    raise Http404            
+            
+            registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
+            return registration_obj
+        except (Team.DoesNotExist, Registration.DoesNotExist):
+            raise Http404          
+            
+    def get(self, request, course, team, assignment, format=None):
+        registration_obj = self.get_registration(request, course, team, assignment)
+        
+        serializer = SubmissionSerializer(registration_obj.submission_set.all(), many=True, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def post(self, request, course, team, assignment, format=None):
+        registration_obj = self.get_registration(request, course, team, assignment)
+        
+        serializer = SubmissionSerializer(data=request.data, context={'request': request, 'course': course})
+        if serializer.is_valid():
+            try:
+                serializer.save(registration = registration_obj)
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)       
+    
+class SubmissionDetail(CourseQualifiedAPIView):
+    
+    def get_submission(self, request, course, team, assignment, submission):
+        try:
+            team_obj = Team.objects.get(course = course, name = team)
+            student_obj = course.get_student(request.user)
+            
+            if student_obj is not None:
+                if team_obj.get_team_member(student_obj) is None:
+                    raise Http404            
+            
+            registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
+            submission_obj = Submission.objects.get(registration = registration_obj, pk = submission)
+            
+            return submission_obj
+        except (Team.DoesNotExist, Registration.DoesNotExist, Submission.DoesNotExist):
+            raise Http404       
+    
+    def get(self, request, course, team, assignment, submission, format=None):
+        submission_obj = self.get_submission(request, course, team, assignment, submission)
+        serializer = SubmissionSerializer(submission_obj, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def patch(self, request, course, team, assignment, submission, format=None):
+        submission_obj = self.get_submission(request, course, team, assignment, submission)
+        serializer = SubmissionSerializer(submission_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
+        serializer.filter_initial_data(course, request.user)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, course, team, assignment, submission, format=None):
+        submission_obj = self.get_submission(course, team, assignment)
+
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied        
+        
+        submission_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)    
+
     
 class UserList(APIView):
     def get(self, request, format=None):

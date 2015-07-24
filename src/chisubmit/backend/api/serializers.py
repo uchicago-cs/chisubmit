@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from chisubmit.backend.api.models import Course, GradersAndStudents, AllExceptAdmin,\
     Students, Student, Instructor, Grader, Team, Assignment, ReadWrite,\
-    OwnerPermissions, Read, RubricComponent, TeamMember, Registration
+    OwnerPermissions, Read, RubricComponent, TeamMember, Registration,\
+    Submission
 from django.contrib.auth.models import User
 from rest_framework.reverse import reverse
 from rest_framework.relations import RelatedField
@@ -372,6 +373,32 @@ class TeamMemberSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.save()
         return instance
     
+class SubmissionSerializer(serializers.Serializer, FieldPermissionsMixin):    
+    url = serializers.SerializerMethodField()
+    id = serializers.IntegerField(read_only = True)
+    extensions_used = serializers.IntegerField(default=0, min_value=0) 
+    commit_sha = serializers.CharField(max_length=40)
+    submitted_at = serializers.DateTimeField(required=False)
+    
+    readonly_fields = { 
+                      "extensions_used": GradersAndStudents,
+                      "commit_sha": GradersAndStudents,
+                      "submitted_at": GradersAndStudents
+                      }   
+
+    def get_url(self, obj):
+        return reverse('submission-detail', args=[self.context["course"].course_id, obj.registration.team.name, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return Submission.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.extensions_used = validated_data.get('extensions_used', instance.extensions_used)
+        instance.commit_sha = validated_data.get('commit_sha', instance.commit_sha)
+        instance.submitted_at = validated_data.get('submitted_at', instance.submitted_at)
+        instance.save()        
+        return instance    
+    
 class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):    
     url = serializers.SerializerMethodField()
     assignment_id = serializers.SlugRelatedField(
@@ -386,7 +413,14 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
                                          required = False
                                          )
     grader = GraderSerializer(read_only=True, required=False)
-    #TODO: final_submission
+
+    submissions_url = serializers.SerializerMethodField()
+    final_submission_id = serializers.PrimaryKeyRelatedField(
+        source="final_submission",
+        queryset=Submission.objects.all(),
+        required=False
+    )
+    final_submission = SubmissionSerializer(read_only=True, required=False) 
 
     hidden_fields = { 
                       "grader_username": Students,
@@ -395,11 +429,16 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
 
     def get_url(self, obj):
         return reverse('registration-detail', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
+
+    def get_submissions_url(self, obj):
+        return reverse('submission-list', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
     
     def create(self, validated_data):
         return Registration.objects.create(**validated_data)
     
     def update(self, instance, validated_data):
+        instance.grader = validated_data.get('grader', instance.grader)
+        instance.final_submission = validated_data.get('final_submission', instance.final_submission)
         return instance            
     
 
@@ -415,3 +454,15 @@ class RegistrationResponseSerializer(serializers.Serializer):
                                          child = TeamMemberSerializer()
                                          )
     registration = RegistrationSerializer()    
+    
+class SubmissionRequestSerializer(serializers.Serializer):
+    extensions = serializers.IntegerField(default=0, min_value=0) 
+    commit_sha = serializers.CharField(max_length=40)
+    ignore_deadline = serializers.BooleanField()
+
+class SubmissionResponseSerializer(serializers.Serializer):
+    submission = SubmissionSerializer()
+    extensions_before = serializers.IntegerField() 
+    extensions_after = serializers.IntegerField() 
+          
+  

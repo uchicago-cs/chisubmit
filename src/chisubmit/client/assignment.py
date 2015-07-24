@@ -37,6 +37,10 @@ class Assignment(ChisubmitAPIObject):
                                        attrtype=APIStringType, 
                                        editable=False),  
                        
+                       "rubric_url": Attribute(name="rubric_url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),                         
+                       
                        "assignment_id": Attribute(name="assignment_id", 
                                        attrtype=APIStringType, 
                                        editable=True),  
@@ -70,14 +74,14 @@ class Assignment(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "GET",
-            self.url + "/rubric"
+            self.rubric_url
         )
         return [RubricComponent(self._api_client, headers, elem) for elem in data]    
     
     
     def create_rubric_component(self, description, points, order = None):
         """
-        :calls: POST /courses/:course/assignments/:assignment/rubric
+        :calls: POST /courses/:course/assignments/:assignment/rubric/
         :param description: string
         :param points: float
         :param order: int
@@ -93,7 +97,7 @@ class Assignment(ChisubmitAPIObject):
         
         headers, data = self._api_client._requester.request(
             "POST",
-            self.url + "/rubric",
+            self.rubric_url,
             data = post_data
         )
         return RubricComponent(self._api_client, headers, data)

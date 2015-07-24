@@ -75,10 +75,10 @@ def runtests(failfast, quiet, verbose, buffer,
         runner.run_tests([test_suites[tests]])
         
     if not ran:
-        try:
+        #try:
             runner.run_tests([tests])
-        except AttributeError, ae:
-            print "Unknown test: %s" % tests
+        #except AttributeError, ae:
+        #    print "Unknown test: %s" % tests
     
     
 def configure_complete_test(test, config, git_server, git_staging):

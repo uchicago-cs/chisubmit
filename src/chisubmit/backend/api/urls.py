@@ -20,7 +20,7 @@ urlpatterns = [
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/$', views.AssignmentList.as_view(), name="assignment-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)$', views.AssignmentDetail.as_view(), name="assignment-detail"),
 
-    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/rubric$', views.RubricList.as_view(), name="rubric-list"),
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/rubric/$', views.RubricList.as_view(), name="rubric-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/rubric/(?P<rubric_component>[0-9]+)$', views.RubricDetail.as_view(), name="rubric-detail"),
 
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/register', views.Register.as_view(), name="register"),
@@ -34,8 +34,10 @@ urlpatterns = [
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/$', views.RegistrationList.as_view(), name="registration-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)$', views.RegistrationDetail.as_view(), name="registration-detail"),
 
-    #url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions$', views.SubmissionList.as_view(), name="submission-detail"),
-    #url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions/(?P<submission>[a-zA-Z0-9_-]+)$', views.SubmissionDetail.as_view(), name="submission-detail"),
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submit$', views.Submit.as_view(), name="submit"),
+
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions/$', views.SubmissionList.as_view(), name="submission-list"),
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions/(?P<submission>[0-9]+)$', views.SubmissionDetail.as_view(), name="submission-detail"),
 
 
     url(URL_PREFIX + r'users/$', views.UserList.as_view(), name="user-list"),

@@ -18,6 +18,8 @@ from rest_framework.authentication import BasicAuthentication,\
     TokenAuthentication
 from rest_framework.authtoken.models import Token
 from twisted.protocols.ftp import PermissionDeniedError
+from chisubmit.common.utils import get_datetime_now_utc,\
+    compute_extensions_needed
 
 class CourseList(APIView):
     def get(self, request, format=None):
@@ -652,7 +654,7 @@ class RegistrationDetail(CourseQualifiedAPIView):
             team_obj = Team.objects.get(course = course, name = team)
             registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
             return registration_obj
-        except (Team.DoesNotExist, TeamMember.DoesNotExist):
+        except (Team.DoesNotExist, Registration.DoesNotExist):
             raise Http404  
 
     def get(self, request, course, team, assignment, format=None):
@@ -700,14 +702,49 @@ class Submit(CourseQualifiedAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)              
 
+        now = get_datetime_now_utc()
+                
+        commit_sha = serializer.validated_data["commit_sha"]
+        extensions_requested = serializer.validated_data["extensions"]
+        ignore_deadline = serializer.validated_data["ignore_deadline"]
+        
+        dry_run = request.query_params.get("dry_run", "false") in ("true", "True")
+        
+        if ignore_deadline:
+            if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+                msg = "Nice try! Only admins and instructors can ignore the deadline."
+                return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not ignore_deadline and registration_obj.is_ready_for_grading():
+            msg = "You cannot re-submit assignment %s." % (registration_obj.assignment.assignment_id)
+            msg = " You made a submission before the deadline, and the deadline has passed."
+            return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+        
+        submission = Submission(registration = registration_obj,
+                                extensions_used = extensions_requested,
+                                commit_sha = commit_sha,
+                                submitted_at = now)
+        
+        valid, error_response, extensions = submission.validate()
+        
+        if not valid:
+            return error_response
+        else:
+            if not dry_run:
+                submission.save()
+                registration_obj.final_submission = submission
+                registration_obj.save()
+                response_status = status.HTTP_201_CREATED
+            else:
+                response_status = status.HTTP_200_OK
             
-        response_data = {"submission": None,
-                         "extensions_before": 0,
-                         "extensions_after": 0
-                         }
-            
-        serializer = SubmissionResponseSerializer(response_data, context={'request': request, 'course': course})            
-        return Response(serializer.data, status=status.HTTP_201_CREATED)        
+            response_data = {"submission": submission,
+                             "extensions_before": extensions["extensions_available_before"],
+                             "extensions_after": extensions["extensions_available_after"]
+                             }
+                
+            serializer = SubmissionResponseSerializer(response_data, context={'request': request, 'course': course})            
+            return Response(serializer.data, status=response_status)        
         
 
 class SubmissionList(CourseQualifiedAPIView):

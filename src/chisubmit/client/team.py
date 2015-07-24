@@ -31,6 +31,7 @@ from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,
     APIIntegerType, APIBooleanType, APIObjectType, APIDateTimeType
 from chisubmit.client.users import Student, User, Grader
 from chisubmit.client.assignment import Assignment
+from chisubmit.common.utils import is_submission_ready_for_grading
 
 
 class Team(ChisubmitAPIObject):
@@ -294,7 +295,7 @@ class Registration(ChisubmitAPIObject):
         )
         return Submission(self._api_client, headers, data)
     
-    def submit(self, commit_sha, extensions, ignore_deadline = False):
+    def submit(self, commit_sha, extensions, ignore_deadline = False, dry_run=False):
         """
         :calls: POST /courses/:course/teams/:team/assignments/:assignment/submit/
         :rtype: :class:`chisubmit.client.team.Submission`
@@ -303,13 +304,26 @@ class Registration(ChisubmitAPIObject):
         post_data = {"commit_sha": commit_sha,
                      "extensions": extensions,
                      "ignore_deadline": ignore_deadline}
-                
+        
+        if dry_run:
+            qs = "?dry_run=true"
+        else:
+            qs = ""
+        
         headers, data = self._api_client._requester.request(
             "POST",
-            self.url + "submit/",
+            self.url + "/submit"+qs,
             data = post_data
         )
         return SubmissionResponse(self._api_client, headers, data)    
+    
+    def is_ready_for_grading(self):    
+        if self.final_submission is None:
+            return False
+        else:
+            return is_submission_ready_for_grading(assignment_deadline=self.assignment.deadline, 
+                                                   submission_date=self.final_submission.submitted_at,
+                                                   extensions_used=self.final_submission.extensions_used)    
     
 class SubmissionResponse(ChisubmitAPIObject):
     

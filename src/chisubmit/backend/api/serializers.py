@@ -387,7 +387,12 @@ class SubmissionSerializer(serializers.Serializer, FieldPermissionsMixin):
                       }   
 
     def get_url(self, obj):
-        return reverse('submission-detail', args=[self.context["course"].course_id, obj.registration.team.name, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
+        if obj.pk is None:
+            # If we do a dry-run submission, we will be seralizing a Submission object that has not
+            # been saved, and thus doesn't have a primary key (or an endpoint)
+            return None
+        else:
+            return reverse('submission-detail', args=[self.context["course"].course_id, obj.registration.team.name, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
     
     def create(self, validated_data):
         return Submission.objects.create(**validated_data)

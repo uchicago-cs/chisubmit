@@ -1,5 +1,5 @@
 import click
-from chisubmit.cli.common import pass_course, get_teams
+from chisubmit.cli.common import pass_course
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL,\
     ChisubmitException
 

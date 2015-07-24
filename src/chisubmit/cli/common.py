@@ -62,6 +62,13 @@ def get_team_or_exit(ctx, course, team_id):
     except UnknownObjectException:
         print "Team %s does not exist" % team_id
         ctx.exit(CHISUBMIT_FAIL)
+
+def get_assignment_registration_or_exit(ctx, team, assignment_id):
+    try:
+        return team.get_assignment_registration(assignment_id = assignment_id)
+    except UnknownObjectException:
+        print "Team %s is not registered for assignment %s" % (team.name, assignment_id)
+        ctx.exit(CHISUBMIT_FAIL)        
         
 def get_instructor_or_exit(ctx, course, username):
     try:
@@ -121,29 +128,32 @@ class DateTimeParamType(click.ParamType):
 DATETIME = DateTimeParamType()
 
 
-def get_teams(course, assignment, only_ready_for_grading = False, grader = None, only = None):
+def get_teams_registrations(course, assignment, only_ready_for_grading = False, grader = None, only = None):
     if only is not None:
-        team = course.get_team(only)
-        if team is None:
-            print "Team %s does not exist"
-            return None
-        if not team.has_assignment(assignment.id):
-            print "Team %s has not been assigned assignment %s" % (team.id, assignment.id)
-            return None
-
-        teams = [team]
+        try:
+            team = course.get_team(only)
+            teams = [team]
+        except UnknownObjectException:
+            return {}
     else:
-        if only_ready_for_grading:
-            teams = [t for t in course.teams if t.has_assignment_ready_for_grading(assignment)]
-        else:
-            teams = [t for t in course.teams if t.has_assignment(assignment.id)]
+        teams = course.get_teams()
 
-        if grader is not None:
-            teams = [t for t in teams if getattr(t.get_assignment(assignment.id).grader, "id", None) == grader.user.id]
-
-    teams.sort(key=operator.attrgetter("id"))
-
-    return teams
+    # TODO: sideload the registrations
+    rv = {}
+    
+    for team in teams:
+        try:
+            registration = team.get_assignment_registration(assignment.assignment_id)
+            
+            if (only_ready_for_grading and not registration.is_ready_for_grading) or (grader is not None and registration.grader_username != grader):
+                continue
+            
+            rv[team] = registration
+        except UnknownObjectException:
+            # Skip
+            pass
+        
+    return rv
 
 
 def create_grading_repos(config, course, assignment, teams):

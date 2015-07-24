@@ -3,8 +3,9 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.rubric import RubricFile, ChisubmitRubricException
-from chisubmit.cli.common import create_grading_repos, get_teams,\
-    gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch
+from chisubmit.cli.common import create_grading_repos,\
+    gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
+    get_assignment_or_exit, get_teams_registrations
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
 
@@ -388,13 +389,10 @@ def instructor_grading_list_grader_assignments(ctx, course, assignment_id, grade
 @pass_course
 @click.pass_context
 def instructor_grading_list_submissions(ctx, course, assignment_id):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
-    teams = get_teams(course, assignment)
-    teams.sort(key=operator.attrgetter("id"))
+    teams_registrations = get_teams_registrations(course, assignment)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("name"))
 
     conn = create_connection(course, ctx.obj['config'])
     
@@ -403,19 +401,19 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
         ctx.exit(CHISUBMIT_FAIL)
 
     for team in teams:
-        ta = team.get_assignment(assignment.id)
+        registration = teams_registrations[team]
 
-        if ta.submitted_at is None:
+        if registration.final_submission is None:
             print "%25s NOT SUBMITTED" % team.id
         else:
-            submission_commit = conn.get_commit(course, team, ta.commit_sha)
+            submission_commit = conn.get_commit(course, team, registration.final_submission.commit_sha)
             if submission_commit is not None:
-                if team.has_assignment_ready_for_grading(assignment):
-                    print "%25s SUBMITTED (READY for grading)" % team.id
+                if registration.is_ready_for_grading():
+                    print "%25s SUBMITTED (READY for grading)" % team.name
                 else:
-                    print "%25s SUBMITTED (NOT READY for grading)" % team.id
+                    print "%25s SUBMITTED (NOT READY for grading)" % team.name
             else:
-                print "%25s ERROR: Submitted but commit %s not found in repository" % (team.id, ta.commit_sha)
+                print "%25s ERROR: Submitted but commit %s not found in repository" % (team.name, registration.final_submission.commit_sha)
     
     return CHISUBMIT_SUCCESS
 

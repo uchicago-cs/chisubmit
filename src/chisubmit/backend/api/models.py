@@ -2,6 +2,11 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 from enum import Enum
+from django.db.utils import IntegrityError
+from chisubmit.common.utils import compute_extensions_needed,\
+    is_submission_ready_for_grading
+from rest_framework.response import Response
+from rest_framework import status
 
 class CourseRoles(Enum):
     ADMIN = 0
@@ -170,6 +175,18 @@ class Student(models.Model):
     def __unicode__(self):
         return u"Student %s of %s" % (self.user.username, self.course.course_id)     
     
+    def get_extensions_available(self):
+        extensions_used = 0
+        
+        teams = self.course.get_teams_with_students([self.student])
+        
+        for team in teams:
+            for registration in team.registration_set.all():
+                if registration.final_submission is not None:
+                    extensions_used += registration.final_submission.extensions_used
+
+        return self.extensions - extensions_used    
+    
     class Meta:
         unique_together = ("user", "course")    
 
@@ -248,6 +265,25 @@ class Team(models.Model):
             return self.teammember_set.get(student = student)
         except TeamMember.DoesNotExist:
             return None        
+        
+    def get_extensions_used(self):
+        extensions = 0
+        for r in self.registration_set.all():
+            if r.final_submission is not None:
+                extensions += r.final_submission.extensions_used
+        return extensions 
+        
+    def get_extensions_available(self):
+        if self.course.extension_policy == Course.EXT_PER_TEAM:
+            return self.extensions - self.get_extensions_used()    
+        elif self.course.extension_policy == Course.EXT_PER_STUDENT:
+            student_extensions_available = []
+            for student in self.students.all():
+                a = student.get_extensions_available()
+                student_extensions_available.append(a)
+            return min(student_extensions_available)
+        else:
+            raise IntegrityError("course.extension_policy has invalid value: %s" % (self.course.extension_policy))          
     
     class Meta:
         unique_together = ("course", "name")
@@ -268,6 +304,14 @@ class Registration(models.Model):
     grader = models.ForeignKey(Grader, null=True)
     final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True) 
 
+    def is_ready_for_grading(self):
+        if self.final_submission is None:
+            return False
+        else:
+            return is_submission_ready_for_grading(assignment_deadline=self.assignment.deadline, 
+                                                   submission_date=self.final_submission.submitted_at,
+                                                   extensions_used=self.final_submission.extensions_used)
+
     class Meta:
         unique_together = ("team", "assignment")
 
@@ -276,6 +320,52 @@ class Submission(models.Model):
     extensions_used = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    def validate(self):
+        extensions_needed = compute_extensions_needed(submission_time = self.submitted_at, 
+                                                      deadline = self.registration.assignment.deadline)
+        extensions_available = self.registration.team.get_extensions_available()
+                
+        if extensions_available < 0:
+            msg = "The number of available extensions is negative"
+            return False, Response({"fatal": [msg]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR), None           
+
+        if self.registration.final_submission is not None:
+            extensions_used_in_existing_submission = self.registration.final_submission.extensions_used
+        else:
+            extensions_used_in_existing_submission = 0 
+        
+        error_data = {"extensions_available": extensions_available,
+                      "extensions_requested": self.extensions_used,
+                      "extensions_needed": extensions_needed,
+                      "submitted_at": self.submitted_at.isoformat(sep=" "),
+                      "deadline": self.registration.assignment.deadline.isoformat(sep=" ")}
+        
+        if self.extensions_used != extensions_needed:
+            msg = "The number of requested extensions does not match the number of extensions needed."
+            response_data = {"errors": [msg]}
+            response_data.update(error_data)
+            return False, Response(response_data, status=status.HTTP_400_BAD_REQUEST), None            
+        
+        if extensions_available + extensions_used_in_existing_submission < extensions_needed:
+            msg = "The number of available extensions is insufficient."
+            response_data = {"errors": [msg]}
+            response_data.update(error_data)
+            return False, Response(response_data, status=status.HTTP_400_BAD_REQUEST), None                    
+        else:     
+            extensions = {}
+            extensions["extensions_available_before"] = extensions_available
+            
+            # If the team has already used extensions for a previous submission,
+            # they don't count towards the number of extensions needed
+            # They are 'credited' to the available extensions
+            extensions_available += extensions_used_in_existing_submission
+            
+            extensions_available -= extensions_needed
+
+            extensions["extensions_available_after"] = extensions_available
+            
+            return True, None, extensions                    
         
 class Grade(models.Model):
     team = models.ForeignKey(Team)

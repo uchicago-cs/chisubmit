@@ -35,7 +35,7 @@
     fields:
         course: 2
         git_username: student5
-        extensions: 0
+        extensions: 2
         dropped: false
         user: 305
 -   model: api.student
@@ -43,7 +43,7 @@
     fields:
         course: 2
         git_username: student6
-        extensions: 0
+        extensions: 2
         dropped: false
         user: 306
 -   model: api.student
@@ -51,7 +51,7 @@
     fields:
         course: 2
         git_username: student7
-        extensions: 0
+        extensions: 2
         dropped: false
         user: 307
 -   model: api.student
@@ -59,7 +59,7 @@
     fields:
         course: 2
         git_username: student8
-        extensions: 0
+        extensions: 2
         dropped: false
         user: 308
 -   model: api.assignment

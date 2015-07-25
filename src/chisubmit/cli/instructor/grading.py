@@ -14,7 +14,6 @@ import operator
 import random
 import itertools
 import os.path
-from pprint import pprint
 
 @click.group(name="grading")
 @click.pass_context
@@ -484,14 +483,11 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
 @pass_course
 @click.pass_context
 def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_teams):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    
+    teams_registrations = get_teams_registrations(course, assignment, only_ready_for_grading=not all_teams)
 
-    teams = get_teams(course, assignment, only_ready_for_grading=not all_teams)
-
-    repos = create_grading_repos(ctx.obj['config'], course, assignment, teams)
+    repos = create_grading_repos(ctx.obj['config'], course, assignment, teams_registrations)
 
     if repos == None:
         ctx.exit(CHISUBMIT_FAIL)
@@ -506,32 +502,32 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
 @pass_course
 @click.pass_context
 def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_teams, only):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    teams_registrations = get_teams_registrations(course, assignment, only = only, only_ready_for_grading=not all_teams)
+
+    if len(teams_registrations) == 0:
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment, only = only, only_ready_for_grading=not all_teams)
-
-    if teams is None:
-        ctx.exit(CHISUBMIT_FAIL)
-
-    for team in teams:
-        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
+    for team, registration in teams_registrations.items():
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
-            print "%s does not have a grading repository" % team.id
+            print "%s does not have a grading repository" % team.name
             continue
         
-        ta = team.get_assignment(assignment.id)
-
-        if ta.submitted_at is None:
-            print "Skipping grading branch. %s has not submitted." % team.id
+        if registration.final_submission is None:
+            submitted_at = None
+        else:
+            submitted_at = registration.final_submission.submitted_at
+            
+        if submitted_at is None:
+            print "Skipping grading branch. %s has not submitted." % team.name
         elif repo.has_grading_branch():
-            print "Skipping grading branch. %s already has a grading branch." % team.id
+            print "Skipping grading branch. %s already has a grading branch." % team.name
         else:
             repo.create_grading_branch()
-            print "Created grading branch for %s" % team.id
+            print "Created grading branch for %s" % team.name
 
     return CHISUBMIT_SUCCESS
 

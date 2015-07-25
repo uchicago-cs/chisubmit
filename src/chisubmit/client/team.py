@@ -316,7 +316,10 @@ class Registration(ChisubmitAPIObject):
             data = post_data
         )
         return SubmissionResponse(self._api_client, headers, data)    
-    
+
+    def get_grading_branch_name(self):
+        return self.assignment.assignment_id + "-grading"
+        
     def is_ready_for_grading(self):    
         if self.final_submission is None:
             return False

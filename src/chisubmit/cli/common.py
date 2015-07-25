@@ -156,22 +156,22 @@ def get_teams_registrations(course, assignment, only_ready_for_grading = False, 
     return rv
 
 
-def create_grading_repos(config, course, assignment, teams):
+def create_grading_repos(config, course, assignment, teams_registrations):
     repos = []
 
-    for team in teams:
-        repo = GradingGitRepo.get_grading_repo(config, course, team, assignment)
+    for team, registration in teams_registrations.items():
+        repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
         if repo is None:
-            print ("Creating grading repo for %s... " % team.id),
-            repo = GradingGitRepo.create_grading_repo(config, course, team, assignment)
+            print ("Creating grading repo for %s... " % team.name),
+            repo = GradingGitRepo.create_grading_repo(config, course, team, registration)
             repo.sync()
 
             repos.append(repo)
 
             print "done"
         else:
-            print "Grading repo for %s already exists" % team.id
+            print "Grading repo for %s already exists" % team.name
 
     return repos
 

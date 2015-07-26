@@ -28,9 +28,10 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
-    APIIntegerType, APIBooleanType, APIObjectType, APIDateTimeType
+    APIIntegerType, APIBooleanType, APIObjectType, APIDateTimeType, APIDictType,\
+    APIDecimalType
 from chisubmit.client.users import Student, User, Grader
-from chisubmit.client.assignment import Assignment
+from chisubmit.client.assignment import Assignment, RubricComponent
 from chisubmit.common.utils import is_submission_ready_for_grading
 
 
@@ -247,6 +248,14 @@ class Registration(ChisubmitAPIObject):
                        "final_submission_url": Attribute(name="final_submission_url", 
                                                          attrtype=APIStringType, 
                                                          editable=False),                                     
+
+                       "grades_url": Attribute(name="grades_url", 
+                                               attrtype=APIStringType, 
+                                               editable=False),                                     
+
+                       "grade_adjustments": Attribute(name="grade_adjustments", 
+                                                      attrtype=APIDictType(APIDecimalType), 
+                                                      editable=False),                                     
                       }
     
     def get_submissions(self):
@@ -294,6 +303,37 @@ class Registration(ChisubmitAPIObject):
             data = post_data
         )
         return Submission(self._api_client, headers, data)
+
+    def get_grades(self):
+        """
+        :calls: GET /courses/:course/teams/:team/assignments/:assignment/grades/
+        :rtype: List of :class:`chisubmit.client.team.Grade`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.grades_url
+        )
+        return [Grade(self._api_client, headers, elem) for elem in data]            
+    
+    def add_grade(self, rubric_component, points = None):
+        """
+        :calls: POST /courses/:course/teams/:team/assignments/:assignment/grades/
+        :rtype: :class:`chisubmit.client.team.Grade`
+        """
+        
+        post_data = {"rubric_component_id": rubric_component.id}
+        
+        if points is not None:
+            post_data["points"] = points
+
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.grades_url,
+            data = post_data
+        )
+        return Grade(self._api_client, headers, data)
+
     
     def submit(self, commit_sha, extensions, ignore_deadline = False, dry_run=False):
         """
@@ -344,3 +384,22 @@ class SubmissionResponse(ChisubmitAPIObject):
                                                      editable=False),  
                        }    
     
+    
+class Grade(ChisubmitAPIObject):
+
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),
+                       
+                       "rubric_component_id": Attribute(name="rubric_component_id", 
+                                                        attrtype=APIIntegerType, 
+                                                        editable=False),
+                             
+                       "rubric_component": Attribute(name="rubric_component", 
+                                                     attrtype=APIObjectType(RubricComponent), 
+                                                     editable=False),   
+                       
+                       "points": Attribute(name="points", 
+                                           attrtype=APIDecimalType, 
+                                           editable=True)
+                       }                          

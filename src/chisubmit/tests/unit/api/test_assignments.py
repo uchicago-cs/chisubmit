@@ -3,10 +3,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
 
-from pprint import pprint
-from chisubmit.backend.api.models import Course
 
-class CourseTests(APITestCase):
+class AssignmentTests(APITestCase):
     
     fixtures = ['users', 'complete_course1']
     

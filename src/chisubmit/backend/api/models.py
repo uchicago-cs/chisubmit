@@ -375,3 +375,6 @@ class Grade(models.Model):
     
     points = models.DecimalField(max_digits=5, decimal_places=2)
     
+    class Meta:
+        unique_together = ("registration", "rubric_component")    
+    

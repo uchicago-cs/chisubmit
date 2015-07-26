@@ -124,6 +124,10 @@ class RubricComponent(ChisubmitAPIObject):
     _api_attributes = {"url": Attribute(name="url", 
                                        attrtype=APIStringType, 
                                        editable=False),  
+
+                       "id": Attribute(name="id", 
+                                       attrtype=APIIntegerType, 
+                                       editable=False),  
                        
                        "description": Attribute(name="name", 
                                                 attrtype=APIStringType, 

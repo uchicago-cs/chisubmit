@@ -272,6 +272,7 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
   
 
 class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
+    id = serializers.IntegerField(read_only = True)
     order = serializers.IntegerField(default=1, min_value=1)
     description = serializers.CharField(max_length=64)
     points = serializers.DecimalField(max_digits=5, decimal_places=2)
@@ -428,7 +429,8 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
     final_submission = SubmissionSerializer(read_only=True, required=False) 
 
     grades_url = serializers.SerializerMethodField()
-    grade_adjustments = serializers.DictField(child=serializers.DecimalField(max_digits=5, decimal_places=2))
+    grade_adjustments = serializers.DictField(required=False,
+                                              child=serializers.DecimalField(max_digits=5, decimal_places=2))
 
     readonly_fields = { "grade_adjustments": GradersAndStudents }
 
@@ -480,8 +482,12 @@ class SubmissionResponseSerializer(serializers.Serializer):
     extensions_after = serializers.IntegerField() 
     
 class GradeSerializer(serializers.Serializer, FieldPermissionsMixin):
+    rubric_component_id = serializers.PrimaryKeyRelatedField(
+        source="rubric_component",
+        queryset=RubricComponent.objects.all()
+    )    
     rubric_component = RubricComponentSerializer(read_only=True)
-    points = serializers.DecimalField(max_digits=5, decimal_places=2)
+    points = serializers.DecimalField(max_digits=5, decimal_places=2, required = False)
     
     url = serializers.SerializerMethodField()
         

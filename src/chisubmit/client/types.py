@@ -56,9 +56,10 @@ class AttributeType(object):
     BOOLEAN = 5
     OBJECT = 6
     LIST = 7
+    DICT = 8
         
     primitive_types = [STRING, INTEGER, DECIMAL, DATETIME, BOOLEAN]
-    composite_types = [OBJECT, LIST]
+    composite_types = [OBJECT, LIST, DICT]
     
     def __init__(self, attrtype, subtype = None):
         assert((attrtype in self.primitive_types and subtype is None) or 
@@ -66,6 +67,7 @@ class AttributeType(object):
         
         assert(subtype is None or 
                (attrtype == self.LIST and isinstance(subtype, AttributeType)) or
+               (attrtype == self.DICT and isinstance(subtype, AttributeType)) or
                (attrtype == self.OBJECT and isinstance(subtype, basestring)) or 
                (attrtype == self.OBJECT and issubclass(subtype, ChisubmitAPIObject)))
                
@@ -90,8 +92,10 @@ class AttributeType(object):
                 raise AttributeTypeException(value, self)
             return value
         elif self.attrtype == AttributeType.DECIMAL:
-            # TODO
-            return value
+            try:
+                return float(value)
+            except ValueError:
+                raise AttributeTypeException(value, self)
         elif self.attrtype == AttributeType.BOOLEAN:
             if not isinstance(value, bool):
                 raise AttributeTypeException(value, self)
@@ -116,6 +120,13 @@ class AttributeType(object):
             for item in value:
                 rvalue.append(self.subtype.to_python(item, headers, api_client))
             return rvalue
+        elif self.attrtype == AttributeType.DICT:
+            if not isinstance(value, dict):
+                raise AttributeTypeException(value, self)
+            rvalue = {}
+            for k, item in value.items():
+                rvalue[k] = self.subtype.to_python(item, headers, api_client)
+            return rvalue
         elif self.attrtype == AttributeType.OBJECT:
             if not isinstance(value, dict):
                 raise AttributeTypeException(value, self)
@@ -136,6 +147,9 @@ APIBooleanType = AttributeType(AttributeType.BOOLEAN)
 
 def APIListType(subtype):
     return AttributeType(AttributeType.LIST, subtype)
+
+def APIDictType(subtype):
+    return AttributeType(AttributeType.DICT, subtype)
 
 def APIObjectType(subtype):
     return AttributeType(AttributeType.OBJECT, subtype)

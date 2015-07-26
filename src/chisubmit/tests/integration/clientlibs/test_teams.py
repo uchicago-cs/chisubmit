@@ -3,7 +3,7 @@ from chisubmit.tests.common import COURSE1_ASSIGNMENTS, COURSE2_ASSIGNMENTS,\
     COURSE1_TEAMS, COURSE1_TEAM_MEMBERS
 from chisubmit.client.exceptions import BadRequestException
 from chisubmit.backend.api.models import Course, Assignment, TeamMember,\
-    Registration, Submission
+    Registration, Submission, Grade
 
 class TeamTests(ChisubmitClientLibsTestCase):
     
@@ -246,4 +246,58 @@ class SubmissionTests(ChisubmitClientLibsTestCase):
             
             submissions = registration.get_submissions()
             self.assertEquals(len(submissions), n_submissions + 1)
+            
+            
+class GradeTests(ChisubmitClientLibsTestCase):
+    
+    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations']    
+            
+    def test_create_grade(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+
+        assignment = course.get_assignment("pa1")
+        rubric_components = assignment.get_rubric_components()
+        
+        points = 10
+        
+        for t in COURSE1_TEAMS:        
+            team = course.get_team(t)
+            registration = team.get_assignment_registration("pa1")
+            
+            for rc in rubric_components:
+                grade = registration.add_grade(rc, points = points)
+
+                self.assertEqual(grade.points, points)
+                self.assertEqual(grade.rubric_component.description, rc.description)
+                registration_obj = Registration.objects.get(team__name = team.name, assignment__assignment_id = "pa1")
+                grade_objs = Grade.objects.filter(registration = registration_obj, rubric_component_id = rc.id)
+                self.assertEquals(len(grade_objs), 1)
+                grade_obj = grade_objs[0]
+                self.assertEqual(grade_obj.points, points)
                 
+                points += 5
+                
+            
+class ExistingGradeTests(ChisubmitClientLibsTestCase):
+    
+    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations', 'course1_pa1_grades']    
+    
+    def test_get_grades(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        
+        assignment = course.get_assignment("pa1")
+        rubric_components = assignment.get_rubric_components()
+        rubric_components_descriptions = [rc.description for rc in rubric_components]
+        
+        for t in COURSE1_TEAMS:        
+            team = course.get_team(t)
+            registration = team.get_assignment_registration("pa1")
+            grades = registration.get_grades()
+            
+            self.assertEquals(len(grades), 2)
+            self.assertItemsEqual([g.rubric_component.description for g in grades], rubric_components_descriptions)
+        

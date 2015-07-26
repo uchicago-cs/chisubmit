@@ -59,7 +59,8 @@ setup(name='chisubmit',
                            "click >= 3.3", "requests >= 2.5.1", "enum34 >= 1.0.4",
                            "colorama >= 0.3.2", "docutils >= 0.12" ],
       extras_require = {
-                         "server" : ["djangorestframework >= 3.1.3", "python-ldap >= 2.4.18"] 
+                         "server" : ["djangorestframework >= 3.1.3", "python-ldap >= 2.4.18",
+                                     "jsonfield >= 1.0.3"] 
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,

@@ -7,6 +7,7 @@ from chisubmit.common.utils import compute_extensions_needed,\
     is_submission_ready_for_grading
 from rest_framework.response import Response
 from rest_framework import status
+import jsonfield
 
 class CourseRoles(Enum):
     ADMIN = 0
@@ -302,6 +303,7 @@ class Registration(models.Model):
     assignment = models.ForeignKey(Assignment)
 
     grader = models.ForeignKey(Grader, null=True)
+    grade_adjustments = jsonfield.JSONField(blank=True, null=True)
     final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True) 
 
     def is_ready_for_grading(self):

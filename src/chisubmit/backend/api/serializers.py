@@ -428,6 +428,9 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
     final_submission = SubmissionSerializer(read_only=True, required=False) 
 
     grades_url = serializers.SerializerMethodField()
+    grade_adjustments = serializers.DictField(child=serializers.DecimalField(max_digits=5, decimal_places=2))
+
+    readonly_fields = { "grade_adjustments": GradersAndStudents }
 
     hidden_fields = { 
                       "grader_username": Students,
@@ -448,6 +451,7 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     def update(self, instance, validated_data):
         instance.grader = validated_data.get('grader', instance.grader)
+        instance.grade_adjustments = validated_data.get('grade_adjustments', instance.grade_adjustments)
         instance.final_submission = validated_data.get('final_submission', instance.final_submission)
         return instance            
     

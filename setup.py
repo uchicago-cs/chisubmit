@@ -56,7 +56,7 @@ setup(name='chisubmit',
       
       install_requires = [ "PyGithub >= 1.25.2", "pyapi-gitlab >= 7.5", "GitPython >= 0.3.5",
                            "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0", "python-dateutil >= 2.4",
-                           "click >= 3.3", "requests >= 2.5.1", "enum >= 1.0.4",
+                           "click >= 3.3", "requests >= 2.5.1", "enum34 >= 1.0.4",
                            "colorama >= 0.3.2", "docutils >= 0.12" ],
       extras_require = {
                          "server" : ["djangorestframework >= 3.1.3", "python-ldap >= 2.4.18"] 

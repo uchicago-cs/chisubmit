@@ -39,6 +39,8 @@ urlpatterns = [
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions/$', views.SubmissionList.as_view(), name="submission-list"),
     url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/submissions/(?P<submission>[0-9]+)$', views.SubmissionDetail.as_view(), name="submission-detail"),
 
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/grades/$', views.GradeList.as_view(), name="grade-list"),
+    url(URL_PREFIX + r'courses/(?P<course>[a-zA-Z0-9_-]+)/teams/(?P<team>[a-zA-Z0-9_-]+)/assignments/(?P<assignment>[a-zA-Z0-9_-]+)/grades/(?P<grade>[0-9]+)$', views.GradeDetail.as_view(), name="grade-detail"),
 
     url(URL_PREFIX + r'users/$', views.UserList.as_view(), name="user-list"),
     url(URL_PREFIX + r'users/(?P<username>[a-zA-Z0-9_-]+)/$', views.UserDetail.as_view(), name="user-detail"),

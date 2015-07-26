@@ -368,7 +368,7 @@ class Submission(models.Model):
             return True, None, extensions                    
         
 class Grade(models.Model):
-    team = models.ForeignKey(Team)
+    registration = models.ForeignKey(Registration)
     rubric_component = models.ForeignKey(RubricComponent)
     
     points = models.DecimalField(max_digits=5, decimal_places=2)

@@ -4,13 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
     Assignment, Team, RubricComponent, get_user_by_username, TeamMember,\
-    Registration, Submission
+    Registration, Submission, Grade
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
     AssignmentSerializer, TeamSerializer, UserSerializer,\
     RubricComponentSerializer, RegistrationRequestSerializer, RegistrationSerializer, TeamMemberSerializer,\
     RegistrationResponseSerializer, SubmissionSerializer,\
-    SubmissionRequestSerializer, SubmissionResponseSerializer
+    SubmissionRequestSerializer, SubmissionResponseSerializer, GradeSerializer
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.db import Error
@@ -313,7 +313,7 @@ class RubricDetail(CourseQualifiedAPIView):
     def get(self, request, course, assignment, rubric_component, format=None):
         assignment_obj = self.get_assignment(course, assignment)
         rubric_component_obj = self.get_rubric_component(assignment_obj, rubric_component)
-        serializer = RubricComponentSerializer(rubric_component_obj, context={'request': request, 'course': course, 'assignment': assignment_obj})
+        serializer = RubricComponentSerializer(rubric_component_obj, context={'request': request, 'course': course})
         return Response(serializer.data)
 
     def patch(self, request, course, assignment, rubric_component, format=None):
@@ -820,6 +820,81 @@ class SubmissionDetail(CourseQualifiedAPIView):
             raise PermissionDenied        
         
         submission_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)    
+
+class GradeList(CourseQualifiedAPIView):
+            
+    def get_registration(self, request, course, team, assignment):
+        try:
+            team_obj = Team.objects.get(course = course, name = team)
+            student_obj = course.get_student(request.user)
+            
+            if student_obj is not None:
+                if team_obj.get_team_member(student_obj) is None:
+                    raise Http404            
+            
+            registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
+            return registration_obj
+        except (Team.DoesNotExist, Registration.DoesNotExist):
+            raise Http404          
+            
+    def get(self, request, course, team, assignment, format=None):
+        registration_obj = self.get_registration(request, course, team, assignment)
+        
+        serializer = GradeSerializer(registration_obj.grade_set.all(), many=True, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def post(self, request, course, team, assignment, format=None):
+        registration_obj = self.get_registration(request, course, team, assignment)
+        
+        serializer = GradeSerializer(data=request.data, context={'request': request, 'course': course})
+        if serializer.is_valid():
+            try:
+                serializer.save(registration = registration_obj)
+            except Error, e:
+                return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)       
+    
+class GradeDetail(CourseQualifiedAPIView):
+    
+    def get_grade(self, request, course, team, assignment, grade):
+        try:
+            team_obj = Team.objects.get(course = course, name = team)
+            student_obj = course.get_student(request.user)
+            
+            if student_obj is not None:
+                if team_obj.get_team_member(student_obj) is None:
+                    raise Http404            
+            
+            registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
+            grade_obj = Grade.objects.get(registration = registration_obj, pk = grade)
+            
+            return grade_obj
+        except (Team.DoesNotExist, Registration.DoesNotExist, Grade.DoesNotExist):
+            raise Http404       
+    
+    def get(self, request, course, team, assignment, grade, format=None):
+        grade_obj = self.get_submission(request, course, team, assignment, grade)
+        serializer = SubmissionSerializer(grade_obj, context={'request': request, 'course': course})
+        return Response(serializer.data)
+
+    def patch(self, request, course, team, assignment, grade, format=None):
+        grade_obj = self.get_submission(request, course, team, assignment, grade)
+        serializer = SubmissionSerializer(grade_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
+        serializer.filter_initial_data(course, request.user)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, course, team, assignment, grade, format=None):
+        grade_obj = self.get_submission(course, team, assignment)
+
+        if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
+            raise PermissionDenied        
+        
+        grade_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)    
 
     

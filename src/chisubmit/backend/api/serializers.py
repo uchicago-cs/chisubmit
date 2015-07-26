@@ -2,7 +2,7 @@ from rest_framework import serializers
 from chisubmit.backend.api.models import Course, GradersAndStudents, AllExceptAdmin,\
     Students, Student, Instructor, Grader, Team, Assignment, ReadWrite,\
     OwnerPermissions, Read, RubricComponent, TeamMember, Registration,\
-    Submission
+    Submission, Grade
 from django.contrib.auth.models import User
 from rest_framework.reverse import reverse
 from rest_framework.relations import RelatedField
@@ -284,7 +284,7 @@ class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
                       }       
     
     def get_url(self, obj):
-        return reverse('rubric-detail', args=[self.context["course"].course_id, self.context["assignment"].assignment_id, obj.pk], request=self.context["request"])
+        return reverse('rubric-detail', args=[self.context["course"].course_id, obj.assignment.assignment_id, obj.pk], request=self.context["request"])
     
     def create(self, validated_data):
         return RubricComponent.objects.create(**validated_data)
@@ -427,6 +427,8 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
     )
     final_submission = SubmissionSerializer(read_only=True, required=False) 
 
+    grades_url = serializers.SerializerMethodField()
+
     hidden_fields = { 
                       "grader_username": Students,
                       "grader": Students                      
@@ -437,6 +439,9 @@ class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):
 
     def get_submissions_url(self, obj):
         return reverse('submission-list', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
+
+    def get_grades_url(self, obj):
+        return reverse('grade-list', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
     
     def create(self, validated_data):
         return Registration.objects.create(**validated_data)
@@ -469,5 +474,25 @@ class SubmissionResponseSerializer(serializers.Serializer):
     submission = SubmissionSerializer()
     extensions_before = serializers.IntegerField() 
     extensions_after = serializers.IntegerField() 
+    
+class GradeSerializer(serializers.Serializer, FieldPermissionsMixin):
+    rubric_component = RubricComponentSerializer(read_only=True)
+    points = serializers.DecimalField(max_digits=5, decimal_places=2)
+    
+    url = serializers.SerializerMethodField()
+        
+    readonly_fields = { "points": GradersAndStudents }       
+    
+    def get_url(self, obj):
+        return reverse('grade-detail', args=[self.context["course"].course_id, obj.registration.team.name, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
+        
+    def create(self, validated_data):
+        return Grade.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        Grade.points = validated_data.get('points', instance.points)
+        instance.save()
+        return instance    
+    
           
   

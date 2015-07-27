@@ -1,6 +1,6 @@
 import click
 from chisubmit.cli.common import pass_course, get_student_or_exit,\
-    api_obj_set_attribute
+    api_obj_set_attribute, catch_chisubmit_exceptions
 from chisubmit.cli.shared.course import shared_course_list,\
     shared_course_set_default, shared_course_get_git_credentials
 
@@ -11,6 +11,7 @@ def student_course(ctx):
 
 @click.command(name="set-git-username")
 @click.argument('git-username', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def student_course_set_git_username(ctx, course, git_username):

@@ -1,5 +1,6 @@
 import click
-from chisubmit.cli.common import pass_course, DATETIME, get_assignment_or_exit
+from chisubmit.cli.common import pass_course, DATETIME, get_assignment_or_exit,\
+    catch_chisubmit_exceptions
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import convert_datetime_to_utc
@@ -18,6 +19,7 @@ def instructor_assignment(ctx):
 @click.argument('assignment_id', type=str)
 @click.argument('name', type=str)
 @click.argument('deadline', type=DATETIME)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
@@ -32,6 +34,7 @@ def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
 @click.argument('assignment_id', type=str)
 @click.argument('description', type=str)
 @click.argument('points', type=float)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_assignment_add_rubric_component(ctx, course, assignment_id, description, points):
@@ -43,6 +46,7 @@ def instructor_assignment_add_rubric_component(ctx, course, assignment_id, descr
 
 @click.command(name="stats")
 @click.argument('assignment_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_assignment_stats(ctx, course, assignment_id):

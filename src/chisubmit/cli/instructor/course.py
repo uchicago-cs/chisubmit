@@ -1,5 +1,5 @@
 import click
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
 from chisubmit.cli.shared.course import shared_course_set_user_attribute
 
@@ -11,6 +11,7 @@ def instructor_course(ctx):
 @click.command(name="grader-add-conflict")
 @click.argument('grader_id', type=str)
 @click.argument('student_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_grader_add_conflict(ctx, course, grader_id, student_id):

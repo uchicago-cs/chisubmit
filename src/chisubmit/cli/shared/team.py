@@ -1,6 +1,6 @@
 import click
 from chisubmit.cli.common import pass_course, get_team_or_exit,\
-    get_assignment_or_exit
+    get_assignment_or_exit, catch_chisubmit_exceptions
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS,\
     ChisubmitException
 import operator
@@ -10,6 +10,7 @@ from chisubmit.common.utils import convert_datetime_to_local
 @click.option('--ids', is_flag=True)
 @click.option('--assignment', type=str)
 @click.option('--include-inactive', is_flag=True)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def shared_team_list(ctx, course, ids, assignment, include_inactive):
@@ -53,6 +54,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
 
 @click.command(name="show")
 @click.argument('team_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def shared_team_show(ctx, course, team_id):
@@ -60,8 +62,9 @@ def shared_team_show(ctx, course, team_id):
         
     print "Team name: %s" % team.name
     print
-    print "Extensions available: %i" % team.extensions 
-    print
+    if course.extension_policy == "per-team":
+        print "Extensions available: %i" % team.extensions 
+        print
     
     team_members = team.get_team_members()
     

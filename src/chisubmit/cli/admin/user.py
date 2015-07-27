@@ -31,6 +31,7 @@ import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.exceptions import UnknownObjectException
+from chisubmit.cli.common import catch_chisubmit_exceptions
 
 @click.group(name="user")
 @click.pass_context
@@ -42,6 +43,7 @@ def admin_user(ctx):
 @click.argument('first_name', type=str)
 @click.argument('last_name', type=str)
 @click.argument('email', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_user_add(ctx, username, first_name, last_name, email):
     try:
@@ -59,6 +61,7 @@ def admin_user_add(ctx, username, first_name, last_name, email):
 
 @click.command(name="remove")
 @click.argument('user_id', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_user_remove(ctx, user_id):
     # TODO

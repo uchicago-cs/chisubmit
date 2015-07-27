@@ -1,16 +1,16 @@
-from chisubmit.tests.common import cli_test, ChisubmitIntegrationTestCase
+from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 from datetime import timedelta
+from chisubmit.backend.api.models import Course, get_user_by_username
 
-class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
-            
+class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
+        
+    fixtures = ['admin_user']
+    
     @cli_test
     def test_complete_with_extensions_per_student(self, runner):
-        from chisubmit.backend.api.teams.models import Team
-        from chisubmit.backend.api.courses.models import CoursesStudents
-
         course_id = u"cmsc40300"
         course_name = u"Foobarmentals of Foobar II"
 
@@ -21,15 +21,19 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
         
         all_users = instructor_ids + grader_ids + student_ids
         
-        admin, instructors, graders, students = self.create_clients(runner, course_id, admin_id, instructor_ids, grader_ids, student_ids)
+        admin, instructors, graders, students = self.create_clients(runner, admin_id, instructor_ids, grader_ids, student_ids, course_id, verbose = True)
         self.create_users(admin, all_users)
-        
+                
         self.create_course(admin, course_id, course_name)
 
-        result = admin.run("admin course set-option %s default-extensions 3" % (course_id))
+        course = Course.get_by_course_id(course_id)
+        self.assertIsNotNone(course)
+        self.assertEquals(course.name, course_name)
+
+        result = admin.run("admin course set-attribute %s default_extensions 3" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
-        result = admin.run("admin course set-option %s extension-policy per_student" % (course_id))
+        result = admin.run("admin course set-attribute %s extension_policy per-student" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)
@@ -41,11 +45,19 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                     ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)
 
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa1", "max_students", "2"])
+        self.assertEquals(result.exit_code, 0)
+
         deadline = get_datetime_now_utc() - timedelta(hours=47)
         deadline = deadline.isoformat(sep=" ")
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa2", "Programming Assignment 2", deadline])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa2", "max_students", "2"])
         self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() - timedelta(hours=47)
@@ -55,11 +67,19 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                     ["pa3", "Programming Assignment 3", deadline])
         self.assertEquals(result.exit_code, 0)
 
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa3", "max_students", "2"])
+        self.assertEquals(result.exit_code, 0)
+
         deadline = get_datetime_now_utc() - timedelta(hours=23)
         deadline = deadline.replace(tzinfo=None).isoformat(sep=" ")        
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa4", "Programming Assignment 4", deadline])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa4", "max_students", "2"])
         self.assertEquals(result.exit_code, 0)
 
         deadline = get_datetime_now_utc() + timedelta(hours=2)
@@ -68,12 +88,16 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
         result = instructors[0].run("instructor assignment add", 
                                     ["pa5", "Programming Assignment 5", deadline])
         self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa5", "max_students", "2"])
+        self.assertEquals(result.exit_code, 0)
         
         
-        teams = [u"the-flaming-foobars", 
-                 u"the-magnificent-mallocs",
-                 u"the-reticent-reallocs",
-                 u"the-panicked-printfs"]        
+        teams = [u"student1-student2", 
+                 u"student3-student4",
+                 u"student1-student3",
+                 u"student2-student4"]        
 
         students_team = [ (students[0], students[1]),
                           (students[2], students[3]),
@@ -107,13 +131,13 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
         
-        cs1 =  CoursesStudents.from_id(course_id, students_team[0][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[0][1].user_id)
-        t = Team.from_id(course_id, teams[0])
+        s1 = course.get_student(get_user_by_username(students_team[0][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[0][1].user_id))
+        t = course.get_team(teams[0])
         
-        self.assertEqual(t.get_extensions_available("per_student"), 2)
-        self.assertEqual(cs1.get_extensions_available(), 2)
-        self.assertEqual(cs2.get_extensions_available(), 2)
+        self.assertEqual(t.get_extensions_available(), 2)
+        self.assertEqual(s1.get_extensions_available(), 2)
+        self.assertEqual(s2.get_extensions_available(), 2)
         
         # Team 1 submits with two extensions to pa2
         # Student 2 and 3 now have 1 extension left each
@@ -123,13 +147,13 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
-        cs1 =  CoursesStudents.from_id(course_id, students_team[1][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[1][1].user_id)
-        t = Team.from_id(course_id, teams[1])
+        s1 = course.get_student(get_user_by_username(students_team[1][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[1][1].user_id))
+        t = course.get_team(teams[1])
         
-        self.assertEqual(t.get_extensions_available("per_student"), 1)
-        self.assertEqual(cs1.get_extensions_available(), 1)
-        self.assertEqual(cs2.get_extensions_available(), 1)
+        self.assertEqual(t.get_extensions_available(), 1)
+        self.assertEqual(s1.get_extensions_available(), 1)
+        self.assertEqual(s2.get_extensions_available(), 1)
 
         result = students_team[0][0].run("student team show", [teams[0]])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
@@ -154,13 +178,13 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
-        cs1 =  CoursesStudents.from_id(course_id, students_team[2][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[2][1].user_id)
-        t = Team.from_id(course_id, teams[2])
+        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
+        t = course.get_team(teams[2])
         
-        self.assertEqual(t.get_extensions_available("per_student"), 1)
-        self.assertEqual(cs1.get_extensions_available(), 2)
-        self.assertEqual(cs2.get_extensions_available(), 1)
+        self.assertEqual(t.get_extensions_available(), 1)
+        self.assertEqual(s1.get_extensions_available(), 2)
+        self.assertEqual(s2.get_extensions_available(), 1)
 
 
         # Team 2 tries to submit to pa3 with two extensions (the right number,
@@ -172,13 +196,13 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
-        cs1 =  CoursesStudents.from_id(course_id, students_team[2][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[2][1].user_id)
-        t = Team.from_id(course_id, teams[2])
+        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
+        t = course.get_team(teams[2])
         
-        self.assertEqual(t.get_extensions_available("per_student"), 1)
-        self.assertEqual(cs1.get_extensions_available(), 2)
-        self.assertEqual(cs2.get_extensions_available(), 1)
+        self.assertEqual(t.get_extensions_available(), 1)
+        self.assertEqual(s1.get_extensions_available(), 2)
+        self.assertEqual(s2.get_extensions_available(), 1)
 
 
         # Team 2 tries submitting to pa4 with zero extensions (one less than needed)
@@ -189,13 +213,14 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
-        cs1 =  CoursesStudents.from_id(course_id, students_team[2][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[2][1].user_id)
-        t = Team.from_id(course_id, teams[2])
+        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
+        t = course.get_team(teams[2])
         
-        self.assertEqual(t.get_extensions_available("per_student"), 1)
-        self.assertEqual(cs1.get_extensions_available(), 2)
-        self.assertEqual(cs2.get_extensions_available(), 1)
+        self.assertEqual(t.get_extensions_available(), 1)
+        self.assertEqual(s1.get_extensions_available(), 2)
+        self.assertEqual(s2.get_extensions_available(), 1)
+
 
         # Team 2 tries submitting to pa4 with one extension (the correct number)
         # and it goes through
@@ -204,15 +229,15 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--extensions", "1",
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
-                        
-        cs1 =  CoursesStudents.from_id(course_id, students_team[2][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[2][1].user_id)
-        t = Team.from_id(course_id, teams[2])
-        
-        self.assertEqual(t.get_extensions_available("per_student"), 0)
-        self.assertEqual(cs1.get_extensions_available(), 1)
-        self.assertEqual(cs2.get_extensions_available(), 0)
 
+        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
+        t = course.get_team(teams[2])
+        
+        self.assertEqual(t.get_extensions_available(), 0)
+        self.assertEqual(s1.get_extensions_available(), 1)
+        self.assertEqual(s2.get_extensions_available(), 0)
+                        
 
         # Team 2 tries submitting to pa5 with zero extensions and is accepted
         result = students_team[2][0].run("student assignment submit", 
@@ -221,14 +246,14 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
                         
-        cs1 =  CoursesStudents.from_id(course_id, students_team[2][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[2][1].user_id)
-        t = Team.from_id(course_id, teams[2])
+        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
+        t = course.get_team(teams[2])
         
-        self.assertEqual(t.get_extensions_available("per_student"), 0)
-        self.assertEqual(cs1.get_extensions_available(), 1)
-        self.assertEqual(cs2.get_extensions_available(), 0)
-
+        self.assertEqual(t.get_extensions_available(), 0)
+        self.assertEqual(s1.get_extensions_available(), 1)
+        self.assertEqual(s2.get_extensions_available(), 0)
+                        
 
         # Team 3 tries submitting to pa5 with zero extensions and is accepted
         result = students_team[3][0].run("student assignment submit", 
@@ -236,15 +261,14 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitIntegrationTestCase):
                                           "--extensions", "0",
                                           "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
-                        
-        cs1 =  CoursesStudents.from_id(course_id, students_team[3][0].user_id)
-        cs2 =  CoursesStudents.from_id(course_id, students_team[3][1].user_id)
-        t = Team.from_id(course_id, teams[3])
-        
-        self.assertEqual(t.get_extensions_available("per_student"), 1)
-        self.assertEqual(cs1.get_extensions_available(), 2)
-        self.assertEqual(cs2.get_extensions_available(), 1)
 
+        s1 = course.get_student(get_user_by_username(students_team[3][0].user_id))
+        s2 = course.get_student(get_user_by_username(students_team[3][1].user_id))
+        t = course.get_team(teams[3])
+        
+        self.assertEqual(t.get_extensions_available(), 1)
+        self.assertEqual(s1.get_extensions_available(), 2)
+        self.assertEqual(s2.get_extensions_available(), 1)
 
         for team, student_team in zip(teams, students_team):
             result = student_team[0].run("student team show", [team])

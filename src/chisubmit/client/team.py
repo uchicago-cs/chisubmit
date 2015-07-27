@@ -255,7 +255,7 @@ class Registration(ChisubmitAPIObject):
 
                        "grade_adjustments": Attribute(name="grade_adjustments", 
                                                       attrtype=APIDictType(APIDecimalType), 
-                                                      editable=False),                                     
+                                                      editable=True),                                     
                       }
     
     def get_submissions(self):

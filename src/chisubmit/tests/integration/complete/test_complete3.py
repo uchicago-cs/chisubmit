@@ -1,11 +1,13 @@
-from chisubmit.tests.common import cli_test, ChisubmitIntegrationTestCase
+from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 
 from datetime import timedelta
 import time
 
-class CLICompleteWorkflowCancelSubmission(ChisubmitIntegrationTestCase):
+class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
+            
+    fixtures = ['admin_user']
             
     @cli_test
     def test_complete_with_submission_cancelling(self, runner):
@@ -19,15 +21,15 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitIntegrationTestCase):
         
         all_users = instructor_ids + grader_ids + student_ids
         
-        admin, instructors, graders, students = self.create_clients(runner, course_id, admin_id, instructor_ids, grader_ids, student_ids)
+        admin, instructors, graders, students = self.create_clients(runner, admin_id, instructor_ids, grader_ids, student_ids, course_id, verbose = True)
         self.create_users(admin, all_users)
         
         self.create_course(admin, course_id, course_name)
 
-        result = admin.run("admin course set-option %s default-extensions 3" % (course_id))
+        result = admin.run("admin course set-attribute %s default_extensions 3" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
-        result = admin.run("admin course set-option %s extension-policy per_student" % (course_id))
+        result = admin.run("admin course set-attribute %s extension_policy per-student" % (course_id))
         self.assertEquals(result.exit_code, 0)
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)
@@ -39,8 +41,12 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitIntegrationTestCase):
                                     ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)
         
-        teams = [u"the-flaming-foobars", 
-                 u"the-magnificent-mallocs"]        
+        result = instructors[0].run("instructor assignment set-attribute", 
+                                    ["pa1", "max_students", "2"])
+        self.assertEquals(result.exit_code, 0)        
+        
+        teams = [u"student1-student2", 
+                 u"student3-student4"]        
 
         students_team = [ (students[0], students[1]),
                           (students[2], students[3])]

@@ -37,12 +37,13 @@ from requests.exceptions import HTTPError, ConnectionError
 from chisubmit.cli.admin import admin
 from chisubmit.cli.instructor import instructor
 from chisubmit.cli.student import student
-#from chisubmit.cli.grader import grader
+from chisubmit.cli.grader import grader
 import getpass
 from docutils.utils.math.math2html import URL
 from chisubmit.client.requester import BadRequestException
 from chisubmit.client.exceptions import UnknownObjectException,\
     ChisubmitRequestException, UnauthorizedException
+from functools import update_wrapper
 config = None
 
 import chisubmit.common.log as log
@@ -108,68 +109,12 @@ def chisubmit_cmd(ctx, api_url, api_key, conf, dir, course, verbose, debug):
 
 
 def chisubmit_cmd_wrapper():
-    cmd_wrapper(chisubmit_cmd)
-
-
-def cmd_wrapper(cmd):
-    try:
-        cmd.main()
-    except UnknownObjectException, uoe:
-        print
-        print "ERROR: There was an error processing this request"
-        print
-        print "URL: %s" % uoe.url
-        print "HTTP method: %s" % uoe.method
-        print "Error: Not found (404)"
-        if DEBUG:
-            print
-            uoe.print_debug_info()
-    except UnauthorizedException, ue:
-        print
-        print "ERROR: Your chisubmit credentials are invalid"
-        print
-        print "URL: %s" % ue.url
-        print "HTTP method: %s" % ue.method
-        print "Error: Unauthorized (401)"
-        if DEBUG:
-            print
-            uoe.print_debug_info()            
-    except BadRequestException, bre:
-        print
-        print "ERROR: There was an error processing this request"
-        print
-        print "URL: %s" % bre.url
-        print "HTTP method: %s" % bre.method
-        print "Error(s):"
-        bre.print_errors()
-        if DEBUG:
-            print
-            bre.print_debug_info()
-    except ChisubmitRequestException, cre:
-        print "ERROR: chisubmit server returned an HTTP error"
-        print
-        print "URL: %s" % cre.url
-        print "HTTP method: %s" % cre.method
-        print "Status code: %i" % cre.status
-        print "Message: %s" % cre.reason
-        if DEBUG:
-            print
-            bre.print_debug_info()        
-    except ConnectionError, ce:
-        print "ERROR: Could not connect to chisubmit server"
-        print "URL: %s" % ce.request.url
-    except ChisubmitException, ce:
-        print "ERROR: %s" % ce.message
-        if DEBUG:
-            ce.print_exception()
-        sys.exit(CHISUBMIT_FAIL)
-    except Exception, e:
-        handle_unexpected_exception()
+    return chisubmit_cmd.main()
 
 chisubmit_cmd.add_command(admin)
 chisubmit_cmd.add_command(instructor)
 chisubmit_cmd.add_command(student)
-#chisubmit_cmd.add_command(grader)
+chisubmit_cmd.add_command(grader)
 
 
 @click.command(name="chisubmit-get-credentials")

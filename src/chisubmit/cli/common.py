@@ -1,15 +1,18 @@
 import click
 
 from chisubmit.repos.grading import GradingGitRepo
-from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
+from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS,\
+    ChisubmitException, handle_unexpected_exception
 from chisubmit.client.course import Course
 
 from functools import update_wrapper
 
 from dateutil.parser import parse
 import operator
-from chisubmit.client.exceptions import UnknownObjectException
+from chisubmit.client.exceptions import UnknownObjectException,\
+    UnauthorizedException, BadRequestException, ChisubmitRequestException
 from chisubmit.client.types import AttributeType
+from requests.exceptions import ConnectionError
 
 
 def pass_course(f):
@@ -30,6 +33,68 @@ def pass_course(f):
 
             return ctx.invoke(f, ctx.obj["course_obj"], *args, **kwargs)
 
+    return update_wrapper(new_func, f)
+
+def catch_chisubmit_exceptions(f):
+    @click.pass_context
+    def new_func(ctx, *args, **kwargs):
+        try:
+            return f(ctx, *args, **kwargs)
+        except UnknownObjectException, uoe:
+            print
+            print "ERROR: There was an error processing this request"
+            print
+            print "URL: %s" % uoe.url
+            print "HTTP method: %s" % uoe.method
+            print "Error: Not found (404)"
+            if ctx.obj["debug"]:
+                print
+                uoe.print_debug_info()
+        except UnauthorizedException, ue:
+            print
+            print "ERROR: Your chisubmit credentials are invalid"
+            print
+            print "URL: %s" % ue.url
+            print "HTTP method: %s" % ue.method
+            print "Error: Unauthorized (401)"
+            if ctx.obj["debug"]:
+                print
+                ue.print_debug_info()            
+        except BadRequestException, bre:
+            print
+            print "ERROR: There was an error processing this request"
+            print
+            print "URL: %s" % bre.url
+            print "HTTP method: %s" % bre.method
+            print "Error(s):"
+            bre.print_errors()
+            if ctx.obj["debug"]:
+                print
+                bre.print_debug_info()
+        except ChisubmitRequestException, cre:
+            print "ERROR: chisubmit server returned an HTTP error"
+            print
+            print "URL: %s" % cre.url
+            print "HTTP method: %s" % cre.method
+            print "Status code: %i" % cre.status
+            print "Message: %s" % cre.reason
+            if ctx.obj["debug"]:
+                print
+                cre.print_debug_info()        
+        except ConnectionError, ce:
+            print "ERROR: Could not connect to chisubmit server"
+            print "URL: %s" % ce.request.url
+        except ChisubmitException, ce:
+            print "ERROR: %s" % ce.message
+            if ctx.obj["debug"]:
+                ce.print_exception()
+        except click.BadParameter, bp:
+            raise
+        except Exception, e:
+            handle_unexpected_exception()
+            
+        ctx.exit(CHISUBMIT_FAIL)
+            
     return update_wrapper(new_func, f)
 
 
@@ -145,7 +210,7 @@ def get_teams_registrations(course, assignment, only_ready_for_grading = False, 
         try:
             registration = team.get_assignment_registration(assignment.assignment_id)
             
-            if (only_ready_for_grading and not registration.is_ready_for_grading) or (grader is not None and registration.grader_username != grader):
+            if (only_ready_for_grading and not registration.is_ready_for_grading) or (grader is not None and registration.grader_username != grader.user.username):
                 continue
             
             rv[team] = registration
@@ -176,19 +241,19 @@ def create_grading_repos(config, course, assignment, teams_registrations):
     return repos
 
 
-def gradingrepo_push_grading_branch(config, course, team, assignment, to_students=False, to_staging=False):
-    repo = GradingGitRepo.get_grading_repo(config, course, team, assignment)
+def gradingrepo_push_grading_branch(config, course, team, registration, to_students=False, to_staging=False):
+    repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
-        print "%s does not have a grading repository" % team.id
+        print "%s does not have a grading repository" % team.name
         return CHISUBMIT_FAIL
     
     if not repo.has_grading_branch():
-        print "%s does not have a grading branch" % team.id
+        print "%s does not have a grading branch" % team.name
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "Warning: %s grading repo has uncommitted changes." % team.id
+        print "Warning: %s grading repo has uncommitted changes." % team.name
 
     if to_students:
         repo.push_grading_branch_to_students()
@@ -198,27 +263,27 @@ def gradingrepo_push_grading_branch(config, course, team, assignment, to_student
 
     return CHISUBMIT_SUCCESS
 
-def gradingrepo_pull_grading_branch(config, course, team, assignment, from_students=False, from_staging=False):
+def gradingrepo_pull_grading_branch(config, course, team, registration, from_students=False, from_staging=False):
     assert(not (from_students and from_staging))
-    repo = GradingGitRepo.get_grading_repo(config, course, team, assignment)
+    repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
-        print "%s does not have a grading repository" % team.id
+        print "%s does not have a grading repository" % team.name
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "%s grading repo has uncommited changes. Cannot pull." % team.id
+        print "%s grading repo has uncommited changes. Cannot pull." % team.name
         return CHISUBMIT_FAIL
 
     if from_students:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch on students' repository" % team.id
+            print "%s does not have a grading branch on students' repository" % team.name
         else:
             repo.pull_grading_branch_from_students()
 
     if from_staging:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch in staging" % team.id
+            print "%s does not have a grading branch in staging" % team.name
         else:
             repo.pull_grading_branch_from_staging()
 

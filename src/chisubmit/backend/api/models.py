@@ -179,7 +179,7 @@ class Student(models.Model):
     def get_extensions_available(self):
         extensions_used = 0
         
-        teams = self.course.get_teams_with_students([self.student])
+        teams = self.course.get_teams_with_students([self])
         
         for team in teams:
             for registration in team.registration_set.all():

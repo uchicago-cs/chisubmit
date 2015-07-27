@@ -230,7 +230,7 @@ class StudentSerializer(ChisubmitSerializer):
     user = UserSerializer(read_only=True, required=False)
     git_username = serializers.CharField(max_length=64, required=False)
     
-    extensions = serializers.IntegerField(default=0, min_value=0)
+    extensions = serializers.IntegerField(min_value=0, required=False)
     dropped = serializers.BooleanField(default=False)
     
     hidden_fields = { "git_username": Students, 
@@ -246,6 +246,9 @@ class StudentSerializer(ChisubmitSerializer):
         return reverse('student-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     
     def create(self, validated_data):
+        if not validated_data.has_key("extensions") and self.context["course"].extension_policy == "per-student":
+            validated_data["extensions"] = self.context["course"].default_extensions
+      
         return Student.objects.create(**validated_data)
     
     def update(self, instance, validated_data):
@@ -446,8 +449,9 @@ class RegistrationSerializer(ChisubmitSerializer):
     final_submission_id = serializers.PrimaryKeyRelatedField(
         source="final_submission",
         queryset=Submission.objects.all(),
-        required=False
-    )
+        required=False,
+        allow_null=True
+        )
     final_submission = SubmissionSerializer(read_only=True, required=False) 
 
     grades_url = serializers.SerializerMethodField()

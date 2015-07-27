@@ -1,5 +1,5 @@
 import click
-from chisubmit.cli.common import pass_course
+from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL,\
     ChisubmitException
 
@@ -119,6 +119,7 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready
 @click.command(name="student-add")
 @click.argument('team_id', type=str)
 @click.argument('student_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_team_student_add(ctx, course, team_id, student_id):
@@ -140,6 +141,7 @@ def instructor_team_student_add(ctx, course, team_id, student_id):
 @click.command(name="assignment-add")
 @click.argument('team_id', type=str)
 @click.argument('assignment_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
@@ -163,6 +165,7 @@ def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
 
 @click.command(name="set-active")
 @click.argument('team_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_team_set_active(ctx, course, team_id):
@@ -177,6 +180,7 @@ def instructor_team_set_active(ctx, course, team_id):
 
 @click.command(name="set-inactive")
 @click.argument('team_id', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_team_set_inactive(ctx, course, team_id):
@@ -193,6 +197,7 @@ def instructor_team_set_inactive(ctx, course, team_id):
 @click.argument('team_id', type=str)
 @click.argument('name', type=str)
 @click.argument('value', type=str)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def instructor_team_set_attribute(ctx, course, team_id, name, value):

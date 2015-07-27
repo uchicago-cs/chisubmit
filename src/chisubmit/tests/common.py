@@ -14,6 +14,7 @@ from chisubmit.cli import chisubmit_cmd
 from chisubmit.backend.api.models import Course, Student
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
+from django.conf import settings
 
 colorama.init()
 
@@ -84,7 +85,7 @@ class ChisubmitCLITestClient(object):
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
     def run(self, subcommands, params = [], course = None, cmd=chisubmit_cmd, catch_exceptions=False, cmd_input = None):
-        chisubmit_args =  ['--dir', self.conf_dir, '--conf', self.conf_file]
+        chisubmit_args = ['--debug', '--dir', self.conf_dir, '--conf', self.conf_file]
         
         if course is not None:
             chisubmit_args += ['--course', course]
@@ -140,6 +141,9 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
     
     def __init__(self, *args, **kwargs):
         super(ChisubmitCLITestCase, self).__init__(*args, **kwargs)
+
+        if settings.DEBUG == False:
+            settings.DEBUG = True
 
         self.git_server_connstr = "server_type=Testing;local_path=./test-fs/server"
         self.git_staging_connstr = "server_type=Testing;local_path=./test-fs/staging"

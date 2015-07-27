@@ -281,7 +281,10 @@ Penalties:
     Used O(n^156) algorithm: -10
     Submitted code in a Word document: -30
 
-Total Points: 35 / 100
+Bonuses:
+    Worked alone: 15
+
+Total Points: 50 / 100
 
 Comments: >
     None"""

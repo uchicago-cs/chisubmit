@@ -6,7 +6,8 @@ from chisubmit.common.utils import convert_datetime_to_local,\
     is_submission_ready_for_grading
 from dateutil.parser import parse
 from chisubmit.cli.common import pass_course, get_assignment_or_exit,\
-    get_team_or_exit, get_assignment_registration_or_exit
+    get_team_or_exit, get_assignment_registration_or_exit,\
+    catch_chisubmit_exceptions
 from chisubmit.cli.shared.assignment import shared_assignment_list
 from datetime import timedelta
 from chisubmit.client.exceptions import BadRequestException
@@ -21,6 +22,7 @@ def student_assignment(ctx):
 @click.command(name="register")
 @click.argument('assignment_id', type=str)
 @click.option('--partner', type=str, multiple=True)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def student_assignment_register(ctx, course, assignment_id, partner):
@@ -35,6 +37,7 @@ def student_assignment_register(ctx, course, assignment_id, partner):
 @click.command(name="show-deadline")
 @click.argument('assignment_id', type=str)
 @click.option('--utc', is_flag=True)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context
 def student_assignment_show_deadline(ctx, course, assignment_id, utc):
@@ -99,6 +102,7 @@ def print_commit(commit):
 @click.option('--extensions', type=int, default=0)
 @click.option('--force', is_flag=True)
 @click.option('--yes', is_flag=True)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context  
 def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, extensions, force, yes):
@@ -267,38 +271,25 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
 @click.argument('team_id', type=str)    
 @click.argument('assignment_id', type=str)
 @click.option('--yes', is_flag=True)
+@catch_chisubmit_exceptions
 @pass_course
 @click.pass_context  
 def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+    team = get_team_or_exit(ctx, course, team_id)
+    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
     
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
-        
-    ta = team.get_assignment(assignment_id)
-    if ta is None:
-        print "Team %s is not registered for assignment %s" % (team_id, assignment_id)
-        ctx.exit(CHISUBMIT_FAIL)
-        
-    if ta.submitted_at is None:
+    if registration.final_submission is None:
         print "Team %s has not made a submission for assignment %s," % (team_id, assignment_id)
         print "so there is nothing to cancel."
         ctx.exit(CHISUBMIT_FAIL)
         
-    if ta.submitted_at is not None:
-        now = get_datetime_now_utc()
-        deadline = assignment.deadline + timedelta(days=ta.extensions_used)
-        
-        if now > deadline:
-            print "You cannot cancel this submission."
-            print "You made a submission before the deadline, and the deadline has passed."
+    if is_submission_ready_for_grading(assignment_deadline=registration.assignment.deadline, 
+                                       submission_date=registration.final_submission.submitted_at,
+                                       extensions_used=registration.final_submission.extensions_used):
+        print "You cannot cancel this submission."
+        print "You made a submission before the deadline, and the deadline has passed."
 
-            ctx.exit(CHISUBMIT_FAIL)        
+        ctx.exit(CHISUBMIT_FAIL)        
             
     conn = create_connection(course, ctx.obj['config'])
     
@@ -306,13 +297,13 @@ def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
         print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
         
-    submission_commit = conn.get_commit(course, team, ta.commit_sha)
+    submission_commit = conn.get_commit(course, team, registration.final_submission.commit_sha)
         
     print
-    print "This is your existing submission for assignment %s:" % assignment.id 
+    print "This is your existing submission for assignment %s:" % assignment_id
     print
     if submission_commit is None:
-        print "WARNING: Previously submitted commit '%s' is not in the repository!" % ta.commit_sha
+        print "WARNING: Previously submitted commit '%s' is not in the repository!" % registration.final_submission.commit_sha
     else:
         print_commit(submission_commit)
     print    
@@ -326,7 +317,7 @@ def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
         print 'y'
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
-        response = assignment.cancel(team_id)
+        registration.final_submission_id = None
         
         # TODO: Can't do this until GitLab supports updating tags
         #    
@@ -336,11 +327,7 @@ def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
         # else:
         #     conn.update_submission_tag(course, team, tag_name, message, commit.sha)
             
-        print
-        if response["success"]:
-            print "Your submission has been cancelled."
-        else:
-            print "ERROR: Your submission was not cancelled."
+        print "Your submission has been cancelled."
         
 
 student_assignment.add_command(shared_assignment_list)

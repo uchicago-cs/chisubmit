@@ -357,6 +357,46 @@ class Registration(ChisubmitAPIObject):
         )
         return SubmissionResponse(self._api_client, headers, data)    
 
+    def set_grade(self, rubric_component, points):
+        if points < 0 or points > rubric_component.points:
+            raise ValueError("Invalid grade value %.2f ('%s' must be 0 <= x <= %.2f)" % (points, rubric_component.description, rubric_component.points))
+        
+        grades = self.get_grades()
+        grade = [g for g in grades if g.rubric_component_id == rubric_component.id]
+        
+        if len(grade) == 0:
+            self.add_grade(rubric_component, points)
+        elif len(grade) == 1:
+            grade[0].points = points
+        else:
+            msg = "Server returned more than one grade for '%s' in %s. " % (rubric_component.description, self.assignment.assignment_id)
+            msg += "This should not happen. Please contact the chisubmit administrator."
+
+            raise Exception(msg)
+
+    def get_total_penalties(self):
+        if self.grade_adjustments is None:
+            return 0.0
+        else:
+            return sum([v for v in self.grade_adjustments.values() if v < 0.0])
+
+    def get_total_bonuses(self):
+        if self.grade_adjustments is None:
+            return 0.0
+        else:
+            return sum([v for v in self.grade_adjustments.values() if v >= 0.0])
+        
+    def get_total_adjustments(self):
+        if self.grade_adjustments is None:
+            return 0.0
+        else:
+            return sum([v for v in self.grade_adjustments.values()])
+    
+    def get_total_grade(self):
+        grades = self.get_grades()
+        
+        return sum([g.points for g in grades]) + self.get_total_adjustments()
+
     def get_grading_branch_name(self):
         return self.assignment.assignment_id + "-grading"
         

@@ -43,15 +43,18 @@ class RubricFile(object):
     
     FIELD_COMMENTS = "Comments"
     FIELD_PENALTIES = "Penalties"
+    FIELD_BONUSES = "Bonuses"
     FIELD_POINTS   = "Points"
     FIELD_TOTAL_POINTS = "Total Points"
     FIELD_POINTS_POSSIBLE = "Points Possible"
     FIELD_POINTS_OBTAINED = "Points Obtained"
     
-    def __init__(self, assignment, points, penalties, comments):
+    def __init__(self, assignment, rubric_components, points, penalties, bonuses, comments):
         self.assignment = assignment
+        self.rubric_components = rubric_components
         self.points = points
         self.penalties = penalties
+        self.bonuses = bonuses
         self.comments = comments
         
     def __format_points(self, n):
@@ -65,15 +68,15 @@ class RubricFile(object):
         total_points_possible = 0
         total_points_obtained = 0
         
-        for gc in self.assignment.grade_components:
-            s += "%s%s:\n" % (" "*4, gc.description)
-            s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_POSSIBLE, self.__format_points(gc.points))
-            total_points_possible += gc.points
-            if self.points[gc.description] is None:
+        for rc in self.rubric_components:
+            s += "%s%s:\n" % (" "*4, rc.description)
+            s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_POSSIBLE, self.__format_points(rc.points))
+            total_points_possible += rc.points
+            if self.points[rc.description] is None:
                 p = ""
             else:
-                total_points_obtained += self.points[gc.description]
-                p = self.__format_points(self.points[gc.description])
+                total_points_obtained += self.points[rc.description]
+                p = self.__format_points(self.points[rc.description])
                 
             s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_OBTAINED, p)
             s += "\n" 
@@ -86,8 +89,16 @@ class RubricFile(object):
                 s += "%s%s:%s\n" % (" "*4, desc, self.__format_points(v))            
             s += "\n"
 
+        bonus_points = 0.0
+        if self.bonuses is not None:
+            s += "%s:\n" % self.FIELD_BONUSES
+            for desc, v in self.bonuses.items():
+                bonus_points += v
+                s += "%s%s:%s\n" % (" "*4, desc, self.__format_points(v))            
+            s += "\n"
+
         s += "%s: %s / %s\n" % (self.FIELD_TOTAL_POINTS,
-                              self.__format_points(total_points_obtained + penalty_points),
+                              self.__format_points(total_points_obtained + penalty_points + bonus_points),
                               self.__format_points(total_points_possible)) 
             
         if self.comments is not None or include_blank_comments:
@@ -190,13 +201,12 @@ class RubricFile(object):
         return cls(assignment, points, penalties, comments)
 
     @classmethod
-    def from_assignment(cls, assignment, team_assignment = None):
-        gcs = dict([(gc.id, gc.description) for gc in assignment.grade_components])
-        points = dict([(gc.description, None) for gc in assignment.grade_components])
+    def from_assignment(cls, assignment, grades = None):
+        rubric_components = assignment.get_rubric_components()
+        points = dict([(rc.description, None) for rc in rubric_components])
         
-        if team_assignment is not None:
-            for grade in team_assignment.grades:
-                gc_id = grade.grade_component_id
-                points[gcs[gc_id]] = grade.points
+        if grades is not None:
+            for grade in grades:
+                points[grade.rubric_component.description] = grade.points
         
-        return cls(assignment, points, penalties = None, comments = None)
+        return cls(assignment, rubric_components, points, penalties = None, bonuses = None, comments = None)

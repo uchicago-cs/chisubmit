@@ -207,7 +207,6 @@ class ChisubmitAPIObject(object):
 
     def __setattr__(self, name, value):
         api_attr = self.__get_api_attr(name)
-        
         if api_attr is None:        
             object.__setattr__(self, name, value)
         else:
@@ -244,7 +243,7 @@ class ChisubmitAPIObject(object):
             else:
                 #value = api_attr.to_json(attrvalue)
                 patch_data[attrname] = attrvalue
-        
+
         headers, data = self._api_client._requester.request(
             "PATCH",
             self.url,

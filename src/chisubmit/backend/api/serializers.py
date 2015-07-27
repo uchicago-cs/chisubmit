@@ -54,7 +54,7 @@ class ChisubmitSerializer(serializers.Serializer):
             roles = course.get_roles(user)
             fields = internal_value.keys()
             owner_override = getattr(self, "owner_override", {})
-    
+
             for f in fields:
                 if hasattr(self, "hidden_fields") and f in self.hidden_fields:
                     if not (is_owner and OwnerPermissions.READ in owner_override.get(f, [])):
@@ -64,7 +64,7 @@ class ChisubmitSerializer(serializers.Serializer):
                     if not (is_owner and OwnerPermissions.WRITE in owner_override.get(f, [])):
                         if roles.issubset(self.readonly_fields[f]):
                             internal_value.pop(f)
-                        
+
         return internal_value
           
         
@@ -330,9 +330,8 @@ class TeamSerializer(ChisubmitSerializer):
     students_url = serializers.SerializerMethodField()
     assignments_url = serializers.SerializerMethodField()
 
-    hidden_fields = { "active": Students }       
-        
-    readonly_fields = { "name": GradersAndStudents,
+    readonly_fields = { "active": GradersAndStudents,
+                        "name": GradersAndStudents,
                         "extensions": GradersAndStudents
                       }       
     
@@ -478,6 +477,7 @@ class RegistrationSerializer(ChisubmitSerializer):
         instance.grader = validated_data.get('grader', instance.grader)
         instance.grade_adjustments = validated_data.get('grade_adjustments', instance.grade_adjustments)
         instance.final_submission = validated_data.get('final_submission', instance.final_submission)
+        instance.save()
         return instance            
     
 

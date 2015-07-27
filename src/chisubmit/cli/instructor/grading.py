@@ -5,7 +5,8 @@ from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
-    get_assignment_or_exit, get_teams_registrations
+    get_assignment_or_exit, get_teams_registrations, get_team_or_exit,\
+    get_assignment_registration_or_exit, get_grader_or_exit
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
 
@@ -24,36 +25,36 @@ def instructor_grading(ctx):
 @click.command(name="set-grade")
 @click.argument('team_id', type=str)
 @click.argument('assignment_id', type=str)
-@click.argument('grade_component_id', type=str)
+@click.argument('rubric_component_description', type=str)
 @click.argument('points', type=float)
 @pass_course
 @click.pass_context
-def instructor_grading_set_grade(ctx, course, team_id, assignment_id, grade_component_id, points):   
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
-
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
-        
-    ta = team.get_assignment(assignment_id)
-    if ta is None:
-        print "Team %s is not registered for assignment %s" % (team_id, assignment_id)
-        ctx.exit(CHISUBMIT_FAIL)
-
-    grade_component = assignment.get_grade_component(grade_component_id)
-    if not grade_component:
-        print "Assignment %s does not have a grade component '%s'" % (assignment.id, grade_component)
-        ctx.exit(CHISUBMIT_FAIL)
-        
-    if points < 0 or points > grade_component.points:
-        print "Invalid grade value %.2f (%s must be 0 <= x <= %.2f)" % (points, grade_component_id, grade_component.points)
-        ctx.exit(CHISUBMIT_FAIL)
+def instructor_grading_set_grade(ctx, course, team_id, assignment_id, rubric_component_description, points):   
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    team = get_team_or_exit(ctx, course, team_id)
+    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
+     
+    rubric_components = assignment.get_rubric_components()
     
-    team.set_assignment_grade(assignment_id, grade_component.id, points)
+    rubric_component = [rc for rc in rubric_components if rc.description == rubric_component_description]
+    
+    if len(rubric_component) == 0:
+        print "No such rubric component in %s: %s" % (assignment_id, rubric_component_description)
+        ctx.exit(CHISUBMIT_FAIL)
+    elif len(rubric_component) > 1:
+        print "ERROR: Server returned more than one rubric component for '%s' in %s" % (rubric_component_description, assignment_id)
+        print "       This should not happen. Please contact the chisubmit administrator."
+        ctx.exit(CHISUBMIT_FAIL)
+    else:
+        rc = rubric_component[0]
+        
+        try:
+            registration.set_grade(rc, points)
+            ctx.exit(CHISUBMIT_SUCCESS)
+        except ValueError, ve:
+            print ve.message
+            ctx.exit(CHISUBMIT_FAIL)
+            
 
 
 @click.command(name="load-grades")
@@ -147,51 +148,56 @@ def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
 @pass_course
 @click.pass_context
 def instructor_grading_list_grades(ctx, course):
-    students = [s for s in course.students if not s.dropped]
-    assignments = course.assignments
+    students = [s for s in course.get_students() if not s.dropped]
+    assignments = course.get_assignments()
 
     students.sort(key=operator.attrgetter("user.last_name"))
     assignments.sort(key=operator.attrgetter("deadline"))
 
-    student_grades = dict([(s.user.id,dict([(a.id,{}) for a in assignments])) for s in students])
+    student_grades = dict([(s.user.username,dict([(a.assignment_id,{}) for a in assignments])) for s in students])
 
-    for team in course.teams:
-        for team_assignment in team.assignments:
-            assignment_id = team_assignment.assignment_id
-            for student in team.students:
-                student_id = student.user.id
+    for team in course.get_teams():
+        for registration in team.get_assignment_registrations():
+            assignment_id = registration.assignment.assignment_id
+            for student in team.get_team_members():
+                student_id = student.username
                 if student_grades.has_key(student_id):
                     g = student_grades[student_id][assignment_id]
-                    for grade in team_assignment.grades:
-                        gc_id = grade.grade_component_id
-                        if g.has_key(gc_id):
-                            print "Warning: %s already has a grade for grade component %i" % (student_id, gc_id)
+                    for grade in registration.get_grades():
+                        rc_description = grade.rubric_component.description
+                        if g.has_key(rc_description):
+                            print "Warning: %s already has a grade for rubric component '%s'" % (student_id, rc_description)
                         else:
-                            g[gc_id] = grade.points
-                    g["__PENALTIES"] = team_assignment.get_total_penalties()
-                    g["__TOTAL"] = team_assignment.get_total_grade()
+                            g[rc_description] = grade.points
+                    g["__PENALTIES"] = registration.get_total_penalties()
+                    g["__BONUSES"] = registration.get_total_bonuses()                    
+                    g["__TOTAL"] = registration.get_total_grade()
 
     fields = ["Last Name","First Name"]
     for assignment in assignments:
-        fields += ["%s - %s" % (assignment.id, gc.description) for gc in assignment.grade_components]
-        fields.append("%s - Penalties" % assignment.id)
-        fields.append("%s - Total" % assignment.id)
+        rubric_components = assignment.get_rubric_components()
+        fields += ["%s - %s" % (assignment.assignment_id, rc.description) for rc in rubric_components]
+        fields.append("%s - Penalties" % assignment.assignment_id)
+        fields.append("%s - Bonuses" % assignment.assignment_id) 
+        fields.append("%s - Total" % assignment.assignment_id)
 
     print ",".join(fields)
 
     for student in students:
         fields = [student.user.last_name, student.user.first_name]
         for assignment in assignments:
-            grades = student_grades[student.user.id][assignment.id]
-            for gc in assignment.grade_components:
-                if not grades.has_key(gc.id):
+            grades = student_grades[student.user.username][assignment.assignment_id]
+            rubric_components = assignment.get_rubric_components()
+            for rc in rubric_components:
+                if not grades.has_key(rc.description):
                     fields.append("")
                 else:
-                    fields.append(str(grades[gc.id]))
+                    fields.append(str(grades[rc.description]))
             if len(grades) == 0:
-                fields += ["",""]
+                fields += ["","",""]
             else:
                 fields.append(str(grades["__PENALTIES"]))
+                fields.append(str(grades["__BONUSES"]))
                 fields.append(str(grades["__TOTAL"]))
 
         print ",".join(fields)
@@ -206,24 +212,13 @@ def instructor_grading_list_grades(ctx, course):
 @pass_course
 @click.pass_context
 def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, only_graders, reset):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
-    from_assignment = None
     if from_assignment is not None:
-        from_assignment = course.get_assignment(from_assignment)
-        if from_assignment is None:
-            print "Project %s does not exist" % from_assignment
-            ctx.exit(CHISUBMIT_FAIL)
+        from_assignment = get_assignment_or_exit(ctx, course, from_assignment)
 
-    avoid_assignment = None
     if avoid_assignment is not None:
-        avoid_assignment = course.get_assignment(avoid_assignment)
-        if avoid_assignment is None:
-            print "Project %s does not exist" % avoid_assignment
-            ctx.exit(CHISUBMIT_FAIL)
+        avoid_assignment = get_assignment_or_exit(ctx, course, avoid_assignment)
 
     if reset and from_assignment is not None:
         print "--reset and --from_assignment are mutually exclusive"
@@ -233,109 +228,116 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
         print "--avoid_assignment and --from_assignment are mutually exclusive"
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment)
-    graders = course.graders[:]
-    
-    if only_graders is None:
-        graders = course.graders[:]
-    else:
-        gd = {g.user.id: g for g in course.graders}
-        only_graders = only_graders.strip().split(",")
-        
-        graders = []
-        for g in only_graders:
-            if g in gd:
-                graders.append(gd[g])
-            else:
-                print "No such grader: %s" % g
-                ctx.exit(CHISUBMIT_FAIL)        
-    
+
+    graders = course.get_graders()
+
     if len(graders) == 0:
-        print "There are ZERO graders in this course!"
+        print "ERROR: This course has no graders."
         ctx.exit(CHISUBMIT_FAIL)
-
-    min_teams_per_grader = len(teams) / len(graders)
-    extra_teams = len(teams) % len(graders)
-
-    teams_per_grader = dict([(g.user.id, min_teams_per_grader) for g in graders])
-    teams_per_grader_assigned = dict([(g.user.id, 0) for g in graders])
     
-    random.seed(course.id + assignment_id)
+    if only_graders is not None:
+        only_graders = only_graders.split(",")
+        l = []
+        for g in graders:
+            if g.user.username in only_graders:
+                l.append(g)
+                only_graders.remove(g.user.username)
+                
+        if len(only_graders) > 0:
+            print "No such graders: %s" % ", ".join(only_graders)
+            ctx.exit(CHISUBMIT_FAIL)
+            
+        graders = l
+    
+    teams_registrations = get_teams_registrations(course, assignment)
+    teams = teams_registrations.keys()
+
+    min_teams_per_grader = len(teams_registrations) / len(graders)
+    extra_teams = len(teams_registrations) % len(graders)
+
+    teams_per_grader = dict([(g.user.username, min_teams_per_grader) for g in graders])
+    teams_per_grader_assigned = dict([(g.user.username, 0) for g in graders])
+    
+    random.seed(course.course_id + assignment_id)
     random.shuffle(graders)
 
     # so many graders in this course that some will end up expecting zero
     # teams to grade. Make sure they are able to get at least one.
     for g in graders[:extra_teams]:
-        teams_per_grader[g.user.id] += 1
+        teams_per_grader[g.user.username] += 1
 
-    team_grader = {t.id: None for t in teams}
-    ta = {t.id: t.get_assignment(assignment.id) for t in teams}
+    team_grader = {t.name: None for t in teams_registrations.keys()}
 
     if from_assignment is not None:
-        common_teams = [t for t in course.teams if t.has_assignment(assignment.id) and t.has_assignment(from_assignment.id)]
+        from_assignment_registrations = get_teams_registrations(course, from_assignment)
+        
+        common_teams = [t for t in teams if teams_registrations.has_key(t) and from_assignment_registrations.has_key(t)]
         for t in common_teams:
-            team_assignment_from = t.get_assignment(from_assignment.id)
+            registration = from_assignment_registrations[t]
 
             # try to assign the same grader that would grade the same team's other assignment
-            grader = team_assignment_from.grader
-            if grader is not None and teams_per_grader[grader.user.id] > 0:
-                team_grader[t.id] = grader.user.id 
-                teams_per_grader[grader.user.id] -= 1
-                teams_per_grader_assigned[grader.user.id] += 1
+            grader = registration.grader
+            if grader is not None and teams_per_grader[grader.user.username] > 0:
+                team_grader[t.name] = grader.user.id 
+                teams_per_grader[grader.user.username] -= 1
+                teams_per_grader_assigned[grader.user.username] += 1
+
+    if avoid_assignment is not None:
+        avoid_assignment_registrations = get_teams_registrations(course, avoid_assignment)
+
 
     if not reset:
         for t in teams:
-            if ta[t.id].grader is None:
-                team_grader[t.id] = None
+            if teams_registrations[t].grader is None:
+                team_grader[t.name] = None
             else:
-                grader_id = ta[t.id].grader.id 
-                team_grader[t.id] = grader_id
+                grader_id = teams_registrations[t].grader.user.username
+                team_grader[t.name] = grader_id
                 teams_per_grader[grader_id] -= 1
                 teams_per_grader_assigned[grader_id] += 1
 
     not_ready_for_grading = []
     ta_avoid = {}
     graders_cycle = itertools.cycle(graders)
-    for t in teams:
-        if team_grader[t.id] is not None:
+    for team, registration in teams_registrations.items():
+        if team_grader[team.name] is not None:
             continue
-        
-        if not t.has_assignment_ready_for_grading(assignment):
-            not_ready_for_grading.append(t.id)
+
+        if not registration.is_ready_for_grading():
+            not_ready_for_grading.append(team.name)
             continue
 
         for g in graders_cycle:
-            if teams_per_grader[g.user.id] == 0:
+            if teams_per_grader[g.user.username] == 0:
                 continue
             else:
                 if avoid_assignment is not None:
-                    taa = ta_avoid.setdefault(t.id, t.get_assignment(avoid_assignment.id))
-                    if taa.grader.user.id == grader.user.id:
+                    avoid_registration = ta_avoid.setdefault(team.name, avoid_assignment_registrations.get(team))
+                    if avoid_registration is not None and avoid_registration.grader.user.username == grader.user.username:
                         continue
                 
                 valid = True
-                for s in t.students:
+                for tm in team.get_team_members():
                     conflicts = g.get_conflicts()
-                    if s.user.id in conflicts:
+                    if tm.username in conflicts:
                         valid = False
                         break
 
                 if valid:
-                    team_grader[t.id] = g.user.id 
-                    teams_per_grader[g.user.id] -= 1
-                    teams_per_grader_assigned[g.user.id] += 1                        
+                    team_grader[team.name] = g.user.username 
+                    teams_per_grader[g.user.username] -= 1
+                    teams_per_grader_assigned[g.user.username] += 1                        
                     break                    
-
-    for t in teams:
-        if team_grader[t.id] is None:
-            if t.id not in not_ready_for_grading:
-                print "Team %s has no grader" % (t.id)
+    
+    for team, registration in teams_registrations.items():
+        if team_grader[team.name] is None:
+            if team.name not in not_ready_for_grading:
+                print "Team %s has no grader" % (team.id)
             else:
-                print "Team %s's submission isn't ready for grading yet" % (t.id)
+                print "Team %s's submission isn't ready for grading yet" % (team.name)
         else:
-            if ta[t.id].grader !=  team_grader[t.id]:
-                t.set_assignment_grader(assignment.id, team_grader[t.id])
-
+            if registration.grader_username != team_grader[team.name]:
+                registration.grader_username = team_grader[team.name]
     print 
     for grader_id, assigned in teams_per_grader_assigned.items():
         if teams_per_grader[grader_id] != 0:
@@ -352,33 +354,29 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
 @pass_course
 @click.pass_context
 def instructor_grading_list_grader_assignments(ctx, course, assignment_id, grader_id):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     if grader_id is not None:
-        grader = course.get_grader(grader_id)
-        if grader is None:
-            print "Grader %s does not exist" % grader_id
-            ctx.exit(CHISUBMIT_FAIL)
+        grader = get_grader_or_exit(ctx, course, grader_id)
     else:
         grader = None
 
-    teams = get_teams(course, assignment)
-    teams.sort(key=operator.attrgetter("id"))
+    teams_registrations = get_teams_registrations(course, assignment)
+    
+    teams = teams_registrations.keys()
+    teams.sort(key=operator.attrgetter("name"))
 
     for t in teams:
-        team_assignment = t.get_assignment(assignment.id)
+        registration = teams_registrations[t]
         if grader is None:
-            if team_assignment.grader is None:
+            if registration.grader is None:
                 grader_str = "<no-grader-assigned>"
             else:
-                grader_str = team_assignment.grader.id
-            print t.id, grader_str
+                grader_str = registration.grader.user.username
+            print t.name, grader_str
         else:
-            if grader == team_assignment.grader:
-                print t.id
+            if grader == registration.grader.user.username:
+                print t.name
 
     return CHISUBMIT_SUCCESS
 
@@ -598,13 +596,17 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = get_teams(course, assignment, only_ready_for_grading=not all_teams)
+    teams_registrations = get_teams_registrations(course, assignment, only_ready_for_grading=not all_teams)
 
-    for team in teams:
-        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, assignment)
-        team_assignment = team.get_assignment(assignment_id)
-        rubric = RubricFile.from_assignment(assignment, team_assignment)
-        rubricfile = "%s.rubric.txt" % assignment.id
+    for team, registration in teams_registrations.items():
+        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
+        
+        if repo is None:
+            print "%s does not have a grading repository" % team.name
+            continue        
+        
+        rubric = RubricFile.from_assignment(assignment, registration.get_grades())
+        rubricfile = "%s.rubric.txt" % assignment.assignment_id
         rubricfilepath = "%s/%s" % (repo.repo_path, rubricfile)
         
         if commit:

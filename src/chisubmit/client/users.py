@@ -95,6 +95,10 @@ class Grader(ChisubmitAPIObject):
                                                         editable=True)
                       }
     
+    # TODO
+    def get_conflicts(self):
+        return []
+    
 class Student(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 

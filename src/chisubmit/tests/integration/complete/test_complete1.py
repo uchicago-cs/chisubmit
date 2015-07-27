@@ -222,22 +222,22 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         self.assertEquals(result.exit_code, 0)        
                 
         result = instructors[0].run("instructor grading set-grade", 
-                                [teams[0], "pa1", "tests", "100"])
+                                [teams[0], "pa1", "The PA1 Tests", "100"])
         self.assertEquals(result.exit_code, 1)
 
         result = instructors[0].run("instructor grading set-grade", 
-                                [teams[0], "pa1", "tests", "40"])
+                                [teams[0], "pa1", "The PA1 Tests", "40"])
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor grading set-grade", 
-                                [teams[1], "pa1",  "tests", "45"])
+                                [teams[1], "pa1", "The PA1 Tests", "45"])
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor grading list-grades")
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor grading set-grade", 
-                                [teams[0], "pa1", "tests", "50"])
+                                [teams[0], "pa1", "The PA1 Tests", "50"])
         self.assertEquals(result.exit_code, 0)
 
         result = instructors[0].run("instructor grading list-grades")

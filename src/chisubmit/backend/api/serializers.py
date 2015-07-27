@@ -523,7 +523,7 @@ class GradeSerializer(ChisubmitSerializer):
         return Grade.objects.create(**validated_data)
     
     def update(self, instance, validated_data):
-        Grade.points = validated_data.get('points', instance.points)
+        instance.points = validated_data.get('points', instance.points)
         instance.save()
         return instance    
     

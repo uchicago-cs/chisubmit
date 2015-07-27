@@ -878,21 +878,21 @@ class GradeDetail(CourseQualifiedAPIView):
             raise Http404       
     
     def get(self, request, course, team, assignment, grade, format=None):
-        grade_obj = self.get_submission(request, course, team, assignment, grade)
-        serializer = SubmissionSerializer(grade_obj, context={'request': request, 'course': course})
+        grade_obj = self.get_grade(request, course, team, assignment, grade)
+        serializer = GradeSerializer(grade_obj, context={'request': request, 'course': course})
         return Response(serializer.data)
 
     def patch(self, request, course, team, assignment, grade, format=None):
-        grade_obj = self.get_submission(request, course, team, assignment, grade)
-        serializer = SubmissionSerializer(grade_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-
+        grade_obj = self.get_grade(request, course, team, assignment, grade)
+        serializer = GradeSerializer(grade_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
+        
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, course, team, assignment, grade, format=None):
-        grade_obj = self.get_submission(course, team, assignment)
+        grade_obj = self.get_grade(course, team, assignment)
 
         if not (request.user.is_staff or request.user.is_superuser or course.has_instructor(request.user)):
             raise PermissionDenied        

@@ -10,46 +10,65 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_text
 from django.utils.translation import ugettext_lazy
 
-class FieldPermissionsMixin(object):
-    def get_filtered_data(self, course, user):
-        data = dict(self.data)
+class ChisubmitSerializer(serializers.Serializer):
+    
+    def to_representation(self, obj):
+        # TODO: Avoid generating the representation for fields that
+        # aren't going to be returned anyways
+        data = super(ChisubmitSerializer, self).to_representation(obj)
 
-        if hasattr(self, "hidden_fields"):
-            roles = course.get_roles(user)
-            fields = data.keys()
-            for f in fields:
-                if f in self.hidden_fields:
-                    if roles.issubset(self.hidden_fields[f]):
-                        data.pop(f)
+        course = self.context.get("course", None)
+        request = self.context.get("request", None)
+        if request is not None:
+            user = request.user
+        else:
+            user = None
+
+        if course is not None and user is not None:
+            if hasattr(self, "hidden_fields"):
+                roles = course.get_roles(user)
+                fields = data.keys()
+                for f in fields:
+                    if f in self.hidden_fields:
+                        if roles.issubset(self.hidden_fields[f]):
+                            data.pop(f)
         
         return data
-        
-    def filter_initial_data(self, course, user, is_owner=False, raise_exception=False):
-        roles = course.get_roles(user)
-        fields = self.initial_data.keys()
-        owner_override = getattr(self, "owner_override", {})
+    
+    def to_internal_value(self, data):
+        internal_value = super(ChisubmitSerializer, self).to_internal_value(data)
 
-        for f in fields:
-            if hasattr(self, "hidden_fields") and f in self.hidden_fields:
-                if not (is_owner and OwnerPermissions.READ in owner_override.get(f, [])):
-                    if roles.issubset(self.hidden_fields[f]):
-                        self.initial_data.pop(f)
-            elif hasattr(self, "readonly_fields") and f in self.readonly_fields:
-                if not (is_owner and OwnerPermissions.WRITE in owner_override.get(f, [])):
-                    if roles.issubset(self.readonly_fields[f]):
-                        self.initial_data.pop(f)                
+        course = self.context.get("course", None)
+        request = self.context.get("request", None)
+        if request is not None:
+            user = request.user
+        else:
+            user = None
+        is_owner = self.context.get("is_owner", False)
         
-class UserSerializer(serializers.Serializer, FieldPermissionsMixin):
+        if course is not None and user is not None:
+            roles = course.get_roles(user)
+            fields = internal_value.keys()
+            owner_override = getattr(self, "owner_override", {})
+    
+            for f in fields:
+                if hasattr(self, "hidden_fields") and f in self.hidden_fields:
+                    if not (is_owner and OwnerPermissions.READ in owner_override.get(f, [])):
+                        if roles.issubset(self.hidden_fields[f]):
+                            internal_value.pop(f)
+                elif hasattr(self, "readonly_fields") and f in self.readonly_fields:
+                    if not (is_owner and OwnerPermissions.WRITE in owner_override.get(f, [])):
+                        if roles.issubset(self.readonly_fields[f]):
+                            internal_value.pop(f)
+                        
+        return internal_value
+          
+        
+class UserSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=30)
     first_name = serializers.CharField(max_length=30)
     last_name = serializers.CharField(max_length=30)
-    email = serializers.EmailField()    
-    
-    readonly_fields = { "username": AllExceptAdmin,
-                        "first_name": AllExceptAdmin,
-                        "last_name": AllExceptAdmin,
-                        "email": AllExceptAdmin
-                      }    
+    email = serializers.EmailField() 
     
     def create(self, validated_data):
         return User.objects.create(**validated_data)
@@ -63,7 +82,7 @@ class UserSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance      
     
 
-class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
+class CourseSerializer(ChisubmitSerializer):
     course_id = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     
@@ -133,7 +152,7 @@ class CourseSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance
     
     
-class InstructorSerializer(serializers.Serializer, FieldPermissionsMixin):
+class InstructorSerializer(ChisubmitSerializer):
     url = serializers.SerializerMethodField()
     username = serializers.SlugRelatedField(
         source="user",
@@ -165,7 +184,7 @@ class InstructorSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance    
     
 
-class GraderSerializer(serializers.Serializer, FieldPermissionsMixin):
+class GraderSerializer(ChisubmitSerializer):
     url = serializers.SerializerMethodField()
     username = serializers.SlugRelatedField(
         source="user",
@@ -197,7 +216,7 @@ class GraderSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance       
     
     
-class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
+class StudentSerializer(ChisubmitSerializer):
     url = serializers.SerializerMethodField()
     username = serializers.SlugRelatedField(
         source="user",
@@ -234,7 +253,7 @@ class StudentSerializer(serializers.Serializer, FieldPermissionsMixin):
     
     
     
-class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
+class AssignmentSerializer(ChisubmitSerializer):
     assignment_id = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     deadline = serializers.DateTimeField()
@@ -271,7 +290,7 @@ class AssignmentSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance    
   
 
-class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
+class RubricComponentSerializer(ChisubmitSerializer):
     id = serializers.IntegerField(read_only = True)
     order = serializers.IntegerField(default=1, min_value=1)
     description = serializers.CharField(max_length=64)
@@ -298,7 +317,7 @@ class RubricComponentSerializer(serializers.Serializer, FieldPermissionsMixin):
         return instance
 
     
-class TeamSerializer(serializers.Serializer, FieldPermissionsMixin):
+class TeamSerializer(ChisubmitSerializer):
     name = serializers.SlugField()
     extensions = serializers.IntegerField(default=0, min_value=0)
     active = serializers.BooleanField(default = True)
@@ -353,7 +372,7 @@ class PersonRelatedField(RelatedField):
         return obj.user.username
 
     
-class TeamMemberSerializer(serializers.Serializer, FieldPermissionsMixin):    
+class TeamMemberSerializer(ChisubmitSerializer):    
     url = serializers.SerializerMethodField()
     username = PersonRelatedField(source = "student",
                                   queryset=Student.objects.all()
@@ -374,7 +393,7 @@ class TeamMemberSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.save()
         return instance
     
-class SubmissionSerializer(serializers.Serializer, FieldPermissionsMixin):    
+class SubmissionSerializer(ChisubmitSerializer):    
     url = serializers.SerializerMethodField()
     id = serializers.IntegerField(read_only = True)
     extensions_used = serializers.IntegerField(default=0, min_value=0) 
@@ -405,7 +424,7 @@ class SubmissionSerializer(serializers.Serializer, FieldPermissionsMixin):
         instance.save()        
         return instance    
     
-class RegistrationSerializer(serializers.Serializer, FieldPermissionsMixin):    
+class RegistrationSerializer(ChisubmitSerializer):    
     url = serializers.SerializerMethodField()
     assignment_id = serializers.SlugRelatedField(
         source="assignment",
@@ -481,7 +500,7 @@ class SubmissionResponseSerializer(serializers.Serializer):
     extensions_before = serializers.IntegerField() 
     extensions_after = serializers.IntegerField() 
     
-class GradeSerializer(serializers.Serializer, FieldPermissionsMixin):
+class GradeSerializer(ChisubmitSerializer):
     rubric_component_id = serializers.PrimaryKeyRelatedField(
         source="rubric_component",
         queryset=RubricComponent.objects.all()

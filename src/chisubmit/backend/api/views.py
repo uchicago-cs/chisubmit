@@ -94,13 +94,12 @@ class CourseQualifiedAPIView(APIView):
 class CourseDetail(CourseQualifiedAPIView):
             
     def get(self, request, course, format=None):
-        serializer = CourseSerializer(course, context={'request': request})
-        data = serializer.get_filtered_data(course, request.user)
-        return Response(data)
+        serializer = CourseSerializer(course, context={'request': request, 'course': course})
+        
+        return Response(serializer.data)
 
     def patch(self, request, course, format=None):
-        serializer = CourseSerializer(course, data=request.data, partial=True, context={'request': request})
-        serializer.filter_initial_data(course, request.user)
+        serializer = CourseSerializer(course, data=request.data, partial=True, context={'request': request, 'course': course})
         
         if serializer.is_valid():
             try:
@@ -160,8 +159,8 @@ class PersonDetail(CourseQualifiedAPIView):
     def patch(self, request, course, username, format=None):
         person = self.get_person(course, username)
         is_owner = (request.user.username == username)
-        serializer = self.person_serializer(person, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user, is_owner)
+        serializer = self.person_serializer(person, data=request.data, partial=True, context={'request': request, 'course': course, 'is_owner': is_owner})        
+
         if serializer.is_valid():
             try:
                 serializer.save()
@@ -249,7 +248,7 @@ class AssignmentDetail(CourseQualifiedAPIView):
     def patch(self, request, course, assignment, format=None):
         assignment_obj = self.get_assignment(course, assignment)
         serializer = AssignmentSerializer(assignment_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             try:
                 serializer.save()
@@ -320,7 +319,7 @@ class RubricDetail(CourseQualifiedAPIView):
         assignment_obj = self.get_assignment(course, assignment)
         rubric_component_obj = self.get_rubric_component(assignment_obj, rubric_component)
         serializer = RubricComponentSerializer(rubric_component_obj, data=request.data, partial=True, context={'request': request, 'course': course, 'assignment': assignment_obj})
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             try:
                 serializer.save()
@@ -542,7 +541,7 @@ class TeamDetail(CourseQualifiedAPIView):
     def patch(self, request, course, team, format=None):
         team_obj = self.get_team(request, course, team)
         serializer = TeamSerializer(team_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -605,7 +604,7 @@ class TeamMemberDetail(CourseQualifiedAPIView):
     def patch(self, request, course, team, student, format=None):
         teammember_obj = self.get_team_member(course, team, student)
         serializer = TeamMemberSerializer(teammember_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -665,7 +664,7 @@ class RegistrationDetail(CourseQualifiedAPIView):
     def patch(self, request, course, team, assignment, format=None):
         registration_obj = self.get_registration(course, team, assignment)
         serializer = RegistrationSerializer(registration_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -807,7 +806,7 @@ class SubmissionDetail(CourseQualifiedAPIView):
     def patch(self, request, course, team, assignment, submission, format=None):
         submission_obj = self.get_submission(request, course, team, assignment, submission)
         serializer = SubmissionSerializer(submission_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -882,7 +881,7 @@ class GradeDetail(CourseQualifiedAPIView):
     def patch(self, request, course, team, assignment, grade, format=None):
         grade_obj = self.get_submission(request, course, team, assignment, grade)
         serializer = SubmissionSerializer(grade_obj, data=request.data, partial=True, context={'request': request, 'course': course})        
-        serializer.filter_initial_data(course, request.user)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

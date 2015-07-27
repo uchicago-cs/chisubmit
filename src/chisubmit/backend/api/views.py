@@ -26,8 +26,11 @@ class CourseList(APIView):
         courses = Course.objects.all()
         if not (request.user.is_staff or request.user.is_superuser):
             courses = [c for c in courses if c.has_user(request.user)]
-        serializer = CourseSerializer(courses, many=True, context={'request': request})
-        return Response(serializer.data)
+        response_courses = []
+        for course in courses:
+            serializer = CourseSerializer(course, context={'request': request, 'course': course})
+            response_courses.append(serializer.data)
+        return Response(response_courses)
 
     def post(self, request, format=None):
         if not (request.user.is_staff or request.user.is_superuser):
@@ -153,7 +156,8 @@ class PersonDetail(CourseQualifiedAPIView):
             
     def get(self, request, course, username, format=None):
         person = self.get_person(course, username)
-        serializer = self.person_serializer(person, context={'request': request, 'course': course})
+        is_owner = (request.user.username == username)
+        serializer = self.person_serializer(person, context={'request': request, 'course': course, 'is_owner': is_owner})
         return Response(serializer.data)
 
     def patch(self, request, course, username, format=None):

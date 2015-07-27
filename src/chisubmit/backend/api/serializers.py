@@ -25,13 +25,17 @@ class ChisubmitSerializer(serializers.Serializer):
             user = None
 
         if course is not None and user is not None:
+            is_owner = self.context.get("is_owner", False)
+            owner_override = getattr(self, "owner_override", {})
+            
             if hasattr(self, "hidden_fields"):
                 roles = course.get_roles(user)
                 fields = data.keys()
                 for f in fields:
                     if f in self.hidden_fields:
-                        if roles.issubset(self.hidden_fields[f]):
-                            data.pop(f)
+                        if not (is_owner and OwnerPermissions.READ in owner_override.get(f, [])):
+                            if roles.issubset(self.hidden_fields[f]):
+                                data.pop(f)
         
         return data
     

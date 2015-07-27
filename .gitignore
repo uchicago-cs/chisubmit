@@ -5,3 +5,4 @@
 *.egg*
 dist
 /build/
+*.sqlite3

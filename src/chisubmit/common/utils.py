@@ -37,6 +37,7 @@ import string
 from tzlocal import get_localzone
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 import math
+from datetime import timedelta
 
 localzone = get_localzone()
 
@@ -80,6 +81,15 @@ def compute_extensions_needed(submission_time, deadline):
     else:
         return int(extensions_needed)
 
+def is_submission_ready_for_grading(assignment_deadline, submission_date, extensions_used):
+    now = get_datetime_now_utc()
+    deadline = assignment_deadline + timedelta(days=extensions_used)
+    
+    if now > deadline:
+        return True
+    else:
+        return False
+
 # Based on http://jetfar.com/simple-api-key-generation-in-python/
 def gen_api_key():
     s = str(random.getrandbits(256))
@@ -91,9 +101,9 @@ def gen_api_key():
     
 def create_connection(course, config, staging = False):
     if not staging:
-        connstr = course.options["git-server-connstr"]
+        connstr = course.git_server_connstr
     else:
-        connstr = course.options["git-staging-connstr"]
+        connstr = course.git_staging_connstr
 
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()

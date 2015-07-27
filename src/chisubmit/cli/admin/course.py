@@ -31,12 +31,14 @@
 import click
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.client.user import User
-from chisubmit.client.course import Course
 from chisubmit.common.utils import create_connection
-from chisubmit.cli.shared.course import shared_course_list
+from chisubmit.cli.shared.course import shared_course_list,\
+    shared_course_set_user_attribute
 import operator
-import csv
+from chisubmit.client.exceptions import UnknownObjectException
+from chisubmit.cli.common import get_course_or_exit, get_user_or_exit,\
+    api_obj_set_attribute, get_team_or_exit, catch_chisubmit_exceptions
+
 
 @click.group(name="course")
 @click.pass_context
@@ -47,24 +49,29 @@ def admin_course(ctx):
 @click.command(name="add")
 @click.argument('course_id', type=str)
 @click.argument('name', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_add(ctx, course_id, name):
-    course = Course(id = course_id,
-                    name = name)
+    try:
+        course = ctx.obj["client"].get_course(course_id = course_id)
+        print "ERROR: Cannot create course."
+        print "       Course with course_id = %s already exists." % course_id
+        ctx.exit(CHISUBMIT_FAIL)
+    except UnknownObjectException, uoe:
+        course = ctx.obj["client"].create_course(course_id = course_id,
+                                                 name = name)
     
     return CHISUBMIT_SUCCESS
 
 
 @click.command(name="remove")
 @click.argument('course_id', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_remove(ctx, course_id):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+    course = get_course_or_exit(ctx, course_id)
     
-    print "NOT IMPLEMENTED"
+    course.delete()
 
     return CHISUBMIT_SUCCESS
 
@@ -73,46 +80,38 @@ def admin_course_remove(ctx, course_id):
 @click.argument('course_id', type=str)
 @click.option("--include-users", is_flag=True)
 @click.option("--include-assignments", is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_show(ctx, course_id, include_users, include_assignments):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+    course = get_course_or_exit(ctx, course_id) 
     
-    print course.id, course.name
-    if len(course.options) == 0:
-        print "No options"
-    else:
-        print "Options"
-        for name, value in course.options.items():
-            print "  %s: %s" % (name, value)
-    print
+    print course.course_id, course.name
 
     if include_users:
+        print
         print "INSTRUCTORS"
         print "-----------"
-        for i in course.instructors:
-            print "%s: %s, %s <%s>" % (i.user.id, i.user.last_name, i.user.first_name, i.user.email)
+        for i in course.get_instructors():
+            print "%s: %s, %s <%s>" % (i.user.username, i.user.last_name, i.user.first_name, i.user.email)
         print
             
         print "GRADERS"
         print "-------"
-        for g in course.graders:
-            print "%s: %s, %s <%s>" % (g.user.id, g.user.last_name, g.user.first_name, g.user.email)
+        for g in course.get_graders():
+            print "%s: %s, %s <%s>" % (g.user.username, g.user.last_name, g.user.first_name, g.user.email)
         print
         
         print "STUDENTS"
         print "--------"
-        for s in course.students:
-            print "%s: %s, %s <%s>" % (s.user.id, s.user.last_name, s.user.first_name, s.user.email)
+        for s in course.get_students():
+            print "%s: %s, %s <%s>" % (s.user.username, s.user.last_name, s.user.first_name, s.user.email)
         print
 
     if include_assignments:
         print "ASSIGNMENTS"
         print "-----------"
-        for a in course.assignments:
-            print "%s: %s (Due: %s)" % (a.id, a.name, a.deadline)
+        for a in course.get_assignments():
+            print "%s: %s (Due: %s)" % (a.assignment_id, a.name, a.deadline)
         print
 
     
@@ -124,54 +123,32 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
 @click.command(name="add-instructor")
 @click.argument('course_id', type=str)
 @click.argument('user_id', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_add_instructor(ctx, course_id, user_id):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
-    
-    user = User.from_id(user_id)
-    if course is None:
-        print "User %s does not exist" % user_id
-        ctx.exit(CHISUBMIT_FAIL)    
-    
+    course = get_course_or_exit(ctx, course_id)    
+    user = get_user_or_exit(ctx, user_id)    
     course.add_instructor(user)
     
 @click.command(name="add-grader")
 @click.argument('course_id', type=str)
 @click.argument('user_id', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_add_grader(ctx, course_id, user_id):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
-
-    user = User.from_id(user_id)
-    if course is None:
-        print "User %s does not exist" % user_id
-        ctx.exit(CHISUBMIT_FAIL)    
-    
+    course = get_course_or_exit(ctx, course_id)    
+    user = get_user_or_exit(ctx, user_id)    
     course.add_grader(user)
     
 @click.command(name="add-student")
 @click.argument('course_id', type=str)
 @click.argument('user_id', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_add_student(ctx, course_id, user_id):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
-
-    user = User.from_id(user_id)
-    if course is None:
-        print "User %s does not exist" % user_id
-        ctx.exit(CHISUBMIT_FAIL)    
-    
-    course.add_student(user)  
-    
+    course = get_course_or_exit(ctx, course_id)    
+    user = get_user_or_exit(ctx, user_id)    
+    course.add_student(user)    
     
 @click.command(name="load-students")
 @click.argument('course_id', type=str)
@@ -229,29 +206,28 @@ def admin_course_load_students(ctx, course_id, csv_file, csv_userid_column, csv_
         
         print 
     
-@click.command(name="set-option")
+    
+@click.command(name="set-attribute")
 @click.argument('course_id', type=str)
-@click.argument('option_name', type=str)
-@click.argument('option_value', type=str)
+@click.argument('attr_name', type=str)
+@click.argument('attr_value', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
-def admin_course_set_option(ctx, course_id, option_name, option_value):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+def admin_course_set_attribute(ctx, course_id, attr_name, attr_value):
+    course = get_course_or_exit(ctx, course_id)
+    
+    api_obj_set_attribute(ctx, course, attr_name, attr_value)
+    
 
-    course.set_option(option_name, option_value)
 
 
 @click.command(name="setup-repo")
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_setup_repo(ctx, course_id, staging):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+    course = get_course_or_exit(ctx, course_id)   
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -266,12 +242,10 @@ def admin_course_setup_repo(ctx, course_id, staging):
 @click.command(name="unsetup-repo")
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_unsetup_repo(ctx, course_id, staging):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+    course = get_course_or_exit(ctx, course_id)
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -286,12 +260,10 @@ def admin_course_unsetup_repo(ctx, course_id, staging):
 @click.command(name="update-repo-access")
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_update_repo_access(ctx, course_id, staging):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+    course = get_course_or_exit(ctx, course_id)
     
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -306,12 +278,10 @@ def admin_course_update_repo_access(ctx, course_id, staging):
 @click.command(name="create-repos")
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_create_repos(ctx, course_id, staging):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
+    course = get_course_or_exit(ctx, course_id)
 
     teams = course.get_teams()
 
@@ -376,17 +346,11 @@ def admin_course_create_repos(ctx, course_id, staging):
 @click.option('--ignore-existing', is_flag=True)
 @click.option('--public', is_flag=True)
 @click.option('--staging', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, public, staging):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
-
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
+    course = get_course_or_exit(ctx, course_id) 
+    team = get_team_or_exit(ctx, course, team_id) 
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -406,17 +370,11 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
 @click.command(name="team-repo-update")
 @click.argument('course_id', type=str)
 @click.argument('team_id', type=str)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_team_repo_update(ctx, course_id, team_id):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
-
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
+    course = get_course_or_exit(ctx, course_id) 
+    team = get_team_or_exit(ctx, course, team_id) 
 
     #if team.github_repo is None:
     #    print "Team %s does not have a repository." % team.id
@@ -437,17 +395,11 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
 @click.argument('team_id', type=str)
 @click.option('--ignore-non-existing', is_flag=True)
 @click.option('--staging', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def admin_course_team_repo_remove(ctx, course_id, team_id, ignore_non_existing, staging):
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)    
-
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
+    course = get_course_or_exit(ctx, course_id) 
+    team = get_team_or_exit(ctx, course, team_id) 
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -465,7 +417,7 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, ignore_non_existing, 
 
 
 admin_course.add_command(shared_course_list)
-
+admin_course.add_command(shared_course_set_user_attribute)
 
 admin_course.add_command(admin_course_add)
 admin_course.add_command(admin_course_remove)
@@ -474,7 +426,7 @@ admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)
 admin_course.add_command(admin_course_load_students)
-admin_course.add_command(admin_course_set_option)
+admin_course.add_command(admin_course_set_attribute)
 admin_course.add_command(admin_course_setup_repo)
 admin_course.add_command(admin_course_unsetup_repo)
 admin_course.add_command(admin_course_update_repo_access)

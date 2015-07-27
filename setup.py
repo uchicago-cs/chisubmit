@@ -56,12 +56,11 @@ setup(name='chisubmit',
 
       install_requires = [ "PyGithub >= 1.25.2", "pyapi-gitlab >= 7.8.4", "GitPython >= 0.3.5",
                            "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0", "python-dateutil >= 2.4",
-                           "click >= 3.3", "requests >= 2.5.1",
+                           "click >= 3.3", "requests >= 2.5.1", "enum34 >= 1.0.4",
                            "colorama >= 0.3.2", "docutils >= 0.12" ],
       extras_require = {
-                         "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
-                                     "flask-restless >= 0.15", "Flask-Script >= 2.0.5",
-                                     "python-ldap >= 2.4.18", "WTForms-JSON >= 0.2.8"]
+                         "server" : ["djangorestframework >= 3.1.3", "python-ldap >= 2.4.18",
+                                     "jsonfield >= 1.0.3"] 
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,

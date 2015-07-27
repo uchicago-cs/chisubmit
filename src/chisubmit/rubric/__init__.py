@@ -43,15 +43,18 @@ class RubricFile(object):
     
     FIELD_COMMENTS = "Comments"
     FIELD_PENALTIES = "Penalties"
+    FIELD_BONUSES = "Bonuses"
     FIELD_POINTS   = "Points"
     FIELD_TOTAL_POINTS = "Total Points"
     FIELD_POINTS_POSSIBLE = "Points Possible"
     FIELD_POINTS_OBTAINED = "Points Obtained"
     
-    def __init__(self, assignment, points, penalties, comments):
+    def __init__(self, assignment, rubric_components, points, penalties, bonuses, comments):
         self.assignment = assignment
+        self.rubric_components = rubric_components
         self.points = points
         self.penalties = penalties
+        self.bonuses = bonuses
         self.comments = comments
         
     def __format_points(self, n):
@@ -65,15 +68,15 @@ class RubricFile(object):
         total_points_possible = 0
         total_points_obtained = 0
         
-        for gc in self.assignment.grade_components:
-            s += "%s%s:\n" % (" "*4, gc.description)
-            s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_POSSIBLE, self.__format_points(gc.points))
-            total_points_possible += gc.points
-            if self.points[gc.description] is None:
+        for rc in self.rubric_components:
+            s += "%s%s:\n" % (" "*4, rc.description)
+            s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_POSSIBLE, self.__format_points(rc.points))
+            total_points_possible += rc.points
+            if self.points[rc.description] is None:
                 p = ""
             else:
-                total_points_obtained += self.points[gc.description]
-                p = self.__format_points(self.points[gc.description])
+                total_points_obtained += self.points[rc.description]
+                p = self.__format_points(self.points[rc.description])
                 
             s += "%s%s: %s\n" % (" "*8, self.FIELD_POINTS_OBTAINED, p)
             s += "\n" 
@@ -86,8 +89,16 @@ class RubricFile(object):
                 s += "%s%s:%s\n" % (" "*4, desc, self.__format_points(v))            
             s += "\n"
 
+        bonus_points = 0.0
+        if self.bonuses is not None:
+            s += "%s:\n" % self.FIELD_BONUSES
+            for desc, v in self.bonuses.items():
+                bonus_points += v
+                s += "%s%s:%s\n" % (" "*4, desc, self.__format_points(v))            
+            s += "\n"
+
         s += "%s: %s / %s\n" % (self.FIELD_TOTAL_POINTS,
-                              self.__format_points(total_points_obtained + penalty_points),
+                              self.__format_points(total_points_obtained + penalty_points + bonus_points),
                               self.__format_points(total_points_possible)) 
             
         if self.comments is not None or include_blank_comments:
@@ -124,38 +135,40 @@ class RubricFile(object):
         points = {}
         total_points_obtained = 0
         total_points_possible = 0
-        for grade_component in assignment.grade_components:
-            if not rubric[RubricFile.FIELD_POINTS].has_key(grade_component.description):
-                raise ChisubmitRubricException("Rubric is missing '%s' points." % grade_component.description)
+        rubric_components = assignment.get_rubric_components()
+        
+        for rubric_component in rubric_components:
+            if not rubric[RubricFile.FIELD_POINTS].has_key(rubric_component.description):
+                raise ChisubmitRubricException("Rubric is missing '%s' points." % rubric_component.description)
             
-            component = rubric[RubricFile.FIELD_POINTS][grade_component.description]
+            component = rubric[RubricFile.FIELD_POINTS][rubric_component.description]
             
             if not component.has_key(RubricFile.FIELD_POINTS_POSSIBLE):
-                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (grade_component.description, RubricFile.FIELD_POINTS_POSSIBLE))
+                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (rubric_component.description, RubricFile.FIELD_POINTS_POSSIBLE))
 
             if not component.has_key(RubricFile.FIELD_POINTS_OBTAINED):
-                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (grade_component.description, RubricFile.FIELD_POINTS_OBTAINED))
+                raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (rubric_component.description, RubricFile.FIELD_POINTS_OBTAINED))
             
             points_possible = component[RubricFile.FIELD_POINTS_POSSIBLE]
             points_obtained = component[RubricFile.FIELD_POINTS_OBTAINED]
             
-            if points_possible != grade_component.points:
+            if points_possible != rubric_component.points:
                 raise ChisubmitRubricException("Grade component '%s' in rubric has incorrect possible points (expected %i, got %i)" %
-                                                (grade_component.description, grade_component.points, points_possible))
+                                                (rubric_component.description, rubric_component.points, points_possible))
                 
             if points_obtained is not None:
                 if points_obtained < 0:
                     raise ChisubmitRubricException("Grade component '%s' in rubric has negative points (%i)" %
-                                                    (grade_component.description, points_obtained))
+                                                    (rubric_component.description, points_obtained))
     
                 if points_obtained > points_possible:
                     raise ChisubmitRubricException("Grade component '%s' in rubric has more than allowed points (%i > %i)" %
-                                                    (grade_component.description, points_obtained, points_possible))
+                                                    (rubric_component.description, points_obtained, points_possible))
 
                 total_points_obtained += points_obtained
 
-            points[grade_component.description] = points_obtained
-            total_points_possible += grade_component.points
+            points[rubric_component.description] = points_obtained
+            total_points_possible += rubric_component.points
 
         penalty_points = 0.0
         if rubric.has_key(RubricFile.FIELD_PENALTIES):
@@ -167,6 +180,18 @@ class RubricFile(object):
         else:
             penalties = None
 
+        bonus_points = 0.0
+        if rubric.has_key(RubricFile.FIELD_BONUSES):
+            bonuses = rubric[RubricFile.FIELD_BONUSES]
+            for desc, v in bonuses.items():
+                if v < 0:
+                    raise ChisubmitRubricException("Rubric file has a negative bonus: %s (%s)" % (v, desc))
+                bonus_points += v
+        else:
+            bonuses = None
+
+        total_points_with_adjustments = float(total_points_obtained) + penalty_points + bonus_points
+
         if type(rubric[RubricFile.FIELD_TOTAL_POINTS]) != str:
             raise ChisubmitRubricException("Total points is not a string: %s" % rubric[RubricFile.FIELD_TOTAL_POINTS])
         
@@ -174,12 +199,12 @@ class RubricFile(object):
         if len(total_points) != 2:
             raise ChisubmitRubricException("Improperly formatted total points: %s" % rubric[RubricFile.FIELD_TOTAL_POINTS])
         
-        if not feq(float(total_points[0]), float(total_points_obtained) + penalty_points):
+        if not feq(float(total_points[0]), total_points_with_adjustments):
             raise ChisubmitRubricException("Incorrect number of total points obtained (Expected %.2f, got %.2f)" % 
-                                           (float(total_points_obtained) + penalty_points, float(total_points[0])))
+                                           (total_points_with_adjustments, float(total_points[0])))
             
         if not feq(float(total_points[1]), float(total_points_possible)):
-            raise ChisubmitRubricException("Incorrect number of total points obtained (Expected %.2f, got %.2f)" % 
+            raise ChisubmitRubricException("Incorrect number of total points possible (Expected %.2f, got %.2f)" % 
                                            (float(total_points_possible), float(total_points[1])))
             
         if not rubric.has_key(RubricFile.FIELD_COMMENTS):
@@ -187,16 +212,15 @@ class RubricFile(object):
         else:
             comments = rubric[RubricFile.FIELD_COMMENTS]
 
-        return cls(assignment, points, penalties, comments)
+        return cls(assignment, rubric_components, points, penalties, bonuses, comments)
 
     @classmethod
-    def from_assignment(cls, assignment, team_assignment = None):
-        gcs = dict([(gc.id, gc.description) for gc in assignment.grade_components])
-        points = dict([(gc.description, None) for gc in assignment.grade_components])
+    def from_assignment(cls, assignment, grades = None):
+        rubric_components = assignment.get_rubric_components()
+        points = dict([(rc.description, None) for rc in rubric_components])
         
-        if team_assignment is not None:
-            for grade in team_assignment.grades:
-                gc_id = grade.grade_component_id
-                points[gcs[gc_id]] = grade.points
+        if grades is not None:
+            for grade in grades:
+                points[grade.rubric_component.description] = grade.points
         
-        return cls(assignment, points, penalties = None, comments = None)
+        return cls(assignment, rubric_components, points, penalties = None, bonuses = None, comments = None)

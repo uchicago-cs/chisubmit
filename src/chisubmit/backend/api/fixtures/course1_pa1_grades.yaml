@@ -1,0 +1,25 @@
+-   model: api.grade
+    pk: 1
+    fields:
+        registration: 1
+        rubric_component: 1
+        points: 45
+-   model: api.grade
+    pk: 2
+    fields:
+        registration: 1
+        rubric_component: 2
+        points: 35
+-   model: api.grade
+    pk: 3
+    fields:
+        registration: 2
+        rubric_component: 1
+        points: 42.5
+-   model: api.grade
+    pk: 4
+    fields:
+        registration: 2
+        rubric_component: 2
+        points: 50
+

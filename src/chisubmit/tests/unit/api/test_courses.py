@@ -8,7 +8,7 @@ from chisubmit.backend.api.models import Course, Student, Instructor
 
 class CourseTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_users']
     
     def test_get_courses(self):
         user = User.objects.get(username='instructor1')

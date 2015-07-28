@@ -5,7 +5,7 @@ from chisubmit.backend.api.models import Course, Assignment
 
 class AssignmentTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_pa1', 'course1_pa2']
     
     def test_get_assignments(self):
         c = self.get_api_client("admintoken")
@@ -53,7 +53,8 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
             
 class AssignmentValidationTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'complete_course2']
+    fixtures = ['users', 'course1', 'course1_pa1', 'course1_pa2',
+                         'course2', 'course2_hw1', 'course2_hw2']
     
     def test_create_assignment_invalid_id(self):
         c = self.get_api_client("admintoken")

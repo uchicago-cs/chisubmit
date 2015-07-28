@@ -1,0 +1,31 @@
+-   model: api.assignment
+    pk: 2
+    fields: 
+        course: 1
+        deadline: "2042-01-28 20:00:00+00:00"
+        max_students: 2
+        min_students: 2
+        name: Programming Assignment 2
+        assignment_id: pa2
+-   model: api.rubriccomponent
+    pk: 3
+    fields: 
+        assignment: 2
+        order: 1
+        description: First Task
+        points: 12.5
+-   model: api.rubriccomponent
+    pk: 4
+    fields: 
+        assignment: 2
+        order: 2
+        description: Second Task
+        points: 12.5           
+-   model: api.rubriccomponent
+    pk: 5
+    fields: 
+        assignment: 2
+        order: 3
+        description: Third Task
+        points: 50           
+                

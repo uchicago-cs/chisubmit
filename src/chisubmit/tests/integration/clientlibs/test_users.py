@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 
 class UserTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users']
     
     def test_get_users(self):
         c = self.get_api_client("admintoken")

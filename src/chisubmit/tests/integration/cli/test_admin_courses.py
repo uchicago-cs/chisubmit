@@ -24,10 +24,11 @@ class CLIAdminCourse(ChisubmitCLITestCase):
             
         self.assertEquals(course_obj.course_id, course_id)                  
         self.assertEquals(course_obj.name, course_name) 
+           
         
 class CLIAdminCourseFixture(ChisubmitCLITestCase):
     
-    fixtures = ['users', 'complete_course1', 'complete_course2']
+    fixtures = ['users', 'course1', 'course2']
         
     @cli_test
     def test_admin_course_list(self, runner):

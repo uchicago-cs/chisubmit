@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 
 class AssignmentTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_pa1']
     
     def test_get_assignments(self):
         user = User.objects.get(username='instructor1')

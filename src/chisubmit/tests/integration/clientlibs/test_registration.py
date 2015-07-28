@@ -3,7 +3,9 @@ from chisubmit.client.exceptions import BadRequestException
 
 class RegistrationTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations',
+                         'course1_pa2']
     
     def test_register_existing_team(self):
         c = self.get_api_client("student1token")
@@ -104,7 +106,9 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         
 class RegistrationErrorTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations',
+                         'course1_pa2']
     
     def test_register_non_student(self):
         c = self.get_api_client("instructor1token")

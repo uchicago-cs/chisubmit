@@ -8,7 +8,8 @@ from chisubmit.backend.api.models import Assignment
 
 class SubmitTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations']  
         
     def test_correct_no_extensions(self):
         user = User.objects.get(username='student1')
@@ -105,6 +106,7 @@ class SubmitTests(APITestCase):
         
 class SubmitWithExistingSubmissionsTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations_with_submissions']        
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations_with_submissions']
         
                 

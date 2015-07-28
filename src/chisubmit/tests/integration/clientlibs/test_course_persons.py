@@ -4,7 +4,7 @@ from chisubmit.tests.common import COURSE1_GRADERS, COURSE1_STUDENTS, COURSE1_IN
 
 class CoursePersonTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_users']
     
     def test_get_instructors(self):
         c = self.get_api_client("admintoken")

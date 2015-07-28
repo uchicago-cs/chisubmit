@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 class RegisterTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_pa1']
         
     def test_register_single_student(self):
         user = User.objects.get(username='student1')
@@ -64,7 +64,7 @@ class RegisterTests(APITestCase):
         
 class RegisterErrorTests(APITestCase):        
         
-    fixtures = ['users', 'complete_course1']        
+    fixtures = ['users', 'course1', 'course1_users', 'course1_pa1']
         
     def test_register_non_student(self):
         user = User.objects.get(username='instructor1')
@@ -112,7 +112,7 @@ class RegisterErrorTests(APITestCase):
            
 class RegisterExistingTeamErrorTests(APITestCase):             
                 
-    fixtures = ['users', 'complete_course1', 'course1_teams']     
+    fixtures = ['users', 'course1', 'course1_users', 'course1_pa1', 'course1_teams']
     
     def test_register_in_different_groups(self):
         user = User.objects.get(username='student1')

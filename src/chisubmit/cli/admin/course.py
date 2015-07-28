@@ -38,6 +38,7 @@ import operator
 from chisubmit.client.exceptions import UnknownObjectException
 from chisubmit.cli.common import get_course_or_exit, get_user_or_exit,\
     api_obj_set_attribute, get_team_or_exit, catch_chisubmit_exceptions
+import csv
 
 
 @click.group(name="course")
@@ -161,10 +162,7 @@ def admin_course_add_student(ctx, course_id, user_id):
 @click.option('--id-from-email', is_flag=True)
 @click.pass_context
 def admin_course_load_students(ctx, course_id, csv_file, csv_userid_column, csv_fname_column, csv_lname_column, csv_email_column, dry_run, id_from_email):   
-    course = Course.from_id(course_id)
-    if course is None:
-        print "Course %s does not exist" % course_id
-        ctx.exit(CHISUBMIT_FAIL)   
+    course = get_course_or_exit(ctx, course_id)    
                 
     csvf = csv.DictReader(csv_file)
             

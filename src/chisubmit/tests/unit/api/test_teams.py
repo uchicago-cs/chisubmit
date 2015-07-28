@@ -8,7 +8,7 @@ from chisubmit.backend.api.models import Course
 
 class TeamTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams']
     
     def test_get_teams_as_admin(self):
         user = User.objects.get(username='admin')

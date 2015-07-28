@@ -6,7 +6,7 @@ from chisubmit.client.exceptions import UnknownObjectException,\
 
 class CourseTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1']
     
     def test_get_courses(self):
         c = self.get_api_client("admintoken")
@@ -107,7 +107,7 @@ class CourseTests(ChisubmitClientLibsTestCase):
                  
 class CoursePermissionsTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'complete_course2']
+    fixtures = ['users', 'course1', 'course1_users', 'course2', 'course2_users']
     
     def test_get_courses_admin(self):
         c = self.get_api_client("admintoken")
@@ -148,7 +148,7 @@ class CoursePermissionsTests(ChisubmitClientLibsTestCase):
               
 class CourseValidationTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'complete_course2']
+    fixtures = ['users', 'course1', 'course2']
     
     def test_create_course_invalid_id(self):
         c = self.get_api_client("admintoken")

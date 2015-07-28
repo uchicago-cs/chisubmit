@@ -7,7 +7,7 @@ from chisubmit.backend.api.models import Course, Assignment, TeamMember,\
 
 class TeamTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams']
     
     def test_get_teams(self):
         c = self.get_api_client("admintoken")
@@ -51,7 +51,7 @@ class TeamTests(ChisubmitClientLibsTestCase):
                     
 class TeamMemberTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams']    
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams']
     
     def test_get_team_members(self):
         c = self.get_api_client("admintoken")
@@ -129,7 +129,9 @@ class TeamMemberTests(ChisubmitClientLibsTestCase):
         
 class RegistrationTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations']    
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations',
+                         'course1_pa2']    
     
     def test_get_registrations(self):
         c = self.get_api_client("admintoken")
@@ -187,8 +189,10 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
             
 class SubmissionTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations_with_submissions']    
-    
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations_with_submissions',
+                         'course1_pa2']
+            
     def test_get_submissions(self):
         c = self.get_api_client("admintoken")
         
@@ -250,7 +254,9 @@ class SubmissionTests(ChisubmitClientLibsTestCase):
             
 class GradeTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations']    
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations',
+                         'course1_pa2']    
             
     def test_create_grade(self):
         c = self.get_api_client("admintoken")
@@ -282,8 +288,10 @@ class GradeTests(ChisubmitClientLibsTestCase):
             
 class ExistingGradeTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1', 'course1_teams', 'course1_pa1_registrations', 'course1_pa1_grades']    
-    
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                     'course1_pa1', 'course1_pa1_registrations', 'course1_pa1_grades',
+                     'course1_pa2']
+            
     def test_get_grades(self):
         c = self.get_api_client("admintoken")
         

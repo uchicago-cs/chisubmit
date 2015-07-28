@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 
 class UserTests(APITestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_users']
     
     def test_get_users(self):
         user = User.objects.get(username='admin')

@@ -6,7 +6,7 @@ from chisubmit.backend.api.models import Course, Assignment
 
 class RubricComponentTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'complete_course1']
+    fixtures = ['users', 'course1', 'course1_pa1', 'course1_pa2']
     
     def test_get_rubric_components(self):
         c = self.get_api_client("admintoken")

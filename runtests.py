@@ -11,6 +11,8 @@ from django.test.runner import DiscoverRunner
 
 import chisubmit.backend.settings
 
+
+
 test_suites = {"api": "chisubmit.tests.unit.api",
                "clientlibs": "chisubmit.tests.integration.clientlibs",
                "cli": "chisubmit.tests.integration.cli",
@@ -40,10 +42,16 @@ all_except_complete = unit_tests + integration_tests
 def runtests(failfast, quiet, verbose, buffer, 
              config, git_server, git_staging, 
              tests):
+    import django
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chisubmit.backend.settings")
+    django.setup()
+
     verbosity = 1
     if quiet:
         verbosity = 0
     if verbose:
+        from chisubmit.tests.common import set_cli_verbose
+        set_cli_verbose(True)
         verbosity = 2
         
     if config is not None:
@@ -51,10 +59,6 @@ def runtests(failfast, quiet, verbose, buffer,
         test_config.readfp(config)
     else:
         test_config = None
-        
-    import django
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chisubmit.backend.settings")
-    django.setup()
 
     runner = DiscoverRunner(verbosity=verbosity, failfast=failfast)
         

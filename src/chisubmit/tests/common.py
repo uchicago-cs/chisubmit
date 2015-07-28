@@ -16,6 +16,13 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.conf import settings
 
+cli_verbose = False
+
+def set_cli_verbose(v):
+    global cli_verbose
+    
+    cli_verbose = v
+
 colorama.init()
 
 COURSE1_ID = "cmsc40100"
@@ -64,12 +71,17 @@ class ChisubmitCLITestClient(object):
     
     def __init__(self, api_url, user_id, api_key, runner, 
                        course = None, git_credentials = {}, verbose = False):
+        global cli_verbose
+        
         self.user_id = user_id
         self.home_dir = "test-fs/home/%s" % self.user_id
         self.conf_dir = "%s/.chisubmit" % (self.home_dir)
         self.conf_file = self.conf_dir + "/chisubmit.conf"
         self.runner = runner
-        self.verbose = verbose
+        if cli_verbose:
+            self.verbose = True
+        else:
+            self.verbose = verbose
         self.course = course
         
         git_credentials.update({"Testing" : "testing-credentials"})
@@ -100,6 +112,9 @@ class ChisubmitCLITestClient(object):
         cmd_args += params
 
         if self.verbose:
+            global cli_verbose
+            if cli_verbose:
+                print
             l = []
             for ca in cmd_args:
                 if " " in ca:

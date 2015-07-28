@@ -40,9 +40,8 @@ sys.path.insert(0, './src')
 from chisubmit import RELEASE
 
 
-eps = ['chisubmit = chisubmit.cli:chisubmit_cmd_wrapper',
-       'chisubmit-get-credentials = chisubmit.cli:chisubmit_get_credentials_cmd_wrapper',
-       'chisubmit-server = chisubmit.cli:chisubmit_server_cmd [server]']
+eps = ['chisubmit = chisubmit.cli:chisubmit_cmd.main',
+       'chisubmit-get-credentials = chisubmit.cli:chisubmit_get_credentials_cmd.main']
 
 setup(name='chisubmit',
       version=RELEASE,

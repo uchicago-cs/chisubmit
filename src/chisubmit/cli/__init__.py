@@ -44,6 +44,7 @@ from chisubmit.client.requester import BadRequestException
 from chisubmit.client.exceptions import UnknownObjectException,\
     ChisubmitRequestException, UnauthorizedException
 from functools import update_wrapper
+from chisubmit.cli.common import catch_chisubmit_exceptions
 config = None
 
 import chisubmit.common.log as log
@@ -66,6 +67,7 @@ DEBUG = False
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--debug', is_flag=True)
 @click.version_option(version=RELEASE)
+@catch_chisubmit_exceptions
 @click.pass_context
 def chisubmit_cmd(ctx, api_url, api_key, conf, dir, course, verbose, debug):
     global VERBOSE, DEBUG
@@ -107,10 +109,6 @@ def chisubmit_cmd(ctx, api_url, api_key, conf, dir, course, verbose, debug):
 
     return CHISUBMIT_SUCCESS
 
-
-def chisubmit_cmd_wrapper():
-    return chisubmit_cmd.main()
-
 chisubmit_cmd.add_command(admin)
 chisubmit_cmd.add_command(instructor)
 chisubmit_cmd.add_command(student)
@@ -127,6 +125,7 @@ chisubmit_cmd.add_command(grader)
 @click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
 @click.option('--no-save', is_flag=True)
 @click.option('--reset', is_flag=True)
+@catch_chisubmit_exceptions
 @click.pass_context
 def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, username, password, no_save, reset):
     global VERBOSE, DEBUG
@@ -185,31 +184,4 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, usern
         click.echo("Unable to create token. Incorrect username/password.")
 
     return CHISUBMIT_SUCCESS
-
-def chisubmit_get_credentials_cmd_wrapper():
-    cmd_wrapper(chisubmit_get_credentials_cmd)
-
-
-from chisubmit.cli.server import server_start, server_initdb
-
-@click.group()
-@click.option('--conf', type=str, default=None)
-@click.option('--dir', type=str, default=None)
-@click.option('--verbose', '-v', is_flag=True)
-@click.option('--debug', is_flag=True)
-@click.version_option(version=RELEASE)
-@click.pass_context
-def chisubmit_server_cmd(ctx, conf, dir, verbose, debug):
-    ctx.obj = {}
-
-    config = Config(dir, conf)
-    log.init_logging(verbose, debug)
-    
-    ctx.obj["config"] = config
-        
-    return CHISUBMIT_SUCCESS
-
-
-chisubmit_server_cmd.add_command(server_start)
-chisubmit_server_cmd.add_command(server_initdb)
 

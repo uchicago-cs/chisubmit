@@ -1,6 +1,6 @@
 from chisubmit.tests.common import cli_test, ChisubmitCLITestClient, ChisubmitCLITestCase,\
     COURSE1_ID, COURSE1_NAME, COURSE2_ID, COURSE2_NAME
-from chisubmit.backend.api.models import Course, Student
+from chisubmit.backend.api.models import Course, Student, TeamMember
 from django.contrib.auth.models import User
 
 class CLIAdminCourse(ChisubmitCLITestCase):
@@ -69,7 +69,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email"])
-        
+        self.assertEquals(result.exit_code, 0)
+
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
@@ -87,6 +88,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
@@ -96,6 +98,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
 
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
@@ -113,6 +116,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
@@ -125,6 +129,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
 
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
@@ -142,6 +147,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
@@ -154,6 +160,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
 
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--sync"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID, dropped = False)
@@ -172,6 +179,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-students",
                            [COURSE1_ID, csv_file1, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
@@ -185,6 +193,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-students",
                            [COURSE2_ID, csv_file2, "username", "first", "last", "email"])        
+        self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE2_ID)
@@ -193,4 +202,57 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         self.assertEquals(len(student_objs), len(students2))
              
           
+class CLIAdminCourseCreateRepos(ChisubmitCLITestCase):
+    
+    fixtures = ['users', 'course1',  'course1_users', 'course1_teams']            
+    
+    def setup_git_testing(self, course_id):
+        try:
+            course_obj = Course.objects.get(course_id=course_id)
+        except Course.DoesNotExist:
+            self.fail("Course %s not in database" % course_id)
             
+        course_obj.git_server_connstr = "server_type=Testing;local_path=./test-fs/server"
+        course_obj.git_staging_connstr = "server_type=Testing;local_path=./test-fs/staging"
+        course_obj.save()
+    
+    @cli_test
+    def test_admin_course_create_repos(self, runner):
+        admin, _, _, _ = self.create_clients(runner, "admin")
+        
+        self.setup_git_testing(COURSE1_ID)
+        
+        result = admin.run("admin course create-repos", [COURSE1_ID])          
+        self.assertEquals(result.exit_code, 0)
+        
+    @cli_test
+    def test_admin_course_create_repos_twice(self, runner):
+        admin, _, _, _ = self.create_clients(runner, "admin")
+        
+        self.setup_git_testing(COURSE1_ID)
+        
+        result = admin.run("admin course create-repos", [COURSE1_ID])          
+        self.assertEquals(result.exit_code, 0)        
+
+        result = admin.run("admin course create-repos", [COURSE1_ID])          
+        self.assertEquals(result.exit_code, 0)        
+
+    @cli_test
+    def test_admin_course_create_repos_incomplete_registration(self, runner):
+        admin, _, _, _ = self.create_clients(runner, "admin")
+        
+        self.setup_git_testing(COURSE1_ID)
+        
+        tm = TeamMember.objects.get(team__name="student1-student2", student__user__username="student2")
+        tm.confirmed = False
+        tm.save()
+        
+        result = admin.run("admin course create-repos", [COURSE1_ID])          
+        self.assertEquals(result.exit_code, 0)
+
+        tm.confirmed = True
+        tm.save()
+
+        result = admin.run("admin course create-repos", [COURSE1_ID])          
+        self.assertEquals(result.exit_code, 0)
+    

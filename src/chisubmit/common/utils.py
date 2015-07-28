@@ -105,6 +105,11 @@ def create_connection(course, config, staging = False):
     else:
         connstr = course.git_staging_connstr
 
+    if connstr is None:
+        print "The course's git server has not been configured."
+        print "Please contact the course instructor or the chisubmit administrator."
+        return None        
+
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()
     

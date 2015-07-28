@@ -305,7 +305,7 @@ def admin_course_create_repos(ctx, course_id, staging):
         print "Course %s has no teams. No repositories to create." % course_id
         ctx.exit(CHISUBMIT_FAIL)  
 
-    max_len = max([len(t.id) for t in teams])
+    max_len = max([len(t.name) for t in teams])
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -317,24 +317,28 @@ def admin_course_create_repos(ctx, course_id, staging):
     already_has_repository = 0
     warning = 0
     created = 0
-    for team in sorted(teams, key=operator.attrgetter("id")):
-        if not team.is_complete():
-            warning += 1
-            print "%-*s  WARNING. Team registration is incomplete." % (max_len, team.id)
-            continue
-        
+    for team in sorted(teams, key=operator.attrgetter("name")):
         if conn.exists_team_repository(course, team):
             already_has_repository += 1
-            if v: print "%-*s  SKIPPING. Already has a repository." % (max_len, team.id)
+            if v: print "%-*s  SKIPPING. Already has a repository." % (max_len, team.name)
             continue
 
+        team_members = team.get_team_members()
+        unconfirmed_students = [tm for tm in team_members if not tm.confirmed]
+        
+        if len(unconfirmed_students) > 0:
+            usernames = [tm.student.username for tm in unconfirmed_students]
+            warning += 1
+            print "%-*s  WARNING. Team has unconfirmed students: %s" % (max_len, team.name, ",".join(usernames))
+            continue
+
+
         if not staging:        
-            students = [s for s in course.students if s.user.id in [ts.user.id for ts in team.students]]
-                
             missing = []
-            for s in students:
-                if not hasattr(s, "repo_info") or s.repo_info is None or not s.repo_info.has_key("git-username"):
-                    missing.append(s.user.id)
+            for tm in team_members:
+                if course.git_usernames == "custom":
+                    if tm.student.git_username is None:
+                        missing.append(tm.student.username)
                     
             if len(missing) > 0:
                 warning += 1
@@ -344,9 +348,9 @@ def admin_course_create_repos(ctx, course_id, staging):
         try:
             conn.create_team_repository(course, team)
             created += 1
-            print "%-20s CREATED" % team.id
+            print "%-20s CREATED" % team.name
         except Exception, e:
-            print "%-20s Unexpected exception %s: %s" % (team.id, e.__class__.__name__, e.message)
+            print "%-20s Unexpected exception %s: %s" % (team.name, e.__class__.__name__, e.message)
 
     print
     print "Existing: %i" % already_has_repository

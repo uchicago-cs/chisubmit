@@ -154,55 +154,73 @@ def admin_course_add_student(ctx, course_id, user_id):
 @click.command(name="load-students")
 @click.argument('course_id', type=str)
 @click.argument('csv_file', type=click.File('rb'))
-@click.argument('csv_userid_column', type=str)
+@click.argument('csv_username_column', type=str)
 @click.argument('csv_fname_column', type=str)
 @click.argument('csv_lname_column', type=str)
 @click.argument('csv_email_column', type=str)
 @click.option('--dry-run', is_flag=True)
+@click.option('--sync', is_flag=True)
 @click.option('--id-from-email', is_flag=True)
 @click.pass_context
-def admin_course_load_students(ctx, course_id, csv_file, csv_userid_column, csv_fname_column, csv_lname_column, csv_email_column, dry_run, id_from_email):   
+def admin_course_load_students(ctx, course_id, csv_file, csv_username_column, csv_fname_column, csv_lname_column, csv_email_column, dry_run, sync, id_from_email):   
     course = get_course_or_exit(ctx, course_id)    
                 
     csvf = csv.DictReader(csv_file)
             
-    for col in (csv_userid_column, csv_fname_column, csv_lname_column, csv_email_column):
+    for col in (csv_username_column, csv_fname_column, csv_lname_column, csv_email_column):
         if col not in csvf.fieldnames:
             print "CSV file %s does not have a '%s' column" % (csv_file, col)
             ctx.exit(CHISUBMIT_FAIL)
         
+    usernames = set()
+        
     for entry in csvf:
-        user_id = entry[csv_userid_column]
+        username = entry[csv_username_column]
+        usernames.add(username)
+        
         if id_from_email:
-            user_id = user_id.split("@")[0].strip()
+            csv_username_column = csv_username_column.split("@")[0].strip()
         
         first_name = entry[csv_fname_column]
         last_name = entry[csv_lname_column]
         email = entry[csv_email_column]
 
-        print "Processing %s (%s, %s)" % (user_id, last_name, first_name)
+        print "Processing %s (%s, %s)" % (username, last_name, first_name)
 
-        user = User.from_id(user_id)
-    
-        if user is not None:
-            print "- User %s already exists." % user_id
-        else:
-            print "- Creating user %s" % user_id
+        try:
+            user = ctx.obj["client"].get_user(username = username)
+            print "- User %s already exists." % username
+        except UnknownObjectException, uoe:
+            print "- Creating user %s" % username
             if not dry_run:
-                user = User(id = user_id,
-                            first_name = first_name,
-                            last_name = last_name,
-                            email = email)
+                user = ctx.obj["client"].create_user(username = username,
+                                                     first_name = first_name,
+                                                     last_name = last_name,
+                                                     email = email)
         
-        student = course.get_student(user_id)
-        if student is not None:
-            print "- User %s is already a student in %s" % (user_id, course_id)
-        else:
-            print "- Adding %s to %s" % (user_id, course_id)
+        try:
+            student = course.get_student(username)
+            if not student.dropped:
+                print "- User %s is already a student in %s" % (username, course_id)
+            else:
+                if not dry_run:
+                    student.dropped = False
+                print "- Student had previously been marked as dropped, has been un-dropped"
+        except UnknownObjectException, uoe:
+            print "- Adding %s to %s" % (username, course_id)
             if not dry_run:
                 course.add_student(user)
         
         print 
+    
+    if sync:
+        existing_students = course.get_students()
+        for existing_student in existing_students:
+            if existing_student.username not in usernames:
+                if not dry_run:
+                    existing_student.dropped = True
+                print "Dropped %s" % existing_student.username
+        
     
     
 @click.command(name="set-attribute")

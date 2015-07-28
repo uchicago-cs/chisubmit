@@ -60,12 +60,6 @@ class RegisterTests(APITestCase):
         response = self.client.post(url, data = post_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)        
                 
-
-        
-class RegisterErrorTests(APITestCase):        
-        
-    fixtures = ['users', 'course1', 'course1_users', 'course1_pa1']
-        
     def test_register_non_student(self):
         user = User.objects.get(username='instructor1')
         self.client.force_authenticate(user=user)
@@ -75,8 +69,13 @@ class RegisterErrorTests(APITestCase):
         post_data = {"students": ["student1", "student2"]}
         
         response = self.client.post(url, data = post_data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
         
+class RegisterErrorTests(APITestCase):        
+        
+    fixtures = ['users', 'course1', 'course1_users', 'course1_pa1']
+                
     def test_register_other_students(self):
         user = User.objects.get(username='student1')
         self.client.force_authenticate(user=user)

@@ -29,7 +29,7 @@ class ChisubmitSerializer(serializers.Serializer):
             owner_override = getattr(self, "owner_override", {})
             
             if hasattr(self, "hidden_fields"):
-                roles = course.get_roles(user)
+                roles = self.context.get("roles", set())
                 fields = data.keys()
                 for f in fields:
                     if f in self.hidden_fields:
@@ -51,7 +51,7 @@ class ChisubmitSerializer(serializers.Serializer):
         is_owner = self.context.get("is_owner", False)
         
         if course is not None and user is not None:
-            roles = course.get_roles(user)
+            roles = self.context.get("roles", set())
             fields = internal_value.keys()
             owner_override = getattr(self, "owner_override", {})
 

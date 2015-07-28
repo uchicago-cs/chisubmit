@@ -103,13 +103,6 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         self.assertEquals(r.registration.assignment_id, "pa2")
         self.assertEquals(r.registration.assignment.assignment_id, "pa2")                
         
-        
-class RegistrationErrorTests(ChisubmitClientLibsTestCase):
-    
-    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
-                         'course1_pa1', 'course1_pa1_registrations',
-                         'course1_pa2']
-    
     def test_register_non_student(self):
         c = self.get_api_client("instructor1token")
         
@@ -118,9 +111,21 @@ class RegistrationErrorTests(ChisubmitClientLibsTestCase):
 
         students = ["student1", "student2"]
 
-        with self.assertRaises(BadRequestException) as cm:
-            r = assignment.register(students = students)    
-            
+        r = assignment.register(students = students)
+                                
+        self.assertEquals(r.new_team, False)          
+        self.assertEquals(r.team.team_id, "student1-student2")
+        self.assertItemsEqual([tm.username for tm in r.team_members], students)
+        self.assertEquals(r.registration.assignment_id, "pa2")
+        self.assertEquals(r.registration.assignment.assignment_id, "pa2") 
+        
+        
+class RegistrationErrorTests(ChisubmitClientLibsTestCase):
+    
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams', 
+                         'course1_pa1', 'course1_pa1_registrations',
+                         'course1_pa2']
+                
     def test_register_other_student(self):
         c = self.get_api_client("student1token")
         

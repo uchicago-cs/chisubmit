@@ -18,7 +18,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.name, "student1-student2")
+        self.assertEquals(r.team.team_id, "student1-student2")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertEquals(r.registration.assignment_id, "pa2")
         self.assertEquals(r.registration.assignment.assignment_id, "pa2")
@@ -34,7 +34,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, True)          
-        self.assertEquals(r.team.name, "student1-student3")
+        self.assertEquals(r.team.team_id, "student1-student3")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertEquals(r.registration.assignment_id, "pa2")
         self.assertEquals(r.registration.assignment.assignment_id, "pa2")
@@ -48,7 +48,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, True)          
-        self.assertEquals(r.team.name, "student1-student3")
+        self.assertEquals(r.team.team_id, "student1-student3")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertEquals(r.registration.assignment_id, "pa2")
         self.assertEquals(r.registration.assignment.assignment_id, "pa2")          
@@ -59,7 +59,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.name, "student1-student3")
+        self.assertEquals(r.team.team_id, "student1-student3")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertItemsEqual([tm.confirmed for tm in r.team_members], [True, True])
         self.assertEquals(r.registration.assignment_id, "pa2")
@@ -74,7 +74,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, True)          
-        self.assertEquals(r.team.name, "student1-student3")
+        self.assertEquals(r.team.team_id, "student1-student3")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertEquals(r.registration.assignment_id, "pa2")
         self.assertEquals(r.registration.assignment.assignment_id, "pa2")          
@@ -85,7 +85,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.name, "student1-student3")
+        self.assertEquals(r.team.team_id, "student1-student3")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertItemsEqual([tm.confirmed for tm in r.team_members], [True, True])
         self.assertEquals(r.registration.assignment_id, "pa2")
@@ -97,7 +97,7 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         r = assignment.register(students = students)
                                 
         self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.name, "student1-student3")
+        self.assertEquals(r.team.team_id, "student1-student3")
         self.assertItemsEqual([tm.username for tm in r.team_members], students)
         self.assertItemsEqual([tm.confirmed for tm in r.team_members], [True, True])
         self.assertEquals(r.registration.assignment_id, "pa2")

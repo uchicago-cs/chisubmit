@@ -132,7 +132,7 @@ def get_assignment_registration_or_exit(ctx, team, assignment_id):
     try:
         return team.get_assignment_registration(assignment_id = assignment_id)
     except UnknownObjectException:
-        print "Team %s is not registered for assignment %s" % (team.name, assignment_id)
+        print "Team %s is not registered for assignment %s" % (team.team_id, assignment_id)
         ctx.exit(CHISUBMIT_FAIL)        
         
 def get_instructor_or_exit(ctx, course, username):
@@ -228,7 +228,7 @@ def create_grading_repos(config, course, assignment, teams_registrations):
         repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
         if repo is None:
-            print ("Creating grading repo for %s... " % team.name),
+            print ("Creating grading repo for %s... " % team.team_id),
             repo = GradingGitRepo.create_grading_repo(config, course, team, registration)
             repo.sync()
 
@@ -236,7 +236,7 @@ def create_grading_repos(config, course, assignment, teams_registrations):
 
             print "done"
         else:
-            print "Grading repo for %s already exists" % team.name
+            print "Grading repo for %s already exists" % team.team_id
 
     return repos
 
@@ -245,15 +245,15 @@ def gradingrepo_push_grading_branch(config, course, team, registration, to_stude
     repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
-        print "%s does not have a grading repository" % team.name
+        print "%s does not have a grading repository" % team.team_id
         return CHISUBMIT_FAIL
     
     if not repo.has_grading_branch():
-        print "%s does not have a grading branch" % team.name
+        print "%s does not have a grading branch" % team.team_id
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "Warning: %s grading repo has uncommitted changes." % team.name
+        print "Warning: %s grading repo has uncommitted changes." % team.team_id
 
     if to_students:
         repo.push_grading_branch_to_students()
@@ -268,22 +268,22 @@ def gradingrepo_pull_grading_branch(config, course, team, registration, from_stu
     repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
-        print "%s does not have a grading repository" % team.name
+        print "%s does not have a grading repository" % team.team_id
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "%s grading repo has uncommited changes. Cannot pull." % team.name
+        print "%s grading repo has uncommited changes. Cannot pull." % team.team_id
         return CHISUBMIT_FAIL
 
     if from_students:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch on students' repository" % team.name
+            print "%s does not have a grading branch on students' repository" % team.team_id
         else:
             repo.pull_grading_branch_from_students()
 
     if from_staging:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch in staging" % team.name
+            print "%s does not have a grading branch in staging" % team.team_id
         else:
             repo.pull_grading_branch_from_staging()
 

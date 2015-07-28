@@ -455,7 +455,7 @@ class Register(CourseQualifiedAPIView):
             create_team = True
             
         if create_team:
-            team_name = "-".join(sorted(students_usernames))
+            team_id = "-".join(sorted(students_usernames))
 
             if course.extension_policy == "per-team":
                 default_extensions = course.default_extensions
@@ -464,7 +464,7 @@ class Register(CourseQualifiedAPIView):
                 extensions = 0                
         
             team = Team.objects.create(course = course,
-                                       name = team_name,
+                                       team_id = team_id,
                                        extensions = extensions)
 
             for student_obj in student_objs:
@@ -526,7 +526,7 @@ class TeamDetail(CourseQualifiedAPIView):
             
     def get_team(self, request, course, team):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             student_obj = course.get_student(request.user)
             
             if student_obj is not None:
@@ -564,7 +564,7 @@ class TeamMemberList(CourseQualifiedAPIView):
             
     def get_team(self, course, team):
         try:
-            return Team.objects.get(course = course, name = team)
+            return Team.objects.get(course = course, team_id = team)
         except Team.DoesNotExist:
             raise Http404              
             
@@ -581,7 +581,7 @@ class TeamMemberList(CourseQualifiedAPIView):
         if serializer.is_valid():
             student = serializer.validated_data["student"]
             if TeamMember.objects.filter(team=team_obj, student=student).exists():
-                return Response({"username": ["%s is already a member of team %s" % (student.user.username, team_obj.name)]}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"username": ["%s is already a member of team %s" % (student.user.username, team_obj.team_id)]}, status=status.HTTP_400_BAD_REQUEST)
             
             try:
                 serializer.save(team = team_obj)
@@ -594,7 +594,7 @@ class TeamMemberDetail(CourseQualifiedAPIView):
             
     def get_team_member(self, course, team, student):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             teammember_obj = TeamMember.objects.get(team = team_obj, student__user__username = student)
             return teammember_obj
         except (Team.DoesNotExist, TeamMember.DoesNotExist):
@@ -628,7 +628,7 @@ class RegistrationList(CourseQualifiedAPIView):
             
     def get_team(self, course, team):
         try:
-            return Team.objects.get(course = course, name = team)
+            return Team.objects.get(course = course, team_id = team)
         except Team.DoesNotExist:
             raise Http404              
             
@@ -654,7 +654,7 @@ class RegistrationDetail(CourseQualifiedAPIView):
             
     def get_registration(self, course, team, assignment):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             registration_obj = Registration.objects.get(team = team_obj, assignment__assignment_id = assignment)
             return registration_obj
         except (Team.DoesNotExist, Registration.DoesNotExist):
@@ -686,7 +686,7 @@ class RegistrationDetail(CourseQualifiedAPIView):
 class Submit(CourseQualifiedAPIView):
     def get_registration(self, request, course, team, assignment):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             student_obj = course.get_student(request.user)
             
             if student_obj is not None:
@@ -754,7 +754,7 @@ class SubmissionList(CourseQualifiedAPIView):
             
     def get_registration(self, request, course, team, assignment):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             student_obj = course.get_student(request.user)
             
             if student_obj is not None:
@@ -788,7 +788,7 @@ class SubmissionDetail(CourseQualifiedAPIView):
     
     def get_submission(self, request, course, team, assignment, submission):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             student_obj = course.get_student(request.user)
             
             if student_obj is not None:
@@ -829,7 +829,7 @@ class GradeList(CourseQualifiedAPIView):
             
     def get_registration(self, request, course, team, assignment):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             student_obj = course.get_student(request.user)
             
             if student_obj is not None:
@@ -863,7 +863,7 @@ class GradeDetail(CourseQualifiedAPIView):
     
     def get_grade(self, request, course, team, assignment, grade):
         try:
-            team_obj = Team.objects.get(course = course, name = team)
+            team_obj = Team.objects.get(course = course, team_id = team)
             student_obj = course.get_student(request.user)
             
             if student_obj is not None:

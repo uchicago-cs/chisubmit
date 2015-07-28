@@ -305,7 +305,7 @@ def admin_course_create_repos(ctx, course_id, staging):
         print "Course %s has no teams. No repositories to create." % course_id
         ctx.exit(CHISUBMIT_FAIL)  
 
-    max_len = max([len(t.name) for t in teams])
+    max_len = max([len(t.team_id) for t in teams])
 
     conn = create_connection(course, ctx.obj['config'], staging)
     
@@ -317,10 +317,10 @@ def admin_course_create_repos(ctx, course_id, staging):
     already_has_repository = 0
     warning = 0
     created = 0
-    for team in sorted(teams, key=operator.attrgetter("name")):
+    for team in sorted(teams, key=operator.attrgetter("team_id")):
         if conn.exists_team_repository(course, team):
             already_has_repository += 1
-            if v: print "%-*s  SKIPPING. Already has a repository." % (max_len, team.name)
+            if v: print "%-*s  SKIPPING. Already has a repository." % (max_len, team.team_id)
             continue
 
         team_members = team.get_team_members()
@@ -329,7 +329,7 @@ def admin_course_create_repos(ctx, course_id, staging):
         if len(unconfirmed_students) > 0:
             usernames = [tm.student.username for tm in unconfirmed_students]
             warning += 1
-            print "%-*s  WARNING. Team has unconfirmed students: %s" % (max_len, team.name, ",".join(usernames))
+            print "%-*s  WARNING. Team has unconfirmed students: %s" % (max_len, team.team_id, ",".join(usernames))
             continue
 
 
@@ -348,9 +348,9 @@ def admin_course_create_repos(ctx, course_id, staging):
         try:
             conn.create_team_repository(course, team)
             created += 1
-            print "%-20s CREATED" % team.name
+            print "%-20s CREATED" % team.team_id
         except Exception, e:
-            print "%-20s Unexpected exception %s: %s" % (team.name, e.__class__.__name__, e.message)
+            print "%-20s Unexpected exception %s: %s" % (team.team_id, e.__class__.__name__, e.message)
 
     print
     print "Existing: %i" % already_has_repository

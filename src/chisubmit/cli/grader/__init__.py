@@ -43,7 +43,7 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
         repo.set_grader_author()
 
     for team, registration in teams_registrations.items():
-        print ("Pulling grading branch for team %s... " % team.name),
+        print ("Pulling grading branch for team %s... " % team.team_id),
         gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration, from_staging = True)
         print "done"
         
@@ -67,20 +67,20 @@ def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
 
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
         if not repo:
-            print "Repository for %s does not exist" % (team.name)
+            print "Repository for %s does not exist" % (team.team_id)
             ctx.exit(CHISUBMIT_FAIL)
     
         rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
     
         if not os.path.exists(rubricfile):
-            print "Repository for %s does not exist have a rubric for assignment %s" % (team.name, assignment.assignment_id)
+            print "Repository for %s does not exist have a rubric for assignment %s" % (team.team_id, assignment.assignment_id)
             ctx.exit(CHISUBMIT_FAIL)
     
         try:
             RubricFile.from_file(open(rubricfile), assignment)
-            print "%s: Rubric OK." % team.name
+            print "%s: Rubric OK." % team.team_id
         except ChisubmitRubricException, cre:
-            print "%s: Rubric ERROR: %s" % (team.name, cre.message)
+            print "%s: Rubric ERROR: %s" % (team.team_id, cre.message)
 
     return CHISUBMIT_SUCCESS
 
@@ -102,7 +102,7 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
         ctx.exit(CHISUBMIT_FAIL)
 
     for team, registration in teams_registrations.items():
-        print "Pushing grading branch for team %s... " % team.name
+        print "Pushing grading branch for team %s... " % team.team_id
         gradingrepo_push_grading_branch(ctx.obj['config'], course, team, registration, to_staging = True)
 
     return CHISUBMIT_SUCCESS
@@ -125,7 +125,7 @@ def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
         ctx.exit(CHISUBMIT_FAIL)
 
     for team, registration in teams_registrations.items():
-        print "Pulling grading branch for team %s... " % team.name
+        print "Pulling grading branch for team %s... " % team.team_id
         gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration, from_staging = True)
 
     return CHISUBMIT_SUCCESS

@@ -2,14 +2,14 @@
     pk: 1
     fields:
         course: 1
-        name: student1-student2
+        team_id: student1-student2
         extensions: 2
         active: true
 -   model: api.team
     pk: 2
     fields:
         course: 1
-        name: student3-student4
+        team_id: student3-student4
         extensions: 2
         active: true
 -   model: api.teammember

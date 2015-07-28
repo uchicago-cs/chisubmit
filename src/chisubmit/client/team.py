@@ -49,9 +49,9 @@ class Team(ChisubmitAPIObject):
                                                     attrtype=APIStringType, 
                                                     editable=False),  
                        
-                       "name": Attribute(name="name", 
-                                         attrtype=APIStringType, 
-                                         editable=True),  
+                       "team_id": Attribute(name="team_id", 
+                                            attrtype=APIStringType, 
+                                            editable=True),  
     
                        "extensions": Attribute(name="extensions", 
                                                attrtype=APIIntegerType, 

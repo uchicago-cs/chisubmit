@@ -15,7 +15,7 @@ from chisubmit.common.utils import convert_datetime_to_local
 @click.pass_context
 def shared_team_list(ctx, course, ids, assignment, include_inactive):
     teams = course.get_teams()
-    teams.sort(key=operator.attrgetter("name"))
+    teams.sort(key=operator.attrgetter("team_id"))
 
     assignment_id = assignment
     if assignment_id is not None:
@@ -34,7 +34,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
             continue
         
         if ids:
-            print team.name
+            print team.team_id
         else:
             team_members = team.get_team_members()
             
@@ -46,7 +46,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
                 assignments = "No assignments"
             else:
                 assignments = "Assignments: " + ",".join([r.assignment.assignment_id for r in registrations])
-            fields = [team.name, students, assignments]
+            fields = [team.team_id, students, assignments]
 
             print "  ".join(fields)
 
@@ -60,7 +60,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
 def shared_team_show(ctx, course, team_id):
     team = get_team_or_exit(ctx, course, team_id)
         
-    print "Team name: %s" % team.name
+    print "Team name: %s" % team.team_id
     print
     if course.extension_policy == "per-team":
         print "Extensions available: %i" % team.extensions 

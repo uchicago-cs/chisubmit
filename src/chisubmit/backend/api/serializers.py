@@ -325,7 +325,7 @@ class RubricComponentSerializer(ChisubmitSerializer):
 
     
 class TeamSerializer(ChisubmitSerializer):
-    name = serializers.SlugField()
+    team_id = serializers.SlugField()
     extensions = serializers.IntegerField(default=0, min_value=0)
     active = serializers.BooleanField(default = True)
         
@@ -334,24 +334,24 @@ class TeamSerializer(ChisubmitSerializer):
     assignments_url = serializers.SerializerMethodField()
 
     readonly_fields = { "active": GradersAndStudents,
-                        "name": GradersAndStudents,
+                        "team_id": GradersAndStudents,
                         "extensions": GradersAndStudents
                       }       
     
     def get_url(self, obj):
-        return reverse('team-detail', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
+        return reverse('team-detail', args=[self.context["course"].course_id, obj.team_id], request=self.context["request"])
 
     def get_students_url(self, obj):
-        return reverse('teammember-list', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
+        return reverse('teammember-list', args=[self.context["course"].course_id, obj.team_id], request=self.context["request"])
 
     def get_assignments_url(self, obj):
-        return reverse('registration-list', args=[self.context["course"].course_id, obj.name], request=self.context["request"])
+        return reverse('registration-list', args=[self.context["course"].course_id, obj.team_id], request=self.context["request"])
     
     def create(self, validated_data):
         return Team.objects.create(**validated_data)
     
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
+        instance.team_id = validated_data.get('team_id', instance.team_id)
         instance.extensions = validated_data.get('extensions', instance.extensions)
         instance.active = validated_data.get('active', instance.min_students)
         instance.save()
@@ -389,7 +389,7 @@ class TeamMemberSerializer(ChisubmitSerializer):
     readonly_fields = { "confirmed": GradersAndStudents }        
 
     def get_url(self, obj):
-        return reverse('teammember-detail', args=[self.context["course"].course_id, obj.team.name, obj.student.user.username], request=self.context["request"])
+        return reverse('teammember-detail', args=[self.context["course"].course_id, obj.team.team_id, obj.student.user.username], request=self.context["request"])
     
     def create(self, validated_data):
         return TeamMember.objects.create(**validated_data)
@@ -418,7 +418,7 @@ class SubmissionSerializer(ChisubmitSerializer):
             # been saved, and thus doesn't have a primary key (or an endpoint)
             return None
         else:
-            return reverse('submission-detail', args=[self.context["course"].course_id, obj.registration.team.name, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
+            return reverse('submission-detail', args=[self.context["course"].course_id, obj.registration.team.team_id, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
     
     def create(self, validated_data):
         return Submission.objects.create(**validated_data)
@@ -466,13 +466,13 @@ class RegistrationSerializer(ChisubmitSerializer):
                     }   
 
     def get_url(self, obj):
-        return reverse('registration-detail', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
+        return reverse('registration-detail', args=[self.context["course"].course_id, obj.team.team_id, obj.assignment.assignment_id], request=self.context["request"])
 
     def get_submissions_url(self, obj):
-        return reverse('submission-list', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
+        return reverse('submission-list', args=[self.context["course"].course_id, obj.team.team_id, obj.assignment.assignment_id], request=self.context["request"])
 
     def get_grades_url(self, obj):
-        return reverse('grade-list', args=[self.context["course"].course_id, obj.team.name, obj.assignment.assignment_id], request=self.context["request"])
+        return reverse('grade-list', args=[self.context["course"].course_id, obj.team.team_id, obj.assignment.assignment_id], request=self.context["request"])
     
     def create(self, validated_data):
         return Registration.objects.create(**validated_data)
@@ -521,7 +521,7 @@ class GradeSerializer(ChisubmitSerializer):
     readonly_fields = { "points": GradersAndStudents }       
     
     def get_url(self, obj):
-        return reverse('grade-detail', args=[self.context["course"].course_id, obj.registration.team.name, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
+        return reverse('grade-detail', args=[self.context["course"].course_id, obj.registration.team.team_id, obj.registration.assignment.assignment_id, obj.pk], request=self.context["request"])
         
     def create(self, validated_data):
         return Grade.objects.create(**validated_data)

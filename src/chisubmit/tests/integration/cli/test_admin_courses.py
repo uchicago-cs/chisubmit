@@ -243,7 +243,7 @@ class CLIAdminCourseCreateRepos(ChisubmitCLITestCase):
         
         self.setup_git_testing(COURSE1_ID)
         
-        tm = TeamMember.objects.get(team__name="student1-student2", student__user__username="student2")
+        tm = TeamMember.objects.get(team__team_id="student1-student2", student__user__username="student2")
         tm.confirmed = False
         tm.save()
         

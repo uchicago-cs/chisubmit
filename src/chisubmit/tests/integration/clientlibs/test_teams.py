@@ -16,7 +16,7 @@ class TeamTests(ChisubmitClientLibsTestCase):
         teams = course.get_teams()
         
         self.assertEquals(len(teams), len(COURSE1_TEAMS))
-        self.assertItemsEqual([t.name for t in teams], COURSE1_TEAMS)
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
         
     def test_get_team(self):
         c = self.get_api_client("admintoken")
@@ -26,16 +26,16 @@ class TeamTests(ChisubmitClientLibsTestCase):
         for team_name in COURSE1_TEAMS:
             team = course.get_team(team_name)
             
-            self.assertEquals(team.name, team_name)
+            self.assertEquals(team.team_id, team_name)
             
     def test_create_team(self):
         c = self.get_api_client("admintoken")
         
         course = c.get_course("cmsc40100")
-        team = course.create_team(name = "student2-student3",
+        team = course.create_team(team_id = "student2-student3",
                                   extensions = 2,
                                   active = False)
-        self.assertEquals(team.name, "student2-student3")
+        self.assertEquals(team.team_id, "student2-student3")
         self.assertEquals(team.extensions, 2)
         self.assertEquals(team.active, False)
         
@@ -45,7 +45,7 @@ class TeamTests(ChisubmitClientLibsTestCase):
         team_obj = course_obj.get_team("student2-student3")
         self.assertIsNotNone(team_obj, "Team was not added to database")
             
-        self.assertEquals(team_obj.name, "student2-student3")                  
+        self.assertEquals(team_obj.team_id, "student2-student3")                  
         self.assertEquals(team_obj.extensions, 2)                  
         self.assertEquals(team_obj.active, False)                  
                     
@@ -86,10 +86,10 @@ class TeamMemberTests(ChisubmitClientLibsTestCase):
         c = self.get_api_client("admintoken")
         
         course = c.get_course("cmsc40100")
-        team = course.create_team(name = "student2-student3",
+        team = course.create_team(team_id = "student2-student3",
                                   extensions = 2,
                                   active = False)
-        self.assertEquals(team.name, "student2-student3")
+        self.assertEquals(team.team_id, "student2-student3")
         self.assertEquals(team.extensions, 2)
         self.assertEquals(team.active, False)
         
@@ -99,7 +99,7 @@ class TeamMemberTests(ChisubmitClientLibsTestCase):
         team_obj = course_obj.get_team("student2-student3")
         self.assertIsNotNone(team_obj, "Team was not added to database")
             
-        self.assertEquals(team_obj.name, "student2-student3")                  
+        self.assertEquals(team_obj.team_id, "student2-student3")                  
         self.assertEquals(team_obj.extensions, 2)                  
         self.assertEquals(team_obj.active, False)
               
@@ -174,10 +174,10 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
             self.assertEqual(registration.grader_username, None)
             self.assertEqual(registration.grader, None)   
             
-            registration_objs = Registration.objects.filter(team__name = t, assignment__assignment_id = "pa2")
+            registration_objs = Registration.objects.filter(team__team_id = t, assignment__assignment_id = "pa2")
             self.assertEquals(len(registration_objs), 1)
             registration_obj = registration_objs[0]
-            self.assertEqual(registration_obj.team.name, t)
+            self.assertEqual(registration_obj.team.team_id, t)
             self.assertEqual(registration_obj.assignment.assignment_id, "pa2")
             self.assertIsNone(registration_obj.grader)            
             
@@ -236,7 +236,7 @@ class SubmissionTests(ChisubmitClientLibsTestCase):
             submissions = registration.get_submissions()
             n_submissions = len(submissions)
             
-            sha = "COMMITSHA" + team.name
+            sha = "COMMITSHA" + team.team_id
             submission = registration.add_submission(sha, 42)
 
             self.assertEqual(submission.extensions_used, 42)
@@ -277,7 +277,7 @@ class GradeTests(ChisubmitClientLibsTestCase):
 
                 self.assertEqual(grade.points, points)
                 self.assertEqual(grade.rubric_component.description, rc.description)
-                registration_obj = Registration.objects.get(team__name = team.name, assignment__assignment_id = "pa1")
+                registration_obj = Registration.objects.get(team__team_id = team.team_id, assignment__assignment_id = "pa1")
                 grade_objs = Grade.objects.filter(registration = registration_obj, rubric_component_id = rc.id)
                 self.assertEquals(len(grade_objs), 1)
                 grade_obj = grade_objs[0]

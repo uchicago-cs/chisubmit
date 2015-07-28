@@ -102,10 +102,10 @@ class Course(models.Model):
         except Assignment.DoesNotExist:
             return None
         
-    def get_team(self, team_name):
+    def get_team(self, team_id):
         try:
-            return self.team_set.get(name=team_name)
-        except Assignment.DoesNotExist:
+            return self.team_set.get(team_id=team_id)
+        except Team.DoesNotExist:
             return None        
 
     def get_teams(self):
@@ -235,7 +235,7 @@ class RubricComponent(models.Model):
         
 class Team(models.Model):
     course = models.ForeignKey(Course)
-    name = models.SlugField(max_length=128)
+    team_id = models.SlugField(max_length=128)
     extensions = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     active = models.BooleanField(default = True)
     
@@ -244,7 +244,7 @@ class Team(models.Model):
     registrations = models.ManyToManyField(Assignment, through='Registration') 
     
     def __unicode__(self):
-        return u"Team %s in %s" % (self.name, self.course.course_id)         
+        return u"Team %s in %s" % (self.team_id, self.course.course_id)         
     
     def is_registered_for_assignment(self, assignment):
         return self.registrations.filter(assignment_id = assignment.assignment_id).exists()
@@ -287,7 +287,7 @@ class Team(models.Model):
             raise IntegrityError("course.extension_policy has invalid value: %s" % (self.course.extension_policy))          
     
     class Meta:
-        unique_together = ("course", "name")
+        unique_together = ("course", "team_id")
         
 class TeamMember(models.Model):
     student = models.ForeignKey(Student)

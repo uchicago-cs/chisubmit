@@ -17,7 +17,7 @@ class RubricComponentAdmin(admin.ModelAdmin):
     list_display = ('assignment', 'description', 'points')
     
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('course', 'name')
+    list_display = ('course', 'team_id')
     
 class RegistrationAdmin(admin.ModelAdmin):
     list_display = ('team', 'assignment')      

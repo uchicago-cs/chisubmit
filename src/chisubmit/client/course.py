@@ -400,7 +400,7 @@ class Course(ChisubmitAPIObject):
         )
         return chisubmit.client.team.Team(self._api_client, headers, data)    
     
-    def create_team(self, name, extensions = None, active = None):
+    def create_team(self, team_id, extensions = None, active = None):
         """
         :calls: POST /courses/:course/teams/
         :param name: string
@@ -408,9 +408,9 @@ class Course(ChisubmitAPIObject):
         :param active: bool
         :rtype: :class:`chisubmit.client.team.Team`
         """
-        assert isinstance(name, (str, unicode)), name
+        assert isinstance(team_id, (str, unicode)), team_id
 
-        post_data = { "name": name }
+        post_data = { "team_id": team_id }
         
         if extensions is not None:
             post_data["extensions"] = extensions

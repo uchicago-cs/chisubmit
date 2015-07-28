@@ -110,7 +110,7 @@ class Migration(migrations.Migration):
             name='Team',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.SlugField(max_length=128)),
+                ('team_id', models.SlugField(max_length=128)),
                 ('extensions', models.IntegerField(default=0, validators=[django.core.validators.MinValueValidator(0)])),
                 ('active', models.BooleanField(default=True)),
                 ('course', models.ForeignKey(to='api.Course')),
@@ -197,7 +197,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='team',
-            unique_together=set([('course', 'name')]),
+            unique_together=set([('course', 'team_id')]),
         ),
         migrations.AlterUniqueTogether(
             name='student',

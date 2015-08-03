@@ -1,7 +1,9 @@
 import click
 from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS
-from chisubmit.cli.shared.course import shared_course_set_user_attribute
+from chisubmit.cli.shared.course import shared_course_set_user_attribute,\
+    shared_course_get_git_credentials, shared_course_list,\
+    shared_course_set_default
 
 @click.group(name="course")
 @click.pass_context
@@ -29,5 +31,8 @@ def instructor_grader_add_conflict(ctx, course, grader_id, student_id):
 
     return CHISUBMIT_SUCCESS
 
+instructor_course.add_command(shared_course_list)
+instructor_course.add_command(shared_course_set_default)
 instructor_course.add_command(shared_course_set_user_attribute)
+instructor_course.add_command(shared_course_get_git_credentials)
 

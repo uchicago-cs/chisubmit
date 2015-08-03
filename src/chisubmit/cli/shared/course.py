@@ -22,7 +22,9 @@ def shared_course_list(ctx):
 @click.argument('course_id', type=str)
 @click.pass_context
 def shared_course_set_default(ctx, course_id):
-    ctx.obj['config']['default-course'] = course_id
+    course = get_course_or_exit(ctx, course_id) 
+    
+    ctx.obj['config']['default-course'] = course.course_id
     ctx.obj['config'].save()
 
 @click.command(name="get-git-credentials")
@@ -36,16 +38,14 @@ def shared_course_set_default(ctx, course_id):
 @click.pass_context
 def shared_course_get_git_credentials(ctx, course, username, password, no_save, delete_permissions, staging):
     if not staging:
-        connstr_field = "git-server-connstr"
+        connstr = course.git_server_connstr
     else:
-        connstr_field = "git-staging-connstr"
+        connstr = course.git_staging_connstr
     
-    if not course.options.has_key(connstr_field):
+    if connstr is None or connstr == "":
         print "Course '%s' doesn't seem to be configured to use a Git server." % course.id
         ctx.exit(CHISUBMIT_FAIL)
         
-    connstr = course.options[connstr_field]
-
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = staging)
     server_type = conn.get_server_type_name()
 

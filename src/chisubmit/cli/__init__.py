@@ -140,7 +140,7 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, usern
 
     if api_url is None:
         print "No server URL specified. Please add it to your chisubmit.conf file"
-        print "or use the --url option"
+        print "or use the --api-url option"
         ctx.exit(CHISUBMIT_FAIL)
 
     client = Chisubmit(username, password=password, base_url=api_url)

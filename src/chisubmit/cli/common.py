@@ -82,13 +82,13 @@ def catch_chisubmit_exceptions(f):
                 print
                 cre.print_debug_info()        
         except ConnectionError, ce:
-            print "ERROR: Could not connect to chisubmit server"
+            print "ERROR: Could not connect to server"
             print "URL: %s" % ce.request.url
         except ChisubmitException, ce:
             print "ERROR: %s" % ce.message
             if ctx.obj["debug"]:
                 ce.print_exception()
-        except click.BadParameter, bp:
+        except click.UsageError:
             raise
         except Exception, e:
             handle_unexpected_exception()

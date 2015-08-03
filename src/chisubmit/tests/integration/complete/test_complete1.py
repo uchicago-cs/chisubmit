@@ -204,6 +204,12 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)
 
+        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/all/"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
+        self.assertEquals(result.exit_code, 0)
+
         # Let the deadline "pass"
         new_now = get_datetime_now_utc() + timedelta(hours=2)
         set_testing_now(new_now)
@@ -213,6 +219,12 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         print
 
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/all/"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
         self.assertEquals(result.exit_code, 0)
                 
         result = instructors[0].run("instructor grading create-grading-repos", ["pa1"])

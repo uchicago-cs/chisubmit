@@ -12,19 +12,19 @@ from chisubmit.common import CHISUBMIT_SUCCESS
 @pass_course
 @click.pass_context
 def shared_assignment_list(ctx, course, ids, utc):
-    assignments = course.assignments[:]
+    assignments = course.get_assignments()
     assignments.sort(key=operator.attrgetter("deadline"))
 
     for assignment in assignments:
         if ids:
-            print assignment.id
+            print assignment.assignment_id
         else:
             if utc:
                 deadline = assignment.deadline.isoformat(" ")
             else:
                 deadline = convert_datetime_to_local(assignment.deadline).isoformat(" ")
 
-            fields = [assignment.id, deadline, assignment.name]
+            fields = [assignment.assignment_id, deadline, assignment.name]
 
             print "\t".join(fields)
 

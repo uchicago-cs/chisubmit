@@ -34,6 +34,8 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     def get_connstr_optional_params():
         return []
     
+    
+    
     def get_credentials(self, username, password, delete_repo = False):
         try:
             g = Gitlab(self.gitlab_hostname)
@@ -184,11 +186,13 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
     def get_repository_git_url(self, course, team):
         repo_name = self.__get_team_namespaced_project_name(course, team)
-        return "git@%s:%s.git" % (self.gitlab_hostname, repo_name)
+        hostname = self.gitlab_hostname.replace("http://","").replace("https://","")
+        return "git@%s:%s.git" % (hostname, repo_name)
             
     def get_repository_http_url(self, course, team):
         repo_name = self.__get_team_namespaced_project_name(course, team)
-        return "https://%s/%s" % (self.gitlab_hostname, repo_name)
+        hostname = self.gitlab_hostname.replace("http://","").replace("https://","")
+        return "https://%s/%s" % (hostname, repo_name)
     
     def get_commit(self, course, team, commit_sha):
         project_api_id = self.__get_team_project_api_id(course, team)

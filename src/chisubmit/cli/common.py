@@ -210,7 +210,7 @@ def get_teams_registrations(course, assignment, only_ready_for_grading = False, 
         try:
             registration = team.get_assignment_registration(assignment.assignment_id)
             
-            if (only_ready_for_grading and not registration.is_ready_for_grading) or (grader is not None and registration.grader_username != grader.user.username):
+            if (only_ready_for_grading and not registration.is_ready_for_grading()) or (grader is not None and registration.grader_username != grader.user.username):
                 continue
             
             rv[team] = registration

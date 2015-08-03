@@ -1,5 +1,6 @@
 import click
-from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions
+from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions,\
+    get_assignment_or_exit, get_teams_registrations
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL,\
     ChisubmitException
 
@@ -49,33 +50,28 @@ def instructor_team_search(ctx, course, verbose, team_id):
 @pass_course
 @click.pass_context
 def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready_for_grading, reset, only):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     conn = create_connection(course, ctx.obj['config'])
     
-    if conn is None:
-        print "Could not connect to git server."
-        ctx.exit(CHISUBMIT_FAIL)
-
-    teams = get_teams(course, assignment, only = only)
+    teams_registrations = get_teams_registrations(course, assignment, only = only)
 
     directory = os.path.expanduser(directory)
     
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    max_len = max([len(t.id) for t in teams])
+    teams = sorted([t for t in teams_registrations.keys() if t.active], key = operator.attrgetter("team_id"))
 
-    for team in sorted([t for t in teams if t.active], key=operator.attrgetter("id")):
-        team_dir = "%s/%s" % (directory, team.id)
+    max_len = max([len(t.team_id) for t in teams])
+
+    for team in teams:
+        registration = teams_registrations[team]
+        team_dir = "%s/%s" % (directory, team.team_id)
         team_git_url = conn.get_repository_git_url(course, team) 
-        ta = team.get_assignment(assignment.id)
 
-        if not team.has_assignment_ready_for_grading(assignment) and only_ready_for_grading:
-            print "%-*s  SKIPPING (not ready for grading)" % (max_len, team.id)
+        if not registration.is_ready_for_grading() and only_ready_for_grading:
+            print "%-*s  SKIPPING (not ready for grading)" % (max_len, team.team_id)
             continue
         
         try:
@@ -91,24 +87,24 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready
                     msg = "Reset to match origin/master" 
                 else:
                     if r.repo.is_dirty():
-                        print "%-*s  ERROR: Cannot pull. Local repository has unstaged changes." % (max_len, team.id)
+                        print "%-*s  ERROR: Cannot pull. Local repository has unstaged changes." % (max_len, team.team_id)
                         continue
                     r.checkout_branch("master")
                     r.pull("origin", "master")
                     msg = "Pulled latest changes"
             if only_ready_for_grading:
-                r.checkout_commit(ta.commit_sha)
-                msg += " and checked out commit %s" % (ta.commit_sha)               
-            print "%-*s  %s" % (max_len, team.id, msg)
+                r.checkout_commit(registration.final_submission.commit_sha)
+                msg += " and checked out commit %s" % (registration.final_submission.commit_sha)               
+            print "%-*s  %s" % (max_len, team.team_id, msg)
         except ChisubmitException, ce:
-            print "%-*s  ERROR: Could not checkout or pull master branch (%s)" % (max_len, team.id, ce.message)
+            print "%-*s  ERROR: Could not checkout or pull master branch (%s)" % (max_len, team.team_id, ce.message)
         except GitCommandError, gce:
-            print "%-*s  ERROR: Could not checkout or pull master branch" % (max_len, team.id)
+            print "%-*s  ERROR: Could not checkout or pull master branch" % (max_len, team.team_id)
             print gce
         except InvalidGitRepositoryError, igre:
-            print "%-*s  ERROR: Directory %s exists but does not contain a valid git repository"  % (max_len, team.id, team_dir)
+            print "%-*s  ERROR: Directory %s exists but does not contain a valid git repository"  % (max_len, team.team_id, team_dir)
         except Exception, e:
-            print "%-*s  ERROR: Unexpected exception when trying to checkout/pull" % (max_len, team.id)
+            print "%-*s  ERROR: Unexpected exception when trying to checkout/pull" % (max_len, team.team_id)
             raise
     
         

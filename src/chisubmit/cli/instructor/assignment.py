@@ -44,6 +44,19 @@ def instructor_assignment_add_rubric_component(ctx, course, assignment_id, descr
     return CHISUBMIT_SUCCESS
 
 
+@click.command(name="register")
+@click.argument('assignment_id', type=str)
+@click.option('--student', type=str, multiple=True)
+@catch_chisubmit_exceptions
+@pass_course
+@click.pass_context
+def instructor_assignment_register(ctx, course, assignment_id, student):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    
+    assignment.register(students = student)
+    
+    return CHISUBMIT_SUCCESS
+
 @click.command(name="stats")
 @click.argument('assignment_id', type=str)
 @catch_chisubmit_exceptions
@@ -126,6 +139,6 @@ instructor_assignment.add_command(shared_assignment_set_attribute)
 
 instructor_assignment.add_command(instructor_assignment_add)
 instructor_assignment.add_command(instructor_assignment_add_rubric_component)
-
+instructor_assignment.add_command(instructor_assignment_register)
 instructor_assignment.add_command(instructor_assignment_stats)
 

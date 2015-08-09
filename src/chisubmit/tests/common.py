@@ -240,6 +240,9 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         self.assertEquals(result.exit_code, 0)
         self.assertIn(course_id, result.output)
         self.assertIn(course_name, result.output)
+
+        result = admin.run("admin course set-attribute %s git_usernames custom" % (course_id))
+        self.assertEquals(result.exit_code, 0)
         
         git_server_connstr = self.git_server_connstr
         git_staging_connstr = self.git_staging_connstr
@@ -290,6 +293,16 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
                                     ["instructor", instructors[0].user_id, "git_username", git_username])
             self.assertEquals(result.exit_code, 0)
 
+            if self.git_staging_user is None:
+                git_staging_username = "git-" + instructors[0].user_id
+            else:
+                git_staging_username = self.git_staging_user
+    
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                    ["instructor", instructors[0].user_id, "git_staging_username", git_staging_username])
+            self.assertEquals(result.exit_code, 0)
+
+
         for grader in graders:
             if self.git_server_user is None:
                 git_username = "git-" + graders[0].user_id
@@ -299,6 +312,16 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
             result = instructors[0].run("instructor course set-user-attribute", 
                                         ["grader", graders[0].user_id, "git_username", git_username])
             self.assertEquals(result.exit_code, 0)
+
+            if self.git_staging_user is None:
+                git_staging_username = "git-" + graders[0].user_id
+            else:
+                git_staging_username = self.git_staging_user
+    
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                    ["grader", graders[0].user_id, "git_staging_username", git_staging_username])
+            self.assertEquals(result.exit_code, 0)
+
                 
         result = admin.run("admin course update-repo-access", [course_id])
         self.assertEquals(result.exit_code, 0)

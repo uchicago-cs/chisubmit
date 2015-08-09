@@ -199,8 +199,8 @@ class GraderSerializer(ChisubmitSerializer):
     git_username = serializers.CharField(max_length=64, required=False)
     git_staging_username = serializers.CharField(max_length=64, required=False)
     
-    hidden_fields = { "git_username": AllExceptAdmin,
-                      "git_staging_username": AllExceptAdmin }
+    hidden_fields = { "git_username": GradersAndStudents,
+                      "git_staging_username": GradersAndStudents }
     
     readonly_fields = { }     
     

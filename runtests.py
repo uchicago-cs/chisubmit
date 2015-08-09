@@ -11,15 +11,22 @@ from django.test.runner import DiscoverRunner
 
 import chisubmit.backend.settings
 
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chisubmit.backend.settings")
+django.setup()
+
+from chisubmit.tests.integration.complete.test_complete1 import CLICompleteWorkflowExtensionsPerTeam
+from chisubmit.tests.integration.complete.test_complete2 import CLICompleteWorkflowExtensionsPerStudent
+from chisubmit.tests.integration.complete.test_complete3 import CLICompleteWorkflowCancelSubmission
 
 
 test_suites = {"api": "chisubmit.tests.unit.api",
                "clientlibs": "chisubmit.tests.integration.clientlibs",
                "cli": "chisubmit.tests.integration.cli",
          
-               "complete1": "chisubmit.tests.integration.complete.test_complete1",
-               "complete2": "chisubmit.tests.integration.complete.test_complete2",
-               "complete3": "chisubmit.tests.integration.complete.test_complete3"}
+               "complete1": CLICompleteWorkflowExtensionsPerTeam,
+               "complete2": CLICompleteWorkflowExtensionsPerStudent,
+               "complete3": CLICompleteWorkflowCancelSubmission}
          
 unit_tests = ["api"]
 
@@ -42,10 +49,6 @@ all_except_complete = unit_tests + integration_tests
 def runtests(failfast, quiet, verbose, buffer, 
              config, git_server, git_staging, 
              tests):
-    import django
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chisubmit.backend.settings")
-    django.setup()
-
     verbosity = 1
     if quiet:
         verbosity = 0
@@ -74,9 +77,14 @@ def runtests(failfast, quiet, verbose, buffer,
         
     if tests in complete_tests:
         ran = True
-        # TODO: Need to pass test object to configure_complete_test for git servers to be set correctly
-        # configure_complete_test(test, test_config, integration_git_server, integration_git_staging)
-        runner.run_tests([test_suites[tests]])
+        suite = unittest.TestSuite()
+        test_class = test_suites[tests]
+        for name in unittest.TestLoader().getTestCaseNames(test_class):
+            test = test_class(name)
+            configure_complete_test(test, test_config, git_server, git_staging)
+            suite.addTest(test)        
+                
+        runner.run_tests([], extra_tests=suite)
         
     if not ran:
         #try:

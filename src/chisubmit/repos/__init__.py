@@ -147,7 +147,7 @@ class RemoteRepositoryConnectionBase(object):
                 if course_user.git_username is None:
                     raise ChisubmitException("User '%s' does not have a git_username" % (course_user.user.username))
                 else:
-                    return course_user.git_staging_username
+                    return course_user.git_username
         else:
             raise ChisubmitException("Course has invalid git_usernames value: %s" % course.git_usernames)
     

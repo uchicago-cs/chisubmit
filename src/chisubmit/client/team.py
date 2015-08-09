@@ -230,7 +230,7 @@ class Registration(ChisubmitAPIObject):
                                                     editable=True),  
     
                        "grader": Attribute(name="grader", 
-                                        attrtype=APIObjectType(Student), 
+                                        attrtype=APIObjectType(Grader), 
                                         editable=False),  
                        
                        "submissions_url": Attribute(name="submissions_url", 

@@ -176,10 +176,11 @@ def admin_course_load_students(ctx, course_id, csv_file, csv_username_column, cs
         
     for entry in csvf:
         username = entry[csv_username_column]
-        usernames.add(username)
         
         if id_from_email:
-            csv_username_column = csv_username_column.split("@")[0].strip()
+            username = username.split("@")[0].strip()
+
+        usernames.add(username)
         
         first_name = entry[csv_fname_column]
         last_name = entry[csv_lname_column]

@@ -132,6 +132,10 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, usern
     
     VERBOSE = verbose
     DEBUG = debug
+    
+    ctx.obj = {}
+    ctx.obj["debug"] = debug
+    ctx.obj["verbose"] = verbose
         
     config = Config(dir, conf)
 

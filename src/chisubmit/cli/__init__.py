@@ -157,8 +157,7 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, usern
 
     if token:
         config['api-key'] = token
-        if config['api-url'] is None and not no_save:
-            config['api-url'] = api_url
+        config['api-url'] = api_url
 
         if not no_save:
             config.save()

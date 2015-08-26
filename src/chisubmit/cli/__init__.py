@@ -154,10 +154,6 @@ def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, usern
     except UnauthorizedException, ue:
         print "ERROR: Incorrect username/password"
         ctx.exit(CHISUBMIT_FAIL)
-    except ConnectionError, ce:
-        print "ERROR: Could not connect to chisubmit server"
-        print "URL: %s" % api_url
-        ctx.exit(CHISUBMIT_FAIL) 
 
     if token:
         config['api-key'] = token

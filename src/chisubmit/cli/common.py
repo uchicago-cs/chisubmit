@@ -84,6 +84,8 @@ def catch_chisubmit_exceptions(f):
         except ConnectionError, ce:
             print "ERROR: Could not connect to server"
             print "URL: %s" % ce.request.url
+            if ctx.obj["debug"]:
+                print "Reason:", ce
         except ChisubmitException, ce:
             print "ERROR: %s" % ce.message
             if ctx.obj["debug"]:

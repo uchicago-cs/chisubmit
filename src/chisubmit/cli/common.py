@@ -13,6 +13,7 @@ from chisubmit.client.exceptions import UnknownObjectException,\
     UnauthorizedException, BadRequestException, ChisubmitRequestException
 from chisubmit.client.types import AttributeType
 from requests.exceptions import ConnectionError
+from click.globals import get_current_context
 
 
 def pass_course(f):
@@ -36,10 +37,11 @@ def pass_course(f):
     return update_wrapper(new_func, f)
 
 def catch_chisubmit_exceptions(f):
-    @click.pass_context
-    def new_func(ctx, *args, **kwargs):
+    
+    def new_func(*args, **kwargs):
+        ctx = get_current_context()
         try:
-            return f(ctx, *args, **kwargs)
+            return f(*args, **kwargs)
         except UnknownObjectException, uoe:
             print
             print "ERROR: There was an error processing this request"

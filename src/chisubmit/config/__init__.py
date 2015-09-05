@@ -33,78 +33,116 @@ from chisubmit.common import ChisubmitException
 import shutil
 import yaml
 import collections
+from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+from chisubmit.common.utils import read_string_file
 
-DEFAULT_CHISUBMIT_DIR = os.path.expanduser("~/.chisubmit/")
-DEFAULT_CONFIG_FILENAME = "chisubmit.conf"
+SYSTEM_CONFIG_FILENAME = "/etc/chisubmit/chisubmit.conf"
+GLOBAL_CONFIG_FILENAME = os.path.expanduser(".chisubmitconf")
 
-# Based on http://stackoverflow.com/questions/3387691/python-how-to-perfectly-override-a-dict
-class Config(collections.MutableMapping):
+CONFIG_DIRNAME = ".chisubmit"
 
-    IMPLICIT_FIELDS = ["directory"]
-    REQUIRED_FIELDS = ["api-url"]
-    OPTIONAL_FIELDS = ["default-course", "git-credentials", "server", "api-key"]
-    ALL_FIELDS = REQUIRED_FIELDS + OPTIONAL_FIELDS
+class ConfigDirectoryNotFoundException(Exception):
+    pass
 
-    def __getitem__(self, key):
-        if key in self.options:
-            return self.options[key]
-        elif key in self.OPTIONAL_FIELDS:
-            return None
-        else:
-            raise KeyError
+class Config(object):
 
-    def __setitem__(self, key, value):
-        if key in self.ALL_FIELDS:
-            self.options[key] = value
-            self.save()
-        else:
-            raise KeyError
-
-    def __delitem__(self, key):
-        del self.options[key]
-        self.save()
-
-    def __iter__(self):
-        return iter(self.options)
-
-    def __len__(self):
-        return len(self.options)
-
-    def __init__(self, config_dir=None, config_file=None):
-
-        if config_dir is None:
-            config_dir = DEFAULT_CHISUBMIT_DIR
-        else:
-            config_dir = os.path.expanduser(config_dir)
-
-        if config_file is None:
-            config_file = config_dir + DEFAULT_CONFIG_FILENAME
-        else:
-            config_file = os.path.expanduser(config_file)
-        
-        self.create_directories(config_dir, config_file)
+    @staticmethod
+    def get_config_file_values(config_file):
         with open(config_file, 'r') as f:
-            config = yaml.safe_load(f)
+            config_file_values = yaml.safe_load(f)
+    
+        if type(config_file_values) != dict:
+            raise ChisubmitException("{} is not valid YAML".format(f))
         
-        if type(config) != dict:
-            raise ChisubmitException("Configuration is not valid YAML")
+        return config_file_values
 
-        options = config.keys()
+    @staticmethod
+    def get_global_config_values():
+        config = {}
+        
+        for config_file in [SYSTEM_CONFIG_FILENAME, GLOBAL_CONFIG_FILENAME]:
+            if os.path.exists(config_file):
+                config_file_values = Config.get_config_file_values(config_file)
+                
+                config.update(config_file_values)     
+                
+        return config   
 
-        for p in self.REQUIRED_FIELDS:
-            if p not in options:
-                raise ChisubmitException("Configuration file does not have required option '%s'" % p)
-            options.remove(p)
+    @classmethod
+    def get_global_config(cls):
+        config = cls.get_global_config_values()
+        
+        # Right now, api-url is the only globally-settable value, but
+        # this could change in the future
+        api_url = config.get("api-url")
+        
+        return cls(config_dir = None, 
+                   work_dir = None, 
+                   api_url = api_url, 
+                   api_key = None, 
+                   default_course = None, 
+                   git_credentials = {})
 
-        for p in options:
-            if p not in self.OPTIONAL_FIELDS:
-                raise ChisubmitException("Configuration file has invalid option '%s'" % p)
 
-        config['directory'] = config_dir
-        self.config_file = config_file
-        self.options = config
+    @classmethod
+    def get_config(cls, config_dir = None, work_dir = None, config_overrides = {}):      
+        # If a configuration directory isn't specified, try to find it.
+        if config_dir is None:
+            dirl = os.getcwd().split(os.sep) + [CONFIG_DIRNAME]
+            
+            local_config_file = None
+            while len(dirl) > 2:
+                config_dir = os.sep.join(dirl)
+                
+                if os.path.exists(config_dir):
+                    local_config_file = os.sep.join([config_dir, "chisubmit.conf"])
+                    work_dir = os.sep.join(dirl[:-1]) 
+                    break
+                
+                dirl.pop(-2)
+            
+            if local_config_file is None:
+                raise ConfigDirectoryNotFoundException()
+        else:
+            local_config_file = os.sep.join([config_dir, "chisubmit.conf"])
+            
+        if not os.path.exists(local_config_file):
+            raise ChisubmitException(".chisubmit directory ({}) does not contain a chisubmit.conf file".format(config_dir))
+        
+        config = cls.get_global_config_values()
+        local_config_values = cls.get_config_file_values(local_config_file)
+        config.update(local_config_values)
+        config.update(config_overrides)
+                
+        # Check for configuration values
+        if not "api-url" in config:
+            raise ChisubmitException("Configuration value 'api-url' not found")
+        else:
+            api_url = config["api-url"]
+            
+        if not "api-key" in config:
+            api_key = read_string_file("{}/api_key".format(config_dir))
+        else:
+            api_key = config["api-key"]
 
-    def create_directories(self, config_dir, config_file):
+        if api_key is None:
+            raise ChisubmitException("No chisubmit credentials were found!")
+        
+        if not "course" in config:
+            course = read_string_file("{}/course".format(config_dir))
+        else:
+            course = config["course"]
+            
+        git_credentials = {}
+        for server_type in RemoteRepositoryConnectionFactory.server_types:
+            credentials = read_string_file("{}/{}.credentials".format(config_dir, server_type))
+            if credentials is not None:
+                git_credentials[server_type] = credentials
+                    
+        return cls(config_dir, work_dir, api_url, api_key, course, git_credentials)
+
+    @classmethod
+    def create_config_dir(cls, config_dir = None):
         # Create directory if it does not exist
         if not os.path.exists(config_dir):
             os.mkdir(config_dir)
@@ -117,31 +155,17 @@ class Config(collections.MutableMapping):
 
         if not os.path.exists(config_file):
             example_conf = resource_filename(Requirement.parse("chisubmit"), "chisubmit/config/chisubmit.sample.conf")
-            shutil.copyfile(example_conf, config_file)
+            shutil.copyfile(example_conf, config_file)        
+        pass
 
-    def save(self):
-        user_options = dict((k, v) for k,v in self.options.items() if k not in self.IMPLICIT_FIELDS)
-        try:
-            f = open(self.config_file, 'w')
-            yaml.safe_dump(user_options, f, default_flow_style=False)
-            f.close()
-        except IOError, ioe:
-            raise ChisubmitException("Error when saving configuration to file %s: %s" % (self.config_file, ioe.meesage), ioe)
+    def __init__(self, config_dir, work_dir, api_url, api_key, course, git_credentials):
+        self.config_dir = config_dir
+        self.work_dir = work_dir
+        self.api_url = api_url
+        self.api_key = api_key
+        self.course = course
+        self.git_credentials = git_credentials
         
-    def get_server_profile(self, name=None):
-        if not self.options.has_key("server"):
-            return None
-        
-        if not self["server"].has_key("profiles"):
-            return None
-        
-        if name is None:
-            if not self["server"].has_key("default-profile"):
-                return None
-            else:
-                name = self["server"]["default-profile"]
 
-        if not self["server"]["profiles"].has_key(name):
-            return None
-        else:
-            return self["server"]["profiles"][name]
+
+        

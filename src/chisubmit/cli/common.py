@@ -12,8 +12,25 @@ import operator
 from chisubmit.client.exceptions import UnknownObjectException,\
     UnauthorizedException, BadRequestException, ChisubmitRequestException
 from chisubmit.client.types import AttributeType
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, SSLError
+from requests.packages.urllib3.exceptions import SSLError as SSLError_urllib3
 from click.globals import get_current_context
+from chisubmit.config import Config
+from chisubmit.client import Chisubmit
+
+
+def load_config_and_client(f):
+    
+    def new_func(*args, **kwargs):
+        ctx = get_current_context()
+        
+        ctx.obj["config"] = Config.get_config(ctx.obj["config_dir"], ctx.obj["work_dir"], ctx.obj["config_overrides"])
+    
+        ctx.obj["client"] = Chisubmit(ctx.obj["config"].api_key, base_url=ctx.obj["config"].api_url)
+        
+        return f(*args, **kwargs)
+
+    return update_wrapper(new_func, f)
 
 
 def pass_course(f):
@@ -35,6 +52,7 @@ def pass_course(f):
             return ctx.invoke(f, ctx.obj["course_obj"], *args, **kwargs)
 
     return update_wrapper(new_func, f)
+
 
 def catch_chisubmit_exceptions(f):
     
@@ -84,10 +102,13 @@ def catch_chisubmit_exceptions(f):
                 print
                 cre.print_debug_info()        
         except ConnectionError, ce:
-            print "ERROR: Could not connect to server"
+            if isinstance(ce.message, (SSLError, SSLError_urllib3)):
+                print "ERROR: SSL certificate error when connecting to server"                
+            else:
+                print "ERROR: Could not connect to server"
             print "URL: %s" % ce.request.url
             if ctx.obj["debug"]:
-                print "Reason:", ce
+                print "Reason:", ce.message
         except ChisubmitException, ce:
             print "ERROR: %s" % ce.message
             if ctx.obj["debug"]:

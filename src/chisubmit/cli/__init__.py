@@ -59,51 +59,35 @@ VERBOSE = False
 DEBUG = False 
 
 @click.group(name="chisubmit")
-@click.option('--api-url', type=str, default=None)
-@click.option('--api-key', type=str, default=None)
-@click.option('--conf', type=str, default=None)
-@click.option('--dir', type=str, default=None)
-@click.option('--course', type=str, default=None)
+@click.option('--config', '-c', type=str, multiple=True)
+@click.option('--config-dir', type=str, default=None)
+@click.option('--work-dir', type=str, default=None)
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--debug', is_flag=True)
 @click.version_option(version=RELEASE)
 @catch_chisubmit_exceptions
 @click.pass_context
-def chisubmit_cmd(ctx, api_url, api_key, conf, dir, course, verbose, debug):
+def chisubmit_cmd(ctx, config, config_dir, work_dir, verbose, debug):
     global VERBOSE, DEBUG
     
     VERBOSE = verbose
     DEBUG = debug
     
-    ctx.obj = {}
-
-    config = Config(dir, conf)
     log.init_logging(verbose, debug)
 
-    if api_key is None:
-        if config['api-key'] is None:
-            raise click.BadParameter("You do not have any chisubmit credentials. Run chisubmit-get-credentials "
-                                     "to obtain your credentials or, if you have an api key, use the --api-key "
-                                     "option.")
+    config_overrides = {}
+    for c in config:
+        if c.count("=") != 1 or c[0] == "=" or c[-1] == "=":
+            raise click.BadParameter("Invalid configuration parameter: {}".format(c))
         else:
-            api_key = config['api-key']
+            k, v = c.split("=")
+            config_overrides[k] = v
 
-    if api_url is None:
-        api_url = config['api-url']
+    ctx.obj = {}
 
-    client = Chisubmit(api_key, base_url=api_url)
-
-    if course:
-        course_specified = True
-        course_id = course
-    else:
-        course_specified = False
-        course_id = config['default-course']
-
-    ctx.obj["client"] = client
-    ctx.obj["course_specified"] = course_specified
-    ctx.obj["course_id"] = course_id
-    ctx.obj["config"] = config
+    ctx.obj["config_overrides"] = config_overrides
+    ctx.obj["config_dir"] = config_dir
+    ctx.obj["work_dir"] = work_dir
     ctx.obj["verbose"] = verbose
     ctx.obj["debug"] = debug
 

@@ -3,14 +3,15 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.course import Course
 from chisubmit.cli.common import pass_course, get_course_or_exit,\
     api_obj_set_attribute, get_instructor_or_exit, get_grader_or_exit,\
-    get_student_or_exit, catch_chisubmit_exceptions
+    get_student_or_exit, catch_chisubmit_exceptions, load_config_and_client
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 @click.command(name="list")
 @catch_chisubmit_exceptions
+@load_config_and_client
 @click.pass_context
-def shared_course_list(ctx):
+def shared_course_list(ctx):  
     courses = ctx.obj["client"].get_courses()
     
     for course in courses:

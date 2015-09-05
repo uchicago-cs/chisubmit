@@ -38,6 +38,7 @@ from tzlocal import get_localzone
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 import math
 from datetime import timedelta
+import os
 
 localzone = get_localzone()
 
@@ -90,13 +91,16 @@ def is_submission_ready_for_grading(assignment_deadline, submission_date, extens
     else:
         return False
 
-# Based on http://jetfar.com/simple-api-key-generation-in-python/
-def gen_api_key():
-    s = str(random.getrandbits(256))
-    h = hashlib.sha256(s)
-    altchars = random.choice(string.ascii_letters) + random.choice(string.ascii_letters)
-    b = base64.b64encode(h.digest(), altchars).rstrip("==")
-    return unicode(b)
+def read_string_file(filename):
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            value = f.read().strip()
+            if len(value) == 0:
+                return None
+            else:
+                return value
+    else:
+        return None
     
     
 def create_connection(course, config, staging = False):

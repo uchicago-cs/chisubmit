@@ -270,8 +270,8 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         result = graders[0].run("grader create-local-grading-repos", [graders[0].user_id, "pa1"])
         self.assertEquals(result.exit_code, 0)        
                 
-        team1_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", teams[0])
-        team2_grading_repo_path = ".chisubmit/repositories/%s/%s/%s" % (course_id, "pa1", teams[1])
+        team1_grading_repo_path = "chisubmit-test/repositories/%s/%s/%s" % (course_id, "pa1", teams[0])
+        team2_grading_repo_path = "chisubmit-test/repositories/%s/%s/%s" % (course_id, "pa1", teams[1])
             
         team_git_repos[0], team_git_paths[0] = graders[0].get_local_git_repository(team1_grading_repo_path)
         team_git_repos[1], team_git_paths[1] = graders[0].get_local_git_repository(team2_grading_repo_path)

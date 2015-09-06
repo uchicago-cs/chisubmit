@@ -7,7 +7,7 @@ from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
     get_assignment_or_exit, get_teams_registrations, get_team_or_exit,\
     get_assignment_registration_or_exit, get_grader_or_exit,\
-    catch_chisubmit_exceptions
+    catch_chisubmit_exceptions, require_local_config
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
 
@@ -28,6 +28,7 @@ def instructor_grading(ctx):
 @click.argument('assignment_id', type=str)
 @click.argument('rubric_component_description', type=str)
 @click.argument('points', type=float)
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_set_grade(ctx, course, team_id, assignment_id, rubric_component_description, points):   
@@ -64,6 +65,7 @@ def instructor_grading_set_grade(ctx, course, team_id, assignment_id, rubric_com
 @click.argument('csv_file', type=click.File('rb'))
 @click.argument('csv_team_column', type=str)
 @click.argument('csv_grade_column', type=str)
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_load_grades(ctx, course, assignment_id, grade_component_id, csv_file, csv_team_column, csv_grade_column):   
@@ -126,6 +128,7 @@ def instructor_grading_load_grades(ctx, course, assignment_id, grade_component_i
 @click.argument('grader_id', type=str)
 @click.argument('student_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
@@ -148,6 +151,7 @@ def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
 
 @click.command(name="list-grades")
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_list_grades(ctx, course):
@@ -213,6 +217,7 @@ def instructor_grading_list_grades(ctx, course):
 @click.option('--only-graders', type=str)
 @click.option('--reset', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, only_graders, reset):
@@ -356,6 +361,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
 @click.argument('assignment_id', type=str)
 @click.option('--grader-id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_list_grader_assignments(ctx, course, assignment_id, grader_id):
@@ -389,6 +395,7 @@ def instructor_grading_list_grader_assignments(ctx, course, assignment_id, grade
 @click.command(name="list-submissions")
 @click.argument('assignment_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_list_submissions(ctx, course, assignment_id):
@@ -425,6 +432,7 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
 @click.argument('assignment_id', type=str)
 @click.option('--by-grader', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader):
@@ -486,6 +494,7 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
 @click.argument('assignment_id', type=str)
 @click.option('--all-teams', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_teams):
@@ -506,6 +515,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
 @click.option('--all-teams', is_flag=True)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_teams, only):
@@ -546,6 +556,7 @@ def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_t
 @click.option('--all-teams', is_flag=True)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_staging, to_students, all_teams, only):
@@ -568,6 +579,7 @@ def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_stag
 @click.option('--from-students', is_flag=True)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_staging, from_students, only):
@@ -588,6 +600,7 @@ def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_st
 @click.option('--commit', is_flag=True)
 @click.option('--all-teams', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams):
@@ -629,6 +642,7 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
 @click.option('--dry-run', is_flag=True)
 @click.option('--grader-id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grader_id):

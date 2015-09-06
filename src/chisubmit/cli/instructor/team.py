@@ -1,6 +1,6 @@
 import click
 from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions,\
-    get_assignment_or_exit, get_teams_registrations
+    get_assignment_or_exit, get_teams_registrations, require_local_config
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL,\
     ChisubmitException
 
@@ -18,35 +18,13 @@ def instructor_team(ctx):
     pass
 
 
-@click.command(name="search")
-@click.option('--verbose', is_flag=True)
-@click.argument('team_id', type=str)
-@pass_course
-@click.pass_context
-def instructor_team_search(ctx, course, verbose, team_id):
-    teams = course.search_team(team_id)
-
-    pp = pprint.PrettyPrinter(indent=4, depth=6)
-
-    for t in teams:
-        tdict = dict(vars(t))
-        if verbose:
-            tdict["assignments"] = dict(tdict["assignments"])
-            for p in tdict["assignments"]:
-                tdict["assignments"][p] = vars(tdict["assignments"][p])
-
-            tdict["students"] = [vars(s) for s in tdict["students"]]
-
-        pp.pprint(tdict)
-
-    return CHISUBMIT_SUCCESS
-
 @click.command(name="pull-repos")
 @click.argument('assignment_id', type=str)
 @click.argument('directory', type=str)
 @click.option('--only-ready-for-grading', is_flag=True)
 @click.option('--reset', is_flag=True)
 @click.option('--only', type=str)
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready_for_grading, reset, only):
@@ -116,6 +94,7 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready
 @click.argument('team_id', type=str)
 @click.argument('student_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_team_student_add(ctx, course, team_id, student_id):
@@ -138,6 +117,7 @@ def instructor_team_student_add(ctx, course, team_id, student_id):
 @click.argument('team_id', type=str)
 @click.argument('assignment_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
@@ -162,6 +142,7 @@ def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
 @click.command(name="set-active")
 @click.argument('team_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_team_set_active(ctx, course, team_id):
@@ -177,6 +158,7 @@ def instructor_team_set_active(ctx, course, team_id):
 @click.command(name="set-inactive")
 @click.argument('team_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_team_set_inactive(ctx, course, team_id):
@@ -194,6 +176,7 @@ def instructor_team_set_inactive(ctx, course, team_id):
 @click.argument('name', type=str)
 @click.argument('value', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def instructor_team_set_attribute(ctx, course, team_id, name, value):
@@ -210,7 +193,6 @@ def instructor_team_set_attribute(ctx, course, team_id, name, value):
 instructor_team.add_command(shared_team_list)
 instructor_team.add_command(shared_team_show)
 
-instructor_team.add_command(instructor_team_search)
 instructor_team.add_command(instructor_team_pull_repos)
 instructor_team.add_command(instructor_team_student_add)
 instructor_team.add_command(instructor_team_assignment_add)

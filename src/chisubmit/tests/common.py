@@ -75,8 +75,10 @@ class ChisubmitCLITestClient(object):
         
         self.user_id = user_id
         self.home_dir = "test-fs/home/%s" % self.user_id
-        self.conf_dir = "%s/.chisubmit" % (self.home_dir)
-        self.conf_file = self.conf_dir + "/chisubmit.conf"
+        self.work_dir = "%s/chisubmit-test" % (self.home_dir)
+        self.conf_dir = "%s/.chisubmit" % (self.work_dir)
+        self.conf_file = "%s/chisubmit.conf" % (self.conf_dir)
+
         self.runner = runner
         if cli_verbose:
             self.verbose = True
@@ -87,6 +89,7 @@ class ChisubmitCLITestClient(object):
         git_credentials.update({"Testing" : "testing-credentials"})
 
         os.makedirs(self.home_dir)
+        os.mkdir(self.work_dir)
         os.mkdir(self.conf_dir)
         with open(self.conf_file, 'w') as f:
             conf = {"api-url": api_url,
@@ -97,12 +100,12 @@ class ChisubmitCLITestClient(object):
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
     def run(self, subcommands, params = [], course = None, cmd=chisubmit_cmd, catch_exceptions=False, cmd_input = None):
-        chisubmit_args = ['--debug', '--dir', self.conf_dir, '--conf', self.conf_file]
+        chisubmit_args = ['--debug', '--work-dir', self.work_dir, '--config-dir', self.conf_dir]
         
         if course is not None:
-            chisubmit_args += ['--course', course]
+            chisubmit_args += ['-c', "course={}".format(course)]
         elif self.course is not None:
-            chisubmit_args += ['--course', self.course]
+            chisubmit_args += ['-c', "course={}".format(self.course)]
         
         if subcommands is None:
             cmd_args = []

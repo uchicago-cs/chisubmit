@@ -15,7 +15,7 @@ class GradingGitRepo(object):
 
     @classmethod
     def get_grading_repo(cls, config, course, team, registration):
-        base_dir = config["directory"]
+        base_dir = config.work_dir
                 
         repo_path = cls.get_grading_repo_path(base_dir, course, team, registration)
         if not os.path.exists(repo_path):
@@ -30,7 +30,7 @@ class GradingGitRepo(object):
 
     @classmethod
     def create_grading_repo(cls, config, course, team, registration):
-        base_dir = config["directory"]
+        base_dir = config.work_dir
         
         conn_server = create_connection(course, config)
         if conn_server is None:

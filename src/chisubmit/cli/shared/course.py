@@ -3,14 +3,16 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.course import Course
 from chisubmit.cli.common import pass_course, get_course_or_exit,\
     api_obj_set_attribute, get_instructor_or_exit, get_grader_or_exit,\
-    get_student_or_exit, catch_chisubmit_exceptions
+    get_student_or_exit, catch_chisubmit_exceptions, require_config,\
+    require_local_config
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 
 
 @click.command(name="list")
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
-def shared_course_list(ctx):
+def shared_course_list(ctx):  
     courses = ctx.obj["client"].get_courses()
     
     for course in courses:
@@ -18,14 +20,6 @@ def shared_course_list(ctx):
 
     return CHISUBMIT_SUCCESS
 
-@click.command(name="set-default")
-@click.argument('course_id', type=str)
-@click.pass_context
-def shared_course_set_default(ctx, course_id):
-    course = get_course_or_exit(ctx, course_id) 
-    
-    ctx.obj['config']['default-course'] = course.course_id
-    ctx.obj['config'].save()
 
 @click.command(name="get-git-credentials")
 @click.option('--username', prompt='Enter your git username')
@@ -76,6 +70,7 @@ def shared_course_get_git_credentials(ctx, course, username, password, no_save, 
 @click.argument('attr_name', type=str)
 @click.argument('attr_value', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def shared_course_set_user_attribute(ctx, course, user_type, username, attr_name, attr_value):

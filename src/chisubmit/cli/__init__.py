@@ -113,11 +113,10 @@ chisubmit_cmd.add_command(grader)
 @click.option('--password', type=str)
 @click.option('--git-username', type=str)
 @click.option('--git-password', type=str)
-@click.option('--force', is_flag=True)
-@click.option('--reset', is_flag=True)
+@click.option('--force', '-f', is_flag=True)
 @catch_chisubmit_exceptions
 @click.pass_context
-def chisubmit_init(ctx, course_id, username, password, git_username, git_password, force, reset):
+def chisubmit_init(ctx, course_id, username, password, git_username, git_password, force):
                 
     if ctx.obj["config_dir"] is None and ctx.obj["work_dir"] is None:
         try:
@@ -142,15 +141,20 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
             pass
     else:
         if not os.path.exists(ctx.obj["work_dir"]):
-            os.makedirs(ctx.obj["work_dir"])
-            
-        if not os.path.exists(ctx.obj["config_dir"]):
-            os.makedirs(ctx.obj["config_dir"])
+            print "The specified work directory does not exist: {}".format(ctx.obj["work_dir"])
+            ctx.exit(CHISUBMIT_FAIL)      
+
+        if os.path.exists(ctx.obj["config_dir"]) and not force:
+            print "The specified configuration directory already exists: {}".format(ctx.obj["config_dir"])
+            print "If you're sure you want to create a configuration directory there,"
+            print "use the --force option."
+            ctx.exit(CHISUBMIT_FAIL)      
+
     
     global_config = Config.get_global_config(config_overrides = ctx.obj["config_overrides"])
     
-    api_url = global_config.api_url
-    api_key = global_config.api_key
+    api_url = global_config.get_api_url()
+    api_key = global_config.get_api_key()
     
     if api_url is None:
         print "The 'api-url' configuration option is not set. I need this to connect to"
@@ -163,7 +167,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
         print "Your instructor can provide you with the correct URL."
         ctx.exit(CHISUBMIT_FAIL)
         
-    if global_config.api_key is None:
+    if api_key is None:
         guess_user = getpass.getuser()
         
         user_prompt = "Enter your chisubmit username [{}]: ".format(guess_user)
@@ -181,7 +185,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
         
         try:
             api_key, _ = client.get_user_token()
-        except UnauthorizedException, ue:
+        except UnauthorizedException:
             print "ERROR: Incorrect username/password"
             ctx.exit(CHISUBMIT_FAIL)
     
@@ -223,108 +227,71 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
             ctx.exit(CHISUBMIT_FAIL)
         else:
             course = courses[int(option)-1]
-        
-    print course._rawData
-
+    
     connstr = course.git_server_connstr
     
     if connstr is None or connstr == "":
         print "Error: Course '{}' doesn't seem to be configured to use a Git server." % course.id
         ctx.exit(CHISUBMIT_FAIL)
         
-    # Try the chisubmit username/password
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = False)
     server_type = conn.get_server_type_name()
 
-    git_credentials, _ = conn.get_credentials(username, password)
-    
+    # If there are global credentials defined, see if they work
+    git_credentials = global_config.get_git_credentials(server_type)
     if git_credentials is not None:
-        user_prompt = "Enter your {} username: ".format(server_type)
-        password_prompt = "Enter your {} password: ".format(server_type)
-        
-        if git_username is None:
-            git_username = raw_input(user_prompt)
-            
-        if git_password is None:
-            git_password = getpass.getpass(password_prompt)
-        
-        git_credentials, _ = conn.get_credentials(git_username, git_password)
+        try:
+            conn.connect(git_credentials)
+        except ChisubmitException:
+            git_credentials = None
 
+    # If the existing credentials didn't work, get new ones
+    if git_credentials is None:
+        # Try the chisubmit username/password
+        git_credentials, _ = conn.get_credentials(username, password)
+        
         if git_credentials is None:
-            print
-            print "Unable to obtain {} credentials. Incorrect username/password.".format(server_type)
-
-    print server_type, git_credentials
+            user_prompt = "Enter your {} username: ".format(server_type)
+            password_prompt = "Enter your {} password: ".format(server_type)
+            
+            if git_username is None:
+                git_username = raw_input(user_prompt)
+                
+            if git_password is None:
+                git_password = getpass.getpass(password_prompt)
+            
+            git_credentials, _ = conn.get_credentials(git_username, git_password)
     
+            if git_credentials is None:
+                print
+                print "Unable to obtain {} credentials. Incorrect username/password.".format(server_type)
+
+    config = Config.create_config_dir(ctx.obj["config_dir"], ctx.obj["work_dir"])
+    
+    # Always save the API URL locally
+    config.set_api_url(api_url, where = Config.LOCAL)
+    
+    # Save the API key only if one was not found globally
+    if config.get_api_key() is None:
+        config.set_api_key(api_key, where = Config.LOCAL)
         
+    # Always save the course locally
+    config.set_course(course.course_id, where = Config.LOCAL)
+    
+    # Save the git credentials only if they're not the same as the global ones
+    if config.get_git_credentials(server_type) != git_credentials:
+        config.set_git_credentials(server_type, git_credentials, where = Config.LOCAL)
+    
+    print
+    print "The following directory has been set up to use chisubmit"
+    print "for course '{}' ({})".format(course.course_id, course.name)
+    print
+    print "   " + config.work_dir
+    print
+    print "Remember to run chisubmit only inside this directory"
+    print "(or any of its subdirectories)"
+    print
+    
 chisubmit_cmd.add_command(chisubmit_init)        
-        
-@click.command(name="chisubmit-get-credentials")
-@click.option('--conf', type=str, default=None)
-@click.option('--dir', type=str, default=None)
-@click.option('--verbose', is_flag=True)
-@click.option('--debug', is_flag=True)
-@click.option('--api-url', type=str, default=None)
-@click.option('--username', prompt='Enter your chisubmit username')
-@click.option('--password', prompt='Enter your chisubmit password', hide_input=True)
-@click.option('--no-save', is_flag=True)
-@click.option('--reset', is_flag=True)
-@catch_chisubmit_exceptions
-@click.pass_context
-def chisubmit_get_credentials_cmd(ctx, conf, dir, verbose, debug, api_url, username, password, no_save, reset):
-    global VERBOSE, DEBUG
-    
-    VERBOSE = verbose
-    DEBUG = debug
-    
-    ctx.obj = {}
-    ctx.obj["debug"] = debug
-    ctx.obj["verbose"] = verbose
-        
-    config = Config(dir, conf)
 
-    if api_url is None:
-        api_url = config['api-url']
-
-    if api_url is None:
-        print "No server URL specified. Please add it to your chisubmit.conf file"
-        print "or use the --api-url option"
-        ctx.exit(CHISUBMIT_FAIL)
-
-    client = Chisubmit(username, password=password, base_url=api_url)
-
-    try:
-        token, created = client.get_user_token(reset = reset)
-    except UnauthorizedException, ue:
-        print "ERROR: Incorrect username/password"
-        ctx.exit(CHISUBMIT_FAIL)
-
-    if token:
-        config['api-key'] = token
-        config['api-url'] = api_url
-
-        if not no_save:
-            config.save()
-
-        if created:
-            ttype = "NEW"
-        else:
-            ttype = "EXISTING"
-        
-        click.echo("")
-        click.echo("Your %s chisubmit access token is: %s" % (ttype, token))
-        if not no_save:
-            click.echo("")
-            click.echo("The token has been stored in your chisubmit configuration file.")
-            click.echo("You should now be able to use the chisubmit commands.")
-        if reset and created:
-            click.echo("")
-            click.echo("Your previous chisubmit access token has been cancelled.")
-            click.echo("Make sure you run chisubmit-get-credentials on any other")
-            click.echo("machines where you are using chisubmit.")
-        click.echo("")
-    else:
-        click.echo("Unable to create token. Incorrect username/password.")
-
-    return CHISUBMIT_SUCCESS
 

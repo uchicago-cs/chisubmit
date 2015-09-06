@@ -90,18 +90,6 @@ def is_submission_ready_for_grading(assignment_deadline, submission_date, extens
         return True
     else:
         return False
-
-def read_string_file(filename):
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
-            value = f.read().strip()
-            if len(value) == 0:
-                return None
-            else:
-                return value
-    else:
-        return None
-    
     
 def create_connection(course, config, staging = False):
     if not staging:
@@ -117,9 +105,7 @@ def create_connection(course, config, staging = False):
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()
     
-    git_credentials = None
-    if config['git-credentials'] is not None:
-        git_credentials = config['git-credentials'].get(server_type, None)
+    git_credentials = config.get_git_credentials(server_type)
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type

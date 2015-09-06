@@ -15,19 +15,48 @@ from chisubmit.client.types import AttributeType
 from requests.exceptions import ConnectionError, SSLError
 from requests.packages.urllib3.exceptions import SSLError as SSLError_urllib3
 from click.globals import get_current_context
-from chisubmit.config import Config
+from chisubmit.config import Config, ConfigDirectoryNotFoundException
 from chisubmit.client import Chisubmit
 
 
-def load_config_and_client(f):
+def __load_config_and_client(require_local):
+    ctx = get_current_context()
+    
+    try:
+        ctx.obj["config"] = Config.get_config(ctx.obj["config_dir"], ctx.obj["work_dir"], ctx.obj["config_overrides"])
+    except ConfigDirectoryNotFoundException:
+        if not require_local:
+            ctx.obj["config"] = Config.get_global_config(ctx.obj["config_overrides"])
+        else:
+            raise ChisubmitException("This command must be run in a directory configured to use chisubmit.")
+
+    api_url = ctx.obj["config"].get_api_url()
+    api_key = ctx.obj["config"].get_api_key()
+    
+    if api_url is None:
+        raise ChisubmitException("Configuration value 'api-url' not found")
+
+    if api_key is None:
+        raise ChisubmitException("No chisubmit credentials were found!")
+
+    ctx.obj["client"] = Chisubmit(api_key, base_url=api_url)    
+    
+
+def require_config(f):
+
+    def new_func(*args, **kwargs):
+        __load_config_and_client(require_local = False)
+                
+        return f(*args, **kwargs)
+
+    return update_wrapper(new_func, f)
+
+
+def require_local_config(f):
     
     def new_func(*args, **kwargs):
-        ctx = get_current_context()
-        
-        ctx.obj["config"] = Config.get_config(ctx.obj["config_dir"], ctx.obj["work_dir"], ctx.obj["config_overrides"])
-    
-        ctx.obj["client"] = Chisubmit(ctx.obj["config"].api_key, base_url=ctx.obj["config"].api_url)
-        
+        __load_config_and_client(require_local = True)
+                
         return f(*args, **kwargs)
 
     return update_wrapper(new_func, f)
@@ -36,11 +65,11 @@ def load_config_and_client(f):
 def pass_course(f):
     @click.pass_context
     def new_func(ctx, *args, **kwargs):
-        course_id = ctx.obj["course_id"]
-        course_specified = ctx.obj["course_specified"]
+        course_id = ctx.obj["config"].get_course()
 
-        if course_id is None and not course_specified:
-            raise click.UsageError("No course specified with --course and there is no default course")
+        if course_id is None:
+            raise ChisubmitException("No course has been specified. Make sure you're in a directory configured "
+                                     "to use chisubmit or, alternatively, use the '-c course=COURSE_ID' option.")
         else:
             try:
                 course_obj = ctx.obj["client"].get_course(course_id = course_id)

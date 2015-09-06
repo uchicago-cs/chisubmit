@@ -2,7 +2,7 @@ import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import create_connection
 from chisubmit.cli.common import pass_course, get_team_or_exit,\
-    catch_chisubmit_exceptions
+    catch_chisubmit_exceptions, require_local_config
 from chisubmit.cli.shared.team import shared_team_list, shared_team_show
 import tempfile
 from chisubmit.repos.local import LocalGitRepo
@@ -17,6 +17,7 @@ def student_team(ctx):
 @click.command(name="repo-check")
 @click.argument('team_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def student_repo_check(ctx, course, team_id):
@@ -43,6 +44,7 @@ def student_repo_check(ctx, course, team_id):
 @click.command(name="repo-pristine-clone")
 @click.argument('team_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def student_repo_pristine_clone(ctx, course, team_id):

@@ -28,26 +28,39 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 import os.path
-from pkg_resources import Requirement, resource_filename
-from chisubmit.common import ChisubmitException
 import shutil
 import yaml
 import collections
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
-from chisubmit.common.utils import read_string_file
+from chisubmit.common import ChisubmitException
 
-SYSTEM_CONFIG_FILENAME = "/etc/chisubmit/chisubmit.conf"
-GLOBAL_CONFIG_FILENAME = os.path.expanduser("~/.chisubmitconf")
-
-CONFIG_DIRNAME = ".chisubmit"
 
 class ConfigDirectoryNotFoundException(Exception):
     pass
 
 class Config(object):
 
+    SYSTEM_CONFIG_FILENAME = "/etc/chisubmit/chisubmit.conf"
+    GLOBAL_CONFIG_FILENAME = os.path.expanduser("~/.chisubmitconf")
+    
+    CONFIG_DIRNAME = ".chisubmit"
+    
+    SYSTEM = 0
+    GLOBAL = 1
+    LOCAL = 2    
+    
+    OPTION_API_URL = "api-url"
+    OPTION_API_KEY = "api-key"
+    OPTION_COURSE = "course"
+    OPTION_GIT_CREDENTIALS = "git-credentials"
+    
+    VALID_OPTIONS = [OPTION_API_URL, OPTION_API_KEY, OPTION_COURSE, OPTION_GIT_CREDENTIALS]
+
     @staticmethod
     def get_config_file_values(config_file):
+        if not os.path.exists(config_file):
+            return {}
+        
         with open(config_file, 'r') as f:
             config_file_values = yaml.safe_load(f)
     
@@ -55,12 +68,27 @@ class Config(object):
             raise ChisubmitException("{} is not valid YAML".format(f))
         
         return config_file_values
+    
+    @staticmethod
+    def save_config_file_values(config_file, config_values):
+        try:
+            f = open(config_file, 'w')
+            yaml.safe_dump(config_values, f, default_flow_style=False)
+            f.close()
+        except IOError, ioe:
+            raise ChisubmitException("Error when saving configuration to file %s: %s" % (config_file, ioe.meesage), ioe)
+
+    @staticmethod
+    def set_config_value_in_file(config_file, option, value):
+        config_file_values = Config.get_config_file_values(config_file)
+        config_file_values[option] = value
+        Config.save_config_file_values(config_file, config_file_values)
 
     @staticmethod
     def get_global_config_values():
         config = {}
         
-        for config_file in [SYSTEM_CONFIG_FILENAME, GLOBAL_CONFIG_FILENAME]:
+        for config_file in [Config.SYSTEM_CONFIG_FILENAME, Config.GLOBAL_CONFIG_FILENAME]:
             if os.path.exists(config_file):
                 config_file_values = Config.get_config_file_values(config_file)
                 
@@ -72,17 +100,10 @@ class Config(object):
     def get_global_config(cls, config_overrides = {}):
         config = cls.get_global_config_values()
         config.update(config_overrides)
-        
-        # Right now, api-url is the only globally-settable value, but
-        # this could change in the future
-        api_url = config.get("api-url")
-        
+
         return cls(config_dir = None, 
                    work_dir = None, 
-                   api_url = api_url, 
-                   api_key = None, 
-                   course = None, 
-                   git_credentials = {})
+                   config_values = config)
 
 
     @classmethod
@@ -91,7 +112,7 @@ class Config(object):
         
         # If a configuration directory isn't specified, try to find it.
         if config_dir is None and work_dir is None:
-            dirl = os.getcwd().split(os.sep) + [CONFIG_DIRNAME]
+            dirl = os.getcwd().split(os.sep) + [Config.CONFIG_DIRNAME]
             
             local_config_file = None
             while len(dirl) > 2:
@@ -108,67 +129,103 @@ class Config(object):
                 raise ConfigDirectoryNotFoundException()
         else:
             local_config_file = os.sep.join([config_dir, "chisubmit.conf"])
-            
-        if not os.path.exists(local_config_file):
-            raise ChisubmitException(".chisubmit directory ({}) does not contain a chisubmit.conf file".format(config_dir))
-        
+                
         config = cls.get_global_config_values()
         local_config_values = cls.get_config_file_values(local_config_file)
         config.update(local_config_values)
         config.update(config_overrides)
                 
         # Check for configuration values
-        if not "api-url" in config:
+        if not Config.OPTION_API_URL in config:
             raise ChisubmitException("Configuration value 'api-url' not found")
-        else:
-            api_url = config["api-url"]
             
-        if not "api-key" in config:
-            api_key = read_string_file("{}/api_key".format(config_dir))
-        else:
-            api_key = config["api-key"]
-
-        if api_key is None:
+        if not Config.OPTION_API_KEY in config:
             raise ChisubmitException("No chisubmit credentials were found!")
         
-        if not "course" in config:
-            course = read_string_file("{}/course".format(config_dir))
-        else:
-            course = config["course"]
-            
-        git_credentials = {}
-        for server_type in RemoteRepositoryConnectionFactory.server_types:
-            credentials = read_string_file("{}/{}.credentials".format(config_dir, server_type))
-            if credentials is not None:
-                git_credentials[server_type] = credentials
-                    
-        return cls(config_dir, work_dir, api_url, api_key, course, git_credentials)
+        return cls(config_dir, work_dir, config)
 
     @classmethod
-    def create_config_dir(cls, config_dir = None):
+    def create_config_dir(cls, config_dir = None, work_dir = None): 
+        if work_dir is None:
+            work_dir = os.getcwd()
+            
+        if config_dir is None:
+            config_dir = work_dir + "/.chisubmit"
+        
         # Create directory if it does not exist
         if not os.path.exists(config_dir):
-            os.mkdir(config_dir)
+            os.makedirs(config_dir)
+            
+        config_values = cls.get_global_config_values()            
+        
+        return cls(config_dir, work_dir, config_values)
 
-        if not os.path.exists(config_dir + "/courses/"):
-            os.mkdir(config_dir + "/courses/")
-
-        if not os.path.exists(config_dir + "/repositories/"):
-            os.mkdir(config_dir + "/repositories/")
-
-        if not os.path.exists(config_file):
-            example_conf = resource_filename(Requirement.parse("chisubmit"), "chisubmit/config/chisubmit.sample.conf")
-            shutil.copyfile(example_conf, config_file)        
-        pass
-
-    def __init__(self, config_dir, work_dir, api_url, api_key, course, git_credentials):
+    def __init__(self, config_dir, work_dir, config_values):
         self.config_dir = config_dir
         self.work_dir = work_dir
-        self.api_url = api_url
-        self.api_key = api_key
-        self.course = course
-        self.git_credentials = git_credentials
         
+        self.config_values = {opt:config_values.get(opt) for opt in Config.VALID_OPTIONS}
+        
+    def __get_config_file(self, where):
+        if where == Config.SYSTEM:
+            return Config.SYSTEM_CONFIG_FILENAME
+        elif where == Config.GLOBAL:
+            return Config.GLOBAL_CONFIG_FILENAME
+        elif where == Config.LOCAL:
+            return "{}/chisubmit.conf".format(self.config_dir)
 
 
+    def get_api_url(self):
+        return self.config_values[Config.OPTION_API_URL]
+    
+    def set_api_url(self, api_url, where = None):
+        if where is None: where = Config.LOCAL
+                
+        config_file = self.__get_config_file(where)
+        Config.set_config_value_in_file(config_file, Config.OPTION_API_URL, api_url)
         
+        
+    def get_api_key(self):
+        return self.config_values[Config.OPTION_API_KEY]
+    
+    def set_api_key(self, api_key, where = None):
+        if where is None: where = Config.LOCAL
+                
+        config_file = self.__get_config_file(where)
+        Config.set_config_value_in_file(config_file, Config.OPTION_API_KEY, api_key)
+        
+        
+    def get_course(self):
+        return self.config_values[Config.OPTION_COURSE]
+    
+    def set_course(self, course_id, where = None):
+        if where is None: where = Config.LOCAL
+                
+        config_file = self.__get_config_file(where)
+        Config.set_config_value_in_file(config_file, Config.OPTION_COURSE, course_id)
+
+
+    def get_git_credentials(self, server_type):
+        if server_type not in RemoteRepositoryConnectionFactory.server_types:
+            raise ValueError("Unknown git server type: {}".format(server_type))
+
+        if self.config_values.get(Config.OPTION_GIT_CREDENTIALS) is None:
+            return None
+        else:
+            return self.config_values[Config.OPTION_GIT_CREDENTIALS].get(server_type)
+    
+    def set_git_credentials(self, server_type, credentials, where = None):
+        if where is None: where = Config.LOCAL
+        
+        if server_type not in RemoteRepositoryConnectionFactory.server_types:
+            raise ValueError("Unknown git server type: {}".format(server_type))
+                
+        config_file = self.__get_config_file(where)
+        
+        config_file_values = Config.get_config_file_values(config_file)
+        if not Config.OPTION_GIT_CREDENTIALS in config_file_values:
+            config_file_values[Config.OPTION_GIT_CREDENTIALS] = {}
+        
+        config_file_values[Config.OPTION_GIT_CREDENTIALS][server_type] = credentials
+        
+        Config.save_config_file_values(config_file, config_file_values)

@@ -1,6 +1,6 @@
 import click
 from chisubmit.cli.common import pass_course, get_team_or_exit,\
-    get_assignment_or_exit, catch_chisubmit_exceptions
+    get_assignment_or_exit, catch_chisubmit_exceptions, require_local_config
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS,\
     ChisubmitException
 import operator
@@ -11,6 +11,7 @@ from chisubmit.common.utils import convert_datetime_to_local
 @click.option('--assignment', type=str)
 @click.option('--include-inactive', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def shared_team_list(ctx, course, ids, assignment, include_inactive):
@@ -55,6 +56,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
 @click.command(name="show")
 @click.argument('team_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def shared_team_show(ctx, course, team_id):

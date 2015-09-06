@@ -5,7 +5,7 @@ from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
     get_grader_or_exit, get_assignment_or_exit, get_teams_registrations,\
-    catch_chisubmit_exceptions
+    catch_chisubmit_exceptions, require_local_config
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.rubric import RubricFile, ChisubmitRubricException
 from chisubmit.cli.common import pass_course
@@ -21,6 +21,7 @@ def grader(ctx):
 @click.argument('grader_id', type=str)
 @click.argument('assignment_id', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
@@ -55,6 +56,7 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
 @click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
@@ -89,6 +91,7 @@ def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
 @click.argument('grader_id', type=str)
 @click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
+@require_local_config
 @pass_course
 @click.pass_context
 def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
@@ -112,6 +115,7 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
 @click.argument('assignment_id', type=str)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):

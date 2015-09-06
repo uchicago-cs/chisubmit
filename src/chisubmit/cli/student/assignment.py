@@ -7,7 +7,7 @@ from chisubmit.common.utils import convert_datetime_to_local,\
 from dateutil.parser import parse
 from chisubmit.cli.common import pass_course, get_assignment_or_exit,\
     get_team_or_exit, get_assignment_registration_or_exit,\
-    catch_chisubmit_exceptions
+    catch_chisubmit_exceptions, require_local_config
 from chisubmit.cli.shared.assignment import shared_assignment_list
 from datetime import timedelta
 from chisubmit.client.exceptions import BadRequestException
@@ -23,6 +23,7 @@ def student_assignment(ctx):
 @click.argument('assignment_id', type=str)
 @click.option('--partner', type=str, multiple=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def student_assignment_register(ctx, course, assignment_id, partner):
@@ -38,6 +39,7 @@ def student_assignment_register(ctx, course, assignment_id, partner):
 @click.argument('assignment_id', type=str)
 @click.option('--utc', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context
 def student_assignment_show_deadline(ctx, course, assignment_id, utc):
@@ -103,6 +105,7 @@ def print_commit(commit):
 @click.option('--force', is_flag=True)
 @click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context  
 def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, extensions, force, yes):
@@ -272,6 +275,7 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
 @click.argument('assignment_id', type=str)
 @click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
+@require_local_config
 @pass_course
 @click.pass_context  
 def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):

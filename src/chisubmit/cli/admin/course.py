@@ -37,7 +37,8 @@ from chisubmit.cli.shared.course import shared_course_list,\
 import operator
 from chisubmit.client.exceptions import UnknownObjectException
 from chisubmit.cli.common import get_course_or_exit, get_user_or_exit,\
-    api_obj_set_attribute, get_team_or_exit, catch_chisubmit_exceptions
+    api_obj_set_attribute, get_team_or_exit, catch_chisubmit_exceptions,\
+    require_config
 import csv
 
 
@@ -51,6 +52,7 @@ def admin_course(ctx):
 @click.argument('course_id', type=str)
 @click.argument('name', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_add(ctx, course_id, name):
     try:
@@ -68,6 +70,7 @@ def admin_course_add(ctx, course_id, name):
 @click.command(name="remove")
 @click.argument('course_id', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_remove(ctx, course_id):
     course = get_course_or_exit(ctx, course_id)
@@ -82,6 +85,7 @@ def admin_course_remove(ctx, course_id):
 @click.option("--include-users", is_flag=True)
 @click.option("--include-assignments", is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_show(ctx, course_id, include_users, include_assignments):
     course = get_course_or_exit(ctx, course_id) 
@@ -125,6 +129,7 @@ def admin_course_show(ctx, course_id, include_users, include_assignments):
 @click.argument('course_id', type=str)
 @click.argument('user_id', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_add_instructor(ctx, course_id, user_id):
     course = get_course_or_exit(ctx, course_id)    
@@ -135,6 +140,7 @@ def admin_course_add_instructor(ctx, course_id, user_id):
 @click.argument('course_id', type=str)
 @click.argument('user_id', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_add_grader(ctx, course_id, user_id):
     course = get_course_or_exit(ctx, course_id)    
@@ -145,6 +151,7 @@ def admin_course_add_grader(ctx, course_id, user_id):
 @click.argument('course_id', type=str)
 @click.argument('user_id', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_add_student(ctx, course_id, user_id):
     course = get_course_or_exit(ctx, course_id)    
@@ -161,6 +168,7 @@ def admin_course_add_student(ctx, course_id, user_id):
 @click.option('--dry-run', is_flag=True)
 @click.option('--sync', is_flag=True)
 @click.option('--id-from-email', is_flag=True)
+@require_config
 @click.pass_context
 def admin_course_load_students(ctx, course_id, csv_file, csv_username_column, csv_fname_column, csv_lname_column, csv_email_column, dry_run, sync, id_from_email):   
     course = get_course_or_exit(ctx, course_id)    
@@ -229,6 +237,7 @@ def admin_course_load_students(ctx, course_id, csv_file, csv_username_column, cs
 @click.argument('attr_name', type=str)
 @click.argument('attr_value', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_set_attribute(ctx, course_id, attr_name, attr_value):
     course = get_course_or_exit(ctx, course_id)
@@ -242,6 +251,7 @@ def admin_course_set_attribute(ctx, course_id, attr_name, attr_value):
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_setup_repo(ctx, course_id, staging):
     course = get_course_or_exit(ctx, course_id)   
@@ -260,6 +270,7 @@ def admin_course_setup_repo(ctx, course_id, staging):
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_unsetup_repo(ctx, course_id, staging):
     course = get_course_or_exit(ctx, course_id)
@@ -278,6 +289,7 @@ def admin_course_unsetup_repo(ctx, course_id, staging):
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_update_repo_access(ctx, course_id, staging):
     course = get_course_or_exit(ctx, course_id)
@@ -296,6 +308,7 @@ def admin_course_update_repo_access(ctx, course_id, staging):
 @click.argument('course_id', type=str)
 @click.option('--staging', is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_create_repos(ctx, course_id, staging):
     course = get_course_or_exit(ctx, course_id)
@@ -368,6 +381,7 @@ def admin_course_create_repos(ctx, course_id, staging):
 @click.option('--public', is_flag=True)
 @click.option('--staging', is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, public, staging):
     course = get_course_or_exit(ctx, course_id) 
@@ -392,6 +406,7 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
 @click.argument('course_id', type=str)
 @click.argument('team_id', type=str)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_team_repo_update(ctx, course_id, team_id):
     course = get_course_or_exit(ctx, course_id) 
@@ -417,6 +432,7 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
 @click.option('--ignore-non-existing', is_flag=True)
 @click.option('--staging', is_flag=True)
 @catch_chisubmit_exceptions
+@require_config
 @click.pass_context
 def admin_course_team_repo_remove(ctx, course_id, team_id, ignore_non_existing, staging):
     course = get_course_or_exit(ctx, course_id) 

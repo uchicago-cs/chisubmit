@@ -37,7 +37,7 @@ from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 from chisubmit.common.utils import read_string_file
 
 SYSTEM_CONFIG_FILENAME = "/etc/chisubmit/chisubmit.conf"
-GLOBAL_CONFIG_FILENAME = os.path.expanduser(".chisubmitconf")
+GLOBAL_CONFIG_FILENAME = os.path.expanduser("~/.chisubmitconf")
 
 CONFIG_DIRNAME = ".chisubmit"
 
@@ -69,8 +69,9 @@ class Config(object):
         return config   
 
     @classmethod
-    def get_global_config(cls):
+    def get_global_config(cls, config_overrides = {}):
         config = cls.get_global_config_values()
+        config.update(config_overrides)
         
         # Right now, api-url is the only globally-settable value, but
         # this could change in the future
@@ -80,14 +81,16 @@ class Config(object):
                    work_dir = None, 
                    api_url = api_url, 
                    api_key = None, 
-                   default_course = None, 
+                   course = None, 
                    git_credentials = {})
 
 
     @classmethod
-    def get_config(cls, config_dir = None, work_dir = None, config_overrides = {}):      
+    def get_config(cls, config_dir = None, work_dir = None, config_overrides = {}):
+        assert( (config_dir is None and work_dir is None) or (config_dir is not None and work_dir is not None) )
+        
         # If a configuration directory isn't specified, try to find it.
-        if config_dir is None:
+        if config_dir is None and work_dir is None:
             dirl = os.getcwd().split(os.sep) + [CONFIG_DIRNAME]
             
             local_config_file = None

@@ -9,5 +9,5 @@ install:
   - pip install pip --upgrade
   - pip install .
 script:
-  - ./runtests.py all
-  - ./runtests.py complete
+  - python runtests.py all
+  - python runtests.py complete

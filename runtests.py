@@ -36,6 +36,14 @@ complete_tests = ["complete1", "complete2", "complete3"]
  
 all_except_complete = unit_tests + integration_tests
 
+def run_complete_test(runner, name, test_config, git_server, git_staging):
+    suite = unittest.TestSuite()
+    test_class = test_suites[name]
+    for name in unittest.TestLoader().getTestCaseNames(test_class):
+        test = test_class(name)
+        configure_complete_test(test, test_config, git_server, git_staging)
+        suite.addTest(test)    
+    runner.run_tests([], extra_tests=suite)
 
 @click.command()
 @click.option("--failfast", "-f", is_flag=True)
@@ -70,21 +78,20 @@ def runtests(failfast, quiet, verbose, buffer,
     if tests == "all":
         ran = True
         runner.run_tests([test_suites[t] for t in all_except_complete])
-        
+                
     if tests in all_except_complete:
         ran = True
         runner.run_tests([test_suites[tests]])
         
     if tests in complete_tests:
         ran = True
-        suite = unittest.TestSuite()
-        test_class = test_suites[tests]
-        for name in unittest.TestLoader().getTestCaseNames(test_class):
-            test = test_class(name)
-            configure_complete_test(test, test_config, git_server, git_staging)
-            suite.addTest(test)        
+        run_complete_test(runner, tests, test_config, git_server, git_staging)
                 
-        runner.run_tests([], extra_tests=suite)
+    if tests == "complete":
+        ran = True
+        for test in complete_tests:
+            run_complete_test(runner, test, test_config, git_server, git_staging)
+        
         
     if not ran:
         #try:

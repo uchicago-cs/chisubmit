@@ -10,7 +10,9 @@ from chisubmit.cli.common import pass_course, get_assignment_or_exit,\
     catch_chisubmit_exceptions, require_local_config
 from chisubmit.cli.shared.assignment import shared_assignment_list
 from datetime import timedelta
-from chisubmit.client.exceptions import BadRequestException
+from chisubmit.client.exceptions import BadRequestException,\
+    UnknownObjectException
+from django.core.exceptions import ObjectDoesNotExist
 
 
 @click.group(name="assignment")
@@ -31,7 +33,16 @@ def student_assignment_register(ctx, course, assignment_id, partner):
     
     user = ctx.obj["client"].get_user()
     
-    assignment.register(students = partner + (user.username,))
+    try:
+        course.get_instructor(user.username)
+        
+        # If get_instructor doesn't raise an exception, then the user
+        # is an instructor, and we don't include the user in the list
+        # of partners.
+        assignment.register(students = partner)    
+    except UnknownObjectException:
+        # Otherwise, we include the current user
+        assignment.register(students = partner + (user.username,))    
     
     return CHISUBMIT_SUCCESS
 

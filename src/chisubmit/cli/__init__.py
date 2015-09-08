@@ -212,6 +212,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
         n = 1
         for course in courses:
             print "[{}] {}: {}".format(n, course.course_id, course.name)
+            n+=1
         print
         print "[X] Exit"
         print

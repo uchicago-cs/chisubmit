@@ -347,6 +347,8 @@ class Register(APIView):
         students_usernames = serializer.validated_data["students"]
 
         if len(roles) == 1 and CourseRoles.STUDENT in roles:
+            is_student = True
+            
             if request.user.username not in students_usernames:
                 msg = "The list of students does not include you."
                 return Response({"students": [msg]}, status=status.HTTP_400_BAD_REQUEST)
@@ -355,6 +357,8 @@ class Register(APIView):
             student_objs = [user_student_obj]
             other_students = [s for s in students_usernames if s != request.user.username]
         else:
+            is_student = False
+            
             student_objs = []
             other_students = students_usernames
 
@@ -458,7 +462,7 @@ class Register(APIView):
                                        extensions = extensions)
 
             for student_obj in student_objs:
-                if student_obj.user == request.user:
+                if student_obj.user == request.user or not is_student:
                     confirmed = True
                 else:
                     confirmed = False

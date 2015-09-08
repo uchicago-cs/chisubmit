@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
 #
@@ -28,158 +27,400 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-import json
-from chisubmit.client.assignment import Assignment
-from chisubmit.client.team import Team
-from chisubmit.client import session, ApiObject, JSONObject
-from chisubmit.client.user import User
+import chisubmit.client.users
+import chisubmit.client.assignment
+import chisubmit.client.team
+from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
+    APIStringType, APIIntegerType
+from chisubmit.client.users import User
+import datetime
 
-class CourseStudent(JSONObject):
+class Course(ChisubmitAPIObject):
     
-    _api_attrs = ('dropped', 'repo_info')
-    _has_one = {'user': ('student', User)}
-
-class CourseInstructor(JSONObject):
+    _api_attributes = {"url": Attribute(name="url", 
+                                   attrtype=APIStringType, 
+                                   editable=False),    
     
-    _api_attrs = ('repo_info',)
-    _has_one = {'user': ('instructor', User)}
-
-class CourseGrader(JSONObject):
-    
-    _api_attrs = ('repo_info','conflicts')
-    _has_one = {'user': ('grader', User)}
-
-    def get_conflicts(self):
-        if self.conflicts is None or len(self.conflicts) == 0:
-            return []
-        else:
-            return self.conflicts.split(",")
+                       "course_id": Attribute(name="course_id", 
+                                       attrtype=APIStringType, 
+                                       editable=True),    
         
-    def add_conflict(self, student_id):
-        conflicts = self.get_conflicts()
-        conflicts.append(student_id)
-        conflicts_str = ",".join(conflicts)
-        self.conflicts = conflicts_str
+                       "name": Attribute(name="name", 
+                                         attrtype=APIStringType, 
+                                         editable=True),    
 
-class Course(ApiObject):
+                       "git_server_connstr": Attribute(name="git_server_connstr", 
+                                                  attrtype=APIStringType, 
+                                                  editable=True),    
 
-    _api_attrs = ('id', 'name', 'options')
-    _primary_key = 'id'    
-    _updatable_attributes = ['name']
-    
-    _has_many = {'instructors': 'courses_instructors',
-                 'graders': 'courses_graders',
-                 'students': 'courses_students',
-                 'assignments': 'assignments',
-                 'teams': 'teams'}
-
-    def add_student(self, student):
-        attrs = {'course_id': self.id, 'student_id': student.id}
-        data = json.dumps({'students': {'add': [attrs]}})
-        session.put('courses/%s' % (self.id), data=data)
-
-    def add_team(self, team):
-        attrs = {'course_id': self.id, 'team_id': team.id}
-        data = json.dumps({'teams': {'add': [attrs]}})
-        session.put('courses/%s' % (self.id), data=data)
-
-    def add_grader(self, grader):
-        attrs = {'course_id': self.id, 'grader_id': grader.id}
-        data = json.dumps({'graders': {'add': [attrs]}})
-        session.put('courses/%s' % (self.id), data=data)
-            
-    def add_instructor(self, instructor):
-        attrs = {'course_id': self.id, 'instructor_id': instructor.id}
-        data = json.dumps({'instructors': {'add': [attrs]}})
-        session.put('courses/%s' % (self.id), data=data)        
+                       "git_staging_connstr": Attribute(name="git_staging_connstr", 
+                                                  attrtype=APIStringType, 
+                                                  editable=True),    
         
-    def set_option(self, name, value):
-        attrs = {'name': name, 'value': value}
-        data = json.dumps({'options': {'update': [attrs]}})
-        session.put('courses/%s' % (self.id), data=data)        
+                       "git_usernames": Attribute(name="git_usernames", 
+                                                  attrtype=APIStringType, 
+                                                  editable=True),    
+        
+                       "git_staging_usernames": Attribute(name="git_staging_usernames", 
+                                                          attrtype=APIStringType, 
+                                                          editable=True),    
+        
+                       "extension_policy": Attribute(name="extension_policy", 
+                                                     attrtype=APIStringType, 
+                                                     editable=True),    
+        
+                       "default_extensions": Attribute(name="default_extensions", 
+                                                       attrtype=APIIntegerType, 
+                                                       editable=True),
+                       
+                       "instructors_url": Attribute(name="instructors_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),
+                       
+                       "graders_url": Attribute(name="graders_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),       
+                       
+                       "students_url": Attribute(name="students_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),                                                                                
 
-    def __set_repo_option(self, user_type, user_id, name, value):
-        attrs = {'name': name, 'value': value}
+                       "assignments_url": Attribute(name="assignments_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),                                                                                
+                       
+                       "teams_url": Attribute(name="teams_url", 
+                                                    attrtype=APIStringType, 
+                                                    editable=False),                                                                                
+                      }
 
-        data = {"%ss" % user_type: 
-                {
-                 "update": [
-                            {"%s_id" % user_type: user_id,
-                             "repo_info": [attrs]}
-                           ]
-                }
-               }        
-        data = json.dumps(data)
-        session.put('courses/%s' % (self.id), data=data) 
- 
-    def set_instructor_repo_option(self, instructor_id, name, value):
-        self.__set_repo_option("instructor", instructor_id, name, value)
 
-    def set_grader_repo_option(self, grader_id, name, value):
-        self.__set_repo_option("grader", grader_id, name, value)
+    def get_instructors(self):
+        """
+        :calls: GET /courses/:course/instructors/
+        :rtype: List of :class:`chisubmit.client.users.Instructor`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/instructors/"
+        )
+        return [chisubmit.client.users.Instructor(self._api_client, headers, elem) for elem in data]
 
-    def set_student_repo_option(self, student_id, name, value):
-        self.__set_repo_option("student", student_id, name, value)
- 
+    def get_instructor(self, username):
+        """
+        :calls: GET /courses/:course/instructors/:instructor
+        :rtype: :class:`chisubmit.client.users.Instructor`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/instructors/" + username
+        )
+        return chisubmit.client.users.Instructor(self._api_client, headers, data)
+    
+    def add_instructor(self, user_or_username, git_username = None, git_staging_username = None):
+        """
+        :calls: POST /courses/:course/instructors/
+        :rtype: :class:`chisubmit.client.users.Instructor`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username}
+        
+        if git_username is not None:
+            post_data["git_username"] = git_username
+        if git_staging_username is not None:
+            post_data["git_staging_username"] = git_staging_username
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.course_id + "/instructors/",
+            data = post_data
+        )
+        return chisubmit.client.users.Instructor(self._api_client, headers, data)    
+    
+    def remove_instructor(self, user_or_username):
+        """
+        :calls: DELETE /courses/:course/instructors/:username
+        :rtype: None
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Instructor)
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        elif isinstance(user_or_username, chisubmit.client.users.Instructor):
+            username = user_or_username.user.username
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.course_id + "/instructors/" + username
+        )
+        return None
+    
+    def get_graders(self):
+        """
+        :calls: GET /courses/:course/graders/
+        :rtype: List of :class:`chisubmit.client.users.Grader`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/graders/"
+        )
+        return [chisubmit.client.users.Grader(self._api_client, headers, elem) for elem in data]    
+
+    def get_grader(self, username):
+        """
+        :calls: GET /courses/:course/graders/:grader
+        :rtype: :class:`chisubmit.client.users.Grader`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/graders/" + username
+        )
+        return chisubmit.client.users.Grader(self._api_client, headers, data)    
+    
+    def add_grader(self, user_or_username, git_username = None, git_staging_username = None):
+        """
+        :calls: POST /courses/:course/graders/
+        :rtype: :class:`chisubmit.client.users.Grader`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username }
+        
+        if git_username is not None:
+            post_data["git_username"] = git_username
+        if git_staging_username is not None:
+            post_data["git_staging_username"] = git_staging_username
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.course_id + "/graders/",
+            data = post_data
+        )
+        return chisubmit.client.users.Grader(self._api_client, headers, data)        
+    
+    def remove_grader(self, user_or_username):
+        """
+        :calls: DELETE /courses/:course/graders/:username
+        :rtype: None
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Grader)
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        elif isinstance(user_or_username, chisubmit.client.users.Grader):
+            username = user_or_username.user.username
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.course_id + "/graders/" + username
+        )
+        return None
+        
+    
+    def get_students(self):
+        """
+        :calls: GET /courses/:course/students/
+        :rtype: List of :class:`chisubmit.client.users.Student`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/students/"
+        )
+        return [chisubmit.client.users.Student(self._api_client, headers, elem) for elem in data]    
+    
+    def get_student(self, username):
+        """
+        :calls: GET /courses/:course/students/:grader
+        :rtype: :class:`chisubmit.client.users.Student`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/students/" + username
+        )
+        return chisubmit.client.users.Student(self._api_client, headers, data)        
+    
+    def add_student(self, user_or_username, git_username = None, extensions = None, dropped = None):
+        """
+        :calls: POST /courses/:course/students/
+        :rtype: :class:`chisubmit.client.users.Student`
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        
+        post_data = {"username": username }
+        
+        if git_username is not None:
+            post_data["git_username"] = git_username
+        if extensions is not None:
+            post_data["extensions"] = extensions
+        if dropped is not None:
+            post_data["dropped"] = dropped
+                    
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.course_id + "/students/",
+            data = post_data
+        )
+        return chisubmit.client.users.Student(self._api_client, headers, data)       
+    
+    def remove_student(self, user_or_username):
+        """
+        :calls: DELETE /courses/:course/students/:username
+        :rtype: None
+        """
+        
+        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Student)
+        
+        if isinstance(user_or_username, (str, unicode)):
+            username = user_or_username
+        elif isinstance(user_or_username, User):
+            username = user_or_username.username
+        elif isinstance(user_or_username, chisubmit.client.users.Student):
+            username = user_or_username.user.username
+        
+        _ = self._api_client._requester.request(
+            "DELETE",
+            "/courses/" + self.course_id + "/students/" + username
+        )
+        return None      
+    
+    def get_assignments(self):
+        """
+        :calls: GET /courses/:course/assignments/
+        :rtype: List of :class:`chisubmit.client.assignment.Assignment`
+        """
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/assignments/"
+        )
+        return [chisubmit.client.assignment.Assignment(self._api_client, headers, elem) for elem in data]    
+    
     def get_assignment(self, assignment_id):
-        return Assignment.from_id(self.id, assignment_id)
-
-    def get_student(self, student_id):
-        ss = [s for s in self.students if s.user.id == student_id]
+        """
+        :calls: GET /courses/:course/assignments/:assignment/
+        :rtype: List of :class:`chisubmit.client.assignment.Assignment`
+        """
         
-        if len(ss) == 1:
-            return ss[0]
-        else:
-            return None             
+        headers, data = self._api_client._requester.request(
+            "GET",
+            "/courses/" + self.course_id + "/assignments/" + assignment_id
+        )
+        return chisubmit.client.assignment.Assignment(self._api_client, headers, data)
+    
+    def create_assignment(self, assignment_id, name, deadline, min_students = None, max_students = None):
+        """
+        :calls: POST /courses/:course/assignments/
+        :param assignment_id: string
+        :param name: string
+        :param deadline: string
+        :param min_students: int
+        :param max_students: int
+        :rtype: :class:`chisubmit.client.assignment.Assignment`
+        """
+        assert isinstance(assignment_id, (str, unicode)), assignment_id
+        assert isinstance(deadline, (str, unicode)) or isinstance(deadline, datetime.datetime), deadline
         
-    def set_student_dropped(self, student_id, dropped = True):
-        data = {"students": 
-                {
-                 "update": [
-                            {"student_id": student_id,
-                             "dropped": 1}
-                           ]
-                }
-               }
-        data = json.dumps(data)
-        session.put('courses/%s' % (self.id), data=data)         
+        # TODO: Convert/validate date
+        if isinstance(deadline, (str, unicode)):
+            # TODO: validate date
+            deadline_str = deadline
+        elif isinstance(deadline, datetime.datetime):
+            deadline_str = deadline.isoformat(sep=" ")
         
-    def add_grader_conflict(self, grader, student_id):
-        grader.add_conflict(student_id)
-        data = {"graders": 
-                {
-                 "update": [
-                            {"grader_id": grader.user.id,
-                             "conflicts": grader.conflicts}
-                           ]
-                }
-               }
-        from pprint import pprint
-        pprint(data)
-        data = json.dumps(data)
-        session.put('courses/%s' % (self.id), data=data)           
+        post_data = {"assignment_id": assignment_id,
+                     "name": name,
+                     "deadline": deadline_str}
         
-    def get_team(self, team_id):
-        return Team.from_id(self.id, team_id) 
-
+        if min_students is not None:
+            post_data["min_students"] = min_students
+        if max_students is not None:
+            post_data["max_students"] = max_students
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            "/courses/" + self.course_id + "/assignments/",
+            data = post_data
+        )
+        return chisubmit.client.assignment.Assignment(self._api_client, headers, data)    
+    
     def get_teams(self):
-        return Team.all(self.id)
-
-    def search_team(self, search_term):
-        teams = []
-        for t in self.teams:
-            if search_term in t._json:
-                teams.append(t)
-
-        return teams
-    
-    def has_grader(self, grader_id):        
-        return self.get_grader(grader_id) is not None    
-    
-    def get_grader(self, grader_id):
-        gs = [g for g in self.graders if g.user.id == grader_id]
+        """
+        :calls: GET /courses/:course/teams/
+        :rtype: List of :class:`chisubmit.client.team.Team`
+        """
         
-        if len(gs) == 1:
-            return gs[0]
-        else:
-            return None         
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.teams_url
+        )
+        return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]        
+    
+    def get_team(self, team_id):
+        """
+        :calls: GET /courses/:course/teams/
+        :rtype: :class:`chisubmit.client.team.Team`
+        """
+        
+        assert isinstance(team_id, (str, unicode)), team_id
+        
+        headers, data = self._api_client._requester.request(
+            "GET",
+            self.teams_url + team_id
+        )
+        return chisubmit.client.team.Team(self._api_client, headers, data)    
+    
+    def create_team(self, team_id, extensions = None, active = None):
+        """
+        :calls: POST /courses/:course/teams/
+        :param name: string
+        :param extensions: int
+        :param active: bool
+        :rtype: :class:`chisubmit.client.team.Team`
+        """
+        assert isinstance(team_id, (str, unicode)), team_id
+
+        post_data = { "team_id": team_id }
+        
+        if extensions is not None:
+            post_data["extensions"] = extensions
+        if active is not None:
+            post_data["active"] = active
+        
+        headers, data = self._api_client._requester.request(
+            "POST",
+            self.teams_url,
+            data = post_data
+        )
+        return chisubmit.client.team.Team(self._api_client, headers, data)        
+    

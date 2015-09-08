@@ -134,16 +134,22 @@ class RemoteRepositoryConnectionBase(object):
     def delete_team_repository(self, course, team, fail_if_not_exists=True):
         pass
     
-    def _get_user_git_username(self, user):
-        if self.staging:
-            option = "git-staging-username"
+    def _get_user_git_username(self, course, course_user):
+        if course.git_usernames == "user-id":
+            return course_user.user.username
+        elif course.git_usernames == "custom":
+            if self.staging:
+                if course_user.git_staging_username is None:
+                    raise ChisubmitException("User '%s' does not have a git_staging_username" % (course_user.user.username))
+                else:
+                    return course_user.git_staging_username
+            else:
+                if course_user.git_username is None:
+                    raise ChisubmitException("User '%s' does not have a git_username" % (course_user.user.username))
+                else:
+                    return course_user.git_username
         else:
-            option = "git-username"
-        
-        if not hasattr(user, "repo_info") or user.repo_info is None or not user.repo_info.has_key(option): 
-            raise ChisubmitException("User '%s' does not have a '%s' value" % (user.user.id, option))
-        else:
-            return user.repo_info[option]
+            raise ChisubmitException("Course has invalid git_usernames value: %s" % course.git_usernames)
     
     
     

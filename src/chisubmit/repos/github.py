@@ -99,7 +99,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def update_instructors(self, course):
         instructors_ghteam = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))
 
-        for instructor in course.instructors:
+        for instructor in course.get_instructors():
             self.__add_user_to_ghteam(self._get_user_git_username(instructor), instructors_ghteam)
 
         # TODO: Remove instructors that may have been removed
@@ -108,7 +108,7 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def update_graders(self, course):
         graders_ghteam = self.__get_ghteam_by_name(self.__get_graders_ghteam_name(course))
 
-        for grader in course.graders:
+        for grader in course.get_graders():
             self.__add_user_to_ghteam(self._get_user_git_username(grader), graders_ghteam)
 
         # TODO: Remove graders that may have been removed

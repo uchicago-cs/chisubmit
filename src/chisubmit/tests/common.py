@@ -1,55 +1,52 @@
 import tempfile
 import os
-import json
 import yaml
 import sys
 import colorama
 import git
 import functools
-import unittest
-import random
-import string
 import re
+from rest_framework.test import APILiveServerTestCase
 
-import chisubmit.client.session as session
 from click.testing import CliRunner
+from chisubmit.client.exceptions import BadRequestException
 from chisubmit.cli import chisubmit_cmd
-from dateutil.parser import parse
-from chisubmit.client.session import BadRequestError
+from chisubmit.backend.api.models import Course, Student
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+from django.conf import settings
+
+cli_verbose = False
+
+def set_cli_verbose(v):
+    global cli_verbose
+    
+    cli_verbose = v
 
 colorama.init()
 
-class ChisubmitTestClient(object):
+COURSE1_ID = "cmsc40100"
+COURSE1_NAME = "Introduction to Software Testing"
+COURSE1_INSTRUCTORS = ["instructor1"]
+COURSE1_GRADERS =     ["grader1", "grader2"]
+COURSE1_STUDENTS =    ["student1", "student2", "student3", "student4"]
+COURSE1_USERS = COURSE1_INSTRUCTORS + COURSE1_GRADERS + COURSE1_STUDENTS
+COURSE1_ASSIGNMENTS = ["pa1", "pa2"]
+COURSE1_RUBRICS = {"pa1": ["First Task", "Second Task"],
+                   "pa2": ["First Task", "Second Task", "Third Task"],}
+COURSE1_TEAMS = ["student1-student2", "student3-student4"]
+COURSE1_TEAM_MEMBERS = {"student1-student2": ["student1", "student2"],
+                        "student3-student4": ["student3", "student4"]}
+
+COURSE2_ID = "cmsc40110"
+COURSE2_NAME = "Advanced Software Testing"
+COURSE2_INSTRUCTORS = ["instructor2"]
+COURSE2_GRADERS =     ["grader3", "grader4"]
+COURSE2_STUDENTS =    ["student5", "student6", "student7", "student8"]
+COURSE2_USERS = COURSE2_INSTRUCTORS + COURSE2_GRADERS + COURSE2_STUDENTS
+COURSE2_ASSIGNMENTS = ["hw1", "hw2"]
     
-    API_PREFIX = "/api/v0/"
-    
-    def __init__(self, app, user_id, api_key):
-        self.user_id = user_id
-        self.api_key = api_key
-        
-        self.headers = {'content-type': 'application/json'}
-        
-        if self.api_key is not None:
-            self.headers["CHISUBMIT-API-KEY"] = self.api_key
-            
-        self.test_client = session.connect_test(app, api_key)
-
-    def get(self, resource):
-        return self.test_client.get(self.API_PREFIX + resource, headers = self.headers)
-
-    def post(self, resource, data):
-        if isinstance(data, dict):
-            datastr = json.dumps(data)
-        elif isinstance(data, basestring):
-            datastr = data
-        return self.test_client.post(self.API_PREFIX + resource, data = datastr, headers = self.headers)
-
-    def put(self, resource, data):
-        if isinstance(data, dict):
-            datastr = json.dumps(data)
-        elif isinstance(data, basestring):
-            datastr = data
-        return self.test_client.put(self.API_PREFIX + resource, data = datastr, headers = self.headers)
+ALL_USERS = list(set(COURSE1_USERS + COURSE2_USERS + ["admin"]))
 
 
 def cli_test(func=None, isolated_filesystem = True):
@@ -64,7 +61,7 @@ def cli_test(func=None, isolated_filesystem = True):
                     func(self, runner, *args, **kwargs)
             else:
                 func(self, runner, *args, **kwargs)
-        except BadRequestError, bre:
+        except BadRequestException, bre:
             bre.print_errors()
             raise
     return new_func
@@ -72,22 +69,30 @@ def cli_test(func=None, isolated_filesystem = True):
 
 class ChisubmitCLITestClient(object):
     
-    def __init__(self, user_id, api_key, runner, course = None,
-                 git_credentials = {}, verbose = False):
+    def __init__(self, api_url, user_id, api_key, runner, 
+                       course = None, git_credentials = {}, verbose = False):
+        global cli_verbose
+        
         self.user_id = user_id
         self.home_dir = "test-fs/home/%s" % self.user_id
-        self.conf_dir = "%s/.chisubmit" % (self.home_dir)
-        self.conf_file = self.conf_dir + "/chisubmit.conf"
+        self.work_dir = "%s/chisubmit-test" % (self.home_dir)
+        self.conf_dir = "%s/.chisubmit" % (self.work_dir)
+        self.conf_file = "%s/chisubmit.conf" % (self.conf_dir)
+
         self.runner = runner
-        self.verbose = verbose
+        if cli_verbose:
+            self.verbose = True
+        else:
+            self.verbose = verbose
         self.course = course
         
         git_credentials.update({"Testing" : "testing-credentials"})
 
         os.makedirs(self.home_dir)
+        os.mkdir(self.work_dir)
         os.mkdir(self.conf_dir)
         with open(self.conf_file, 'w') as f:
-            conf = {"api-url": "NONE",
+            conf = {"api-url": api_url,
                     "api-key": api_key,
                     "git-credentials":
                         git_credentials
@@ -95,12 +100,12 @@ class ChisubmitCLITestClient(object):
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
     def run(self, subcommands, params = [], course = None, cmd=chisubmit_cmd, catch_exceptions=False, cmd_input = None):
-        chisubmit_args =  ['--testing', '--dir', self.conf_dir, '--conf', self.conf_file]
+        chisubmit_args = ['--debug', '--work-dir', self.work_dir, '--config-dir', self.conf_dir]
         
         if course is not None:
-            chisubmit_args += ['--course', course]
+            chisubmit_args += ['-c', "course={}".format(course)]
         elif self.course is not None:
-            chisubmit_args += ['--course', self.course]
+            chisubmit_args += ['-c', "course={}".format(self.course)]
         
         if subcommands is None:
             cmd_args = []
@@ -108,8 +113,11 @@ class ChisubmitCLITestClient(object):
             cmd_args = subcommands.split()
 
         cmd_args += params
-        
+
         if self.verbose:
+            global cli_verbose
+            if cli_verbose:
+                print
             l = []
             for ca in cmd_args:
                 if " " in ca:
@@ -147,33 +155,19 @@ class ChisubmitCLITestClient(object):
         return repo, git_path
 
 
-class BaseChisubmitTestCase(unittest.TestCase):
+class ChisubmitCLITestCase(APILiveServerTestCase):
     
     def __init__(self, *args, **kwargs):
-        super(BaseChisubmitTestCase, self).__init__(*args, **kwargs)
+        super(ChisubmitCLITestCase, self).__init__(*args, **kwargs)
+
+        if settings.DEBUG == False:
+            settings.DEBUG = True
 
         self.git_server_connstr = "server_type=Testing;local_path=./test-fs/server"
         self.git_staging_connstr = "server_type=Testing;local_path=./test-fs/staging"
         self.git_server_user = None
         self.git_staging_user = None
-        self.git_api_keys = {}        
-    
-    @classmethod
-    def setUpClass(cls):
-        from chisubmit.backend.webapp.api import ChisubmitAPIServer
-
-        cls.server = ChisubmitAPIServer(debug = True)
-        cls.db_fd, cls.db_filename = tempfile.mkstemp()
-        cls.server.connect_sqlite(cls.db_filename)
-        
-        password_length=random.randint(50,80)
-        cls.auth_password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(password_length))
-        cls.server.set_auth_testing(cls.auth_password)
-            
-    @classmethod
-    def tearDownClass(cls):
-        os.close(cls.db_fd)
-        os.unlink(cls.db_filename)
+        self.git_api_keys = {}
     
     def set_git_server_connstr(self, connstr):
         self.git_server_connstr = connstr
@@ -188,179 +182,48 @@ class BaseChisubmitTestCase(unittest.TestCase):
         self.git_staging_user = user
         
     def add_api_key(self, git_type, apikey):
-        self.git_api_keys[git_type] = apikey        
+        self.git_api_keys[git_type] = apikey
     
-    def get_admin_test_client(self):
-        return ChisubmitTestClient(self.server.app, "admin", "admin")
-    
-    def get_test_client(self, user = None):
-        if user is None:
-            return ChisubmitTestClient(self.server.app, "anonymous", None)
-        else:
-            return ChisubmitTestClient(self.server.app, user["id"], user["api_key"])
-        
     def assert_http_code(self, response, expected):
-        self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
+        self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))                
         
-    
-class ChisubmitTestCase(BaseChisubmitTestCase):
-        
-    def setUp(self):
-        self.server.init_db()
-        self.server.create_admin(api_key="admin")
-        
-        if hasattr(self, "FIXTURE"):
-            load_fixture(self.server.db, self.FIXTURE)
-        
-        
-    def tearDown(self):
-        self.server.db.session.remove()
-        self.server.db.drop_all()
-    
-
-class ChisubmitMultiTestCase(BaseChisubmitTestCase):
-        
-    @classmethod
-    def setUpClass(cls):
-        super(ChisubmitMultiTestCase, cls).setUpClass()
-        cls.server.init_db()
-        cls.server.create_admin(api_key="admin")
-        
-        if hasattr(cls, "FIXTURE"):
-            load_fixture(cls.server.db, cls.FIXTURE)
-        
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.server.db.session.remove()
-        cls.server.db.drop_all()
-        super(ChisubmitMultiTestCase, cls).tearDownClass()
-    
-class ChisubmitFixtureTestCase(ChisubmitMultiTestCase):
-    
-    def test_get_courses(self):        
-        for course in self.FIXTURE["courses"].values():
-            for instructor in course["instructors"]:
-                c = self.get_test_client(self.FIXTURE["users"][instructor])
-                response = c.get("courses")
-                self.assert_http_code(response, 200)
-         
-                expected_ncourses = len([c for c in self.FIXTURE["courses"].values()
-                                         if instructor in c["instructors"]])
-         
-                data = json.loads(response.get_data())        
-                self.assertIn("courses", data)
-                self.assertEquals(len(data["courses"]), expected_ncourses)
-                 
-    def test_get_course(self):
-        for course in self.FIXTURE["courses"].values():
-            for instructor in course["instructors"]:
-                c = self.get_test_client(self.FIXTURE["users"][instructor])
-                response = c.get("courses/" + course["id"])
-                self.assert_http_code(response, 200)
-                data = json.loads(response.get_data())        
-                self.assertIn("course", data)
-                self.assertEquals(data["course"]["name"], course["name"])
-                 
-        for course1 in self.FIXTURE["courses"].values():
-            for course2 in self.FIXTURE["courses"].values():
-                if course1 != course2:
-                    for instructor in course1["instructors"]:    
-                        c = self.get_test_client(self.FIXTURE["users"][instructor])
-                        response = c.get("courses/" + course2["id"])
-                        self.assert_http_code(response, 404)
- 
-    
-def load_fixture(db, fixture):
-    from chisubmit.backend.webapp.api.users.models import User
-    from chisubmit.backend.webapp.api.assignments.models import Assignment
-    from chisubmit.backend.webapp.api.courses.models import Course,\
-        CoursesInstructors, CoursesGraders, CoursesStudents
-        
-    user_objs = {}
-    
-    for u_id, user in fixture["users"].items():
-        u = User(first_name=user["first_name"], 
-                   last_name=user["last_name"], 
-                   id=user["id"],
-                   api_key=user["api_key"])
-        
-        user_objs[u_id] = u
-        db.session.add(u)
-
-    for c_id, course in fixture["courses"].items():
-        c = Course(id = course["id"],
-                   name = course["name"])
-        
-        db.session.add(c)
-        
-        if course.has_key("instructors"):
-            for instructor in course["instructors"]:
-                o = user_objs[instructor]
-                db.session.add(CoursesInstructors(instructor_id = o.id, 
-                                                  course_id     = c.id))
-        
-        if course.has_key("graders"):
-            for grader in course["graders"]:
-                o = user_objs[grader]
-                db.session.add(CoursesGraders(grader_id = o.id, 
-                                              course_id = c.id))
-
-        if course.has_key("students"):
-            for student in course["students"]:
-                o = user_objs[student]
-                db.session.add(CoursesStudents(student_id = o.id, 
-                                               course_id = c.id))
-
-        if course.has_key("assignments"):
-            for assignment in course["assignments"].values():
-                db.session.add(Assignment(id = assignment["id"], 
-                                          name = assignment["name"],
-                                          deadline = parse(assignment["deadline"]),
-                                          course_id = c.id))
-    
-    db.session.commit()
-        
-    
-class ChisubmitIntegrationTestCase(ChisubmitTestCase):
-        
-    def create_user(self, admin_runner, user_id):
-        from chisubmit.backend.webapp.api.users.models import User
-
-        fname = "f_" + user_id
-        lname = "l_" + user_id
-        email = user_id + "@example.org"
-        result = admin_runner.run("admin user add", [user_id, fname, lname, email])
+    def create_user(self, admin_runner, username):
+        fname = "f_" + username
+        lname = "l_" + username
+        email = username + "@example.org"
+        result = admin_runner.run("admin user add", [username, fname, lname, email])
         self.assertEquals(result.exit_code, 0)
             
-        user = User.from_id(user_id)
-        self.assertIsNotNone(user)
-        self.assertEquals(user.id, user_id)            
-        self.assertEquals(user.first_name, fname)            
-        self.assertEquals(user.last_name, lname)            
-        self.assertEquals(user.email, email)      
-        
-        # TODO: We manually set the API key here, since the CLI
-        # and the server are not completely set up for fetching
-        # API keys yet. 
-        user.api_key = user_id
-        self.server.db.session.add(user)
-        self.server.db.session.commit()
+        try:
+            user_obj = User.objects.get(username=username)
+        except User.DoesNotExist:
+            self.fail("User was not added to database")              
 
-    def create_clients(self, runner, course_id, admin_id, instructor_ids, grader_ids, student_ids):
-        admin = ChisubmitCLITestClient(admin_id, admin_id, runner, git_credentials=self.git_api_keys, verbose = True)
+        self.assertEquals(user_obj.username, username)            
+        self.assertEquals(user_obj.first_name, fname)            
+        self.assertEquals(user_obj.last_name, lname)            
+        self.assertEquals(user_obj.email, email)      
+        
+        # Creating a custom token cannot be done throught the API or CLI, so
+        # we create a Token object directly.
+        Token.objects.create(key=username+"token", user=user_obj)
+
+    def create_clients(self, runner, admin_id, instructor_ids = [], grader_ids = [], student_ids = [], course_id=None, verbose=False):
+        base_url = self.live_server_url + "/api/v1"
+        
+        admin = ChisubmitCLITestClient(base_url, admin_id, admin_id+"token", runner, git_credentials=self.git_api_keys, verbose = verbose)
         
         instructors = []
         for instructor_id in instructor_ids:
-            instructors.append(ChisubmitCLITestClient(instructor_id, instructor_id, runner, git_credentials=self.git_api_keys,  verbose = True, course = course_id))
+            instructors.append(ChisubmitCLITestClient(base_url, instructor_id, instructor_id+"token", runner, git_credentials=self.git_api_keys,  verbose = verbose, course = course_id))
 
         graders = []
         for grader_id in grader_ids:
-            graders.append(ChisubmitCLITestClient(grader_id, grader_id, runner, git_credentials=self.git_api_keys,  verbose = True, course = course_id))
+            graders.append(ChisubmitCLITestClient(base_url, grader_id, grader_id+"token", runner, git_credentials=self.git_api_keys,  verbose = verbose, course = course_id))
 
         students = []
         for student_id in student_ids:
-            students.append(ChisubmitCLITestClient(student_id, student_id, runner, git_credentials=self.git_api_keys,  verbose = True, course = course_id))
+            students.append(ChisubmitCLITestClient(base_url, student_id, student_id+"token", runner, git_credentials=self.git_api_keys,  verbose = verbose, course = course_id))
                         
         return admin, instructors, graders, students    
             
@@ -369,12 +232,10 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             self.create_user(admin, user_id)
 
     def create_course(self, admin, course_id, course_name):
-        from chisubmit.backend.webapp.api.courses.models import Course
-
         result = admin.run("admin course add", [course_id, course_name])
         self.assertEquals(result.exit_code, 0)
         
-        course = Course.from_id(course_id)
+        course = Course.get_by_course_id(course_id)
         self.assertIsNotNone(course)
         self.assertEquals(course.name, course_name)
         
@@ -382,21 +243,22 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
         self.assertEquals(result.exit_code, 0)
         self.assertIn(course_id, result.output)
         self.assertIn(course_name, result.output)
+
+        result = admin.run("admin course set-attribute %s git_usernames custom" % (course_id))
+        self.assertEquals(result.exit_code, 0)
         
         git_server_connstr = self.git_server_connstr
         git_staging_connstr = self.git_staging_connstr
 
-        result = admin.run("admin course set-option %s git-server-connstr %s" % (course_id, git_server_connstr))
+        result = admin.run("admin course set-attribute %s git_server_connstr %s" % (course_id, git_server_connstr))
         self.assertEquals(result.exit_code, 0)
 
-        result = admin.run("admin course set-option %s git-staging-connstr %s" % (course_id, git_staging_connstr))
+        result = admin.run("admin course set-attribute %s git_staging_connstr %s" % (course_id, git_staging_connstr))
         self.assertEquals(result.exit_code, 0)
         
-        course = Course.from_id(course_id)
-        self.assertIn("git-server-connstr", course.options)
-        self.assertIn("git-staging-connstr", course.options)
-        self.assertEquals(course.options["git-server-connstr"], git_server_connstr)
-        self.assertEquals(course.options["git-staging-connstr"], git_staging_connstr)
+        course = Course.get_by_course_id(course_id)
+        self.assertEquals(course.git_server_connstr, git_server_connstr)
+        self.assertEquals(course.git_staging_connstr, git_staging_connstr)
         
         result = admin.run("admin course unsetup-repo %s" % (course_id))
         self.assertEquals(result.exit_code, 0)
@@ -411,9 +273,7 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
         self.assertEquals(result.exit_code, 0)        
         
         
-    def add_users_to_course(self, admin, course_id, instructors, graders, students):
-        from chisubmit.backend.webapp.api.courses.models import CoursesStudents        
-        
+    def add_users_to_course(self, admin, course_id, instructors, graders, students):  
         for instructor in instructors:
             result = admin.run("admin course add-instructor %s %s" % (course_id, instructor.user_id))
             self.assertEquals(result.exit_code, 0)
@@ -432,17 +292,19 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             else:
                 git_username = self.git_server_user
     
-            result = instructors[0].run("instructor user set-repo-option", 
-                                    ["instructor", instructors[0].user_id, "git-username", git_username])
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                    ["instructor", instructors[0].user_id, "git_username", git_username])
             self.assertEquals(result.exit_code, 0)
-            
+
             if self.git_staging_user is None:
                 git_staging_username = "git-" + instructors[0].user_id
             else:
-                git_staging_username = self.git_server_user            
-            result = instructors[0].run("instructor user set-repo-option", 
-                                    ["instructor", instructors[0].user_id, "git-staging-username", git_staging_username])
+                git_staging_username = self.git_staging_user
+    
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                    ["instructor", instructors[0].user_id, "git_staging_username", git_staging_username])
             self.assertEquals(result.exit_code, 0)
+
 
         for grader in graders:
             if self.git_server_user is None:
@@ -450,18 +312,19 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             else:
                 git_username = self.git_server_user
     
-            result = instructors[0].run("instructor user set-repo-option", 
-                                        ["grader", graders[0].user_id, "git-username", git_username])
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                        ["grader", graders[0].user_id, "git_username", git_username])
             self.assertEquals(result.exit_code, 0)
-            
+
             if self.git_staging_user is None:
-                git_staging_username = "git-" + instructors[0].user_id
+                git_staging_username = "git-" + graders[0].user_id
             else:
-                git_staging_username = self.git_server_user            
-            result = instructors[0].run("instructor user set-repo-option", 
-                                        ["grader", graders[0].user_id, "git-staging-username", git_staging_username])
+                git_staging_username = self.git_staging_user
+    
+            result = instructors[0].run("instructor course set-user-attribute", 
+                                    ["grader", graders[0].user_id, "git_staging_username", git_staging_username])
             self.assertEquals(result.exit_code, 0)
-            
+
                 
         result = admin.run("admin course update-repo-access", [course_id])
         self.assertEquals(result.exit_code, 0)
@@ -478,12 +341,9 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             result = student.run("student course set-git-username", [git_username])
             self.assertEquals(result.exit_code, 0)
             
-            course_student = CoursesStudents.query.filter_by(
-                course_id=course_id).filter_by(
-                student_id=student.user_id).first()
+            student_obj = Student.objects.get(course__course_id = course_id, user__username = student.user_id)
                 
-            self.assertIn("git-username", course_student.repo_info)
-            self.assertEquals(course_student.repo_info["git-username"], git_username)
+            self.assertEquals(student_obj.git_username, git_username)
 
 
     def create_team_repos(self, admin, course_id, teams, students_team):
@@ -544,7 +404,6 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
             
             team_commits.append(commits)
             
-            
         for team1, students1 in zip(teams, students_team):
             for team2, students2 in zip(teams, students_team):
                 if team1 != team2:
@@ -557,9 +416,6 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
 
             
     def register_team(self, student_clients, team_name, assignment_id, course_id):
-        from chisubmit.backend.webapp.api.users.models import User
-        from chisubmit.backend.webapp.api.teams.models import Team, StudentsTeams
-
         for s in student_clients:
             partners = [s2 for s2 in student_clients if s2!=s]
             partner_args = []
@@ -567,11 +423,11 @@ class ChisubmitIntegrationTestCase(ChisubmitTestCase):
                 partner_args += ["--partner", p.user_id]
         
             s.run("student assignment register", 
-                  [ assignment_id, "--team-name", team_name] + partner_args)
+                  [ assignment_id ] + partner_args)
 
             s.run("student team show", [team_name])
         
-        
+        return 
         students_in_team = [User.from_id(s.user_id) for s in student_clients]
         
         ts = Team.find_teams_with_students(course_id, students_in_team)

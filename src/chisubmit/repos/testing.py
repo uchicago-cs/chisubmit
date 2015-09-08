@@ -106,5 +106,5 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         pass
     
     def __get_team_path(self, course, team):
-        return "%s/%s/%s.git" % (os.path.abspath(self.local_path), course.id, team.id)   
+        return "%s/%s/%s.git" % (os.path.abspath(self.local_path), course.course_id, team.team_id)   
         

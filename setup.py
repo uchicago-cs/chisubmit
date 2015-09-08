@@ -40,28 +40,37 @@ sys.path.insert(0, './src')
 from chisubmit import RELEASE
 
 
-eps = ['chisubmit = chisubmit.cli:chisubmit_cmd_wrapper',
-       'chisubmit-get-credentials = chisubmit.cli:chisubmit_get_credentials_cmd_wrapper',
-       'chisubmit-server = chisubmit.cli:chisubmit_server_cmd [server]']
+eps = ['chisubmit = chisubmit.cli:chisubmit_cmd.main']
 
 setup(name='chisubmit',
       version=RELEASE,
       description='A system for managing assignments and teams in university courses',
       author='University of Chicago, Department of Computer Science',
       author_email='borja@cs.uchicago.edu',
-      url='http://www.cs.uchicago.edu/',
+      url='http://chi.cs.uchicago.edu/chisubmit/',
       package_dir = {'': 'src'},
       package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
 
-      install_requires = [ "PyGithub >= 1.25.2", "pyapi-gitlab >= 7.8.4", "GitPython >= 0.3.5",
-                           "pyyaml >= 3.10", "pytz >= 2013.8", "tzlocal >= 1.0", "python-dateutil >= 2.4",
-                           "click >= 3.3", "requests >= 2.5.1",
-                           "colorama >= 0.3.2", "docutils >= 0.12" ],
+      install_requires = [ "GitPython >= 1.0.1",
+                           "PyGithub >= 1.25.2",
+                           "click >= 5.1",
+                           "colorama >= 0.3.3",
+                           "docutils >= 0.12",
+                           "enum34 >= 1.0.4",
+                           "pyapi-gitlab >= 7.8.4",
+                           "python-dateutil >= 2.4.2",
+                           "pytz >= 2015.4",
+                           "pyyaml >= 3.11",
+                           "requests >= 2.7.0",
+                           "tzlocal >= 1.2",
+                         ],
       extras_require = {
-                         "server" : ["flask >= 0.10.1", "flask-sqlalchemy >= 2.0",
-                                     "flask-restless >= 0.15", "Flask-Script >= 2.0.5",
-                                     "python-ldap >= 2.4.18", "WTForms-JSON >= 0.2.8"]
+                         "server" : ["django-auth-ldap >= 1.2.6",
+                                     "djangorestframework >= 3.2.3", 
+                                     "jsonfield >= 1.0.3",
+                                     "python-ldap >= 2.4.20" 
+                                     ] 
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
       include_package_data=True,

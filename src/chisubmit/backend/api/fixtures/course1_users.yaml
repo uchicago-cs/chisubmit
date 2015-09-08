@@ -1,0 +1,55 @@
+-   model: api.instructor
+    pk: 1
+    fields:
+        course: 1
+        git_staging_username: instructor1
+        git_username: instructor1
+        user: 101
+-   model: api.grader
+    pk: 1
+    fields:
+        conflicts: []
+        course: 1
+        git_staging_username: grader1
+        git_username: grader1
+        user: 201
+-   model: api.grader
+    pk: 2
+    fields:
+        conflicts: []
+        course: 1
+        git_staging_username: grader2
+        git_username: grader2
+        user: 202
+-   model: api.student
+    pk: 1
+    fields:
+        course: 1
+        git_username: student1
+        extensions: 0
+        dropped: false
+        user: 301
+-   model: api.student
+    pk: 2
+    fields:
+        course: 1
+        git_username: student2
+        extensions: 0
+        dropped: false
+        user: 302
+-   model: api.student
+    pk: 3
+    fields:
+        course: 1
+        git_username: student3
+        extensions: 0
+        dropped: false
+        user: 303
+-   model: api.student
+    pk: 4
+    fields:
+        course: 1
+        git_username: student4
+        extensions: 0
+        dropped: false
+        user: 304

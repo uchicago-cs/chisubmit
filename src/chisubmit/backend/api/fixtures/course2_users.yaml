@@ -1,0 +1,73 @@
+-   model: api.instructor
+    pk: 2
+    fields:
+        course: 2
+        git_staging_username: instructor2
+        git_username: instructor2
+        user: 102
+-   model: api.grader
+    pk: 3
+    fields:
+        conflicts: []
+        course: 2
+        git_staging_username: grader3
+        git_username: grader3
+        user: 203
+-   model: api.grader
+    pk: 4
+    fields:
+        conflicts: []
+        course: 2
+        git_staging_username: grader4
+        git_username: grader4
+        user: 204
+-   model: api.student
+    pk: 5
+    fields:
+        course: 2
+        git_username: student5
+        extensions: 2
+        dropped: false
+        user: 305
+-   model: api.student
+    pk: 6
+    fields:
+        course: 2
+        git_username: student6
+        extensions: 2
+        dropped: false
+        user: 306
+-   model: api.student
+    pk: 7
+    fields:
+        course: 2
+        git_username: student7
+        extensions: 2
+        dropped: false
+        user: 307
+-   model: api.student
+    pk: 8
+    fields:
+        course: 2
+        git_username: student8
+        extensions: 2
+        dropped: false
+        user: 308
+-   model: api.assignment
+    pk: 3
+    fields: 
+        course: 2
+        deadline: "2042-01-21 20:00:00+00:00"
+        max_students: 1
+        min_students: 1
+        name: Homework 1
+        assignment_id: hw1
+-   model: api.assignment
+    pk: 4
+    fields: 
+        course: 2
+        deadline: "2042-01-28 20:00:00+00:00"
+        max_students: 1
+        min_students: 1
+        name: Homework 2
+        assignment_id: hw2

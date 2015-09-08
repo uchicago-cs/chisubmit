@@ -1,0 +1,10 @@
+-   model: api.assignment
+    pk: 3
+    fields: 
+        course: 2
+        deadline: "2042-01-21 20:00:00+00:00"
+        max_students: 1
+        min_students: 1
+        name: Homework 1
+        assignment_id: hw1
+

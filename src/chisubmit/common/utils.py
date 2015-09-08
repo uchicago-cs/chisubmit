@@ -37,6 +37,8 @@ import string
 from tzlocal import get_localzone
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 import math
+from datetime import timedelta
+import os
 
 localzone = get_localzone()
 
@@ -80,27 +82,30 @@ def compute_extensions_needed(submission_time, deadline):
     else:
         return int(extensions_needed)
 
-# Based on http://jetfar.com/simple-api-key-generation-in-python/
-def gen_api_key():
-    s = str(random.getrandbits(256))
-    h = hashlib.sha256(s)
-    altchars = random.choice(string.ascii_letters) + random.choice(string.ascii_letters)
-    b = base64.b64encode(h.digest(), altchars).rstrip("==")
-    return unicode(b)
+def is_submission_ready_for_grading(assignment_deadline, submission_date, extensions_used):
+    now = get_datetime_now_utc()
+    deadline = assignment_deadline + timedelta(days=extensions_used)
     
+    if now > deadline:
+        return True
+    else:
+        return False
     
 def create_connection(course, config, staging = False):
     if not staging:
-        connstr = course.options["git-server-connstr"]
+        connstr = course.git_server_connstr
     else:
-        connstr = course.options["git-staging-connstr"]
+        connstr = course.git_staging_connstr
+
+    if connstr is None:
+        print "The course's git server has not been configured."
+        print "Please contact the course instructor or the chisubmit administrator."
+        return None        
 
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
     server_type = conn.get_server_type_name()
     
-    git_credentials = None
-    if config['git-credentials'] is not None:
-        git_credentials = config['git-credentials'].get(server_type, None)
+    git_credentials = config.get_git_credentials(server_type)
 
     if git_credentials is None:
         print "You do not have %s credentials." % server_type

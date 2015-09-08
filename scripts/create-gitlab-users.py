@@ -58,6 +58,7 @@ def create_gitlab_users(gitlab_hostname, gitlab_token, extern_uid_template, csv_
                 "username": user_id,
                 "name": first_name + " " + last_name,
                 "provider": "ldap",
+                "confirm": False,
                 "extern_uid": extern_uid_template.replace("USER", user_id)}
     
         if dry_run:
@@ -65,22 +66,25 @@ def create_gitlab_users(gitlab_hostname, gitlab_token, extern_uid_template, csv_
             print
         else:
             try:
-                response = requests.post("https://%s/api/v3/users" % gitlab_hostname, 
+                response = requests.post("http://%s/api/v3/users" % gitlab_hostname, 
                                          data=data,
                                          verify=False,
                                          headers=headers)
+                if response.status_code == 201:
+                    print "[OK] Created user %s" % user_id
+                elif response.status_code == 404:
+                    print "[SKIP] User '%s' already exists" % user_id
+                elif response.status_code == 409:
+                    print "[SKIP] User '%s': %s" % (user_id, response.text)
+                else:
+                    print "[ERROR] Unexpected error"
+                    print
+                    print_http_response(response)
+                    exit(1)
             except Exception, e:
                 print "[ERROR] Unexpected exception when creating user %s" % user_id
+                print e
         
-            if response.status_code == 201:
-                print "[OK] Created user %s" % user_id
-            elif response.status_code == 404:
-                print "[SKIP] User '%s' already exists" % user_id
-            else:
-                print "[ERROR] Unexpected error"
-                print
-                print_http_response(response)
-                exit(1)
 
 if __name__ == '__main__':
     create_gitlab_users()

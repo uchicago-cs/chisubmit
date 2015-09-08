@@ -1,0 +1,301 @@
+-   model: auth.user
+    pk: 1
+    fields:
+        date_joined: "2015-06-18 20:29:21+00:00"
+        email: ''
+        first_name: 'F_admin'
+        groups: []
+        is_active: true
+        is_staff: true
+        is_superuser: true
+        last_login: null
+        last_name: 'L_admin'
+        password: pbkdf2_sha256$20000$tf9tfDLdQsE0$YoSK+Ig7X+Dwsq/cWjb7iBDF30Qw89KTcXQcQ3XNWbs=
+        user_permissions: []
+        username: admin
+-   model: authtoken.token
+    pk: admintoken
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 1
+-   model: auth.user
+    pk: 101
+    fields:
+        date_joined: "2015-06-18 20:05:27.468468+00:00"
+        email: ''
+        first_name: 'F_instructor1'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_instructor1'
+        password: pbkdf2_sha256$20000$e4sgvajXj26W$ZdSMZKTgeuh3gGn2BRbn/iiebGq66ganqDhud9QVI5s=
+        user_permissions: []
+        username: instructor1
+-   model: authtoken.token
+    pk: instructor1token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 101
+-   model: auth.user
+    pk: 102
+    fields:
+        date_joined: "2015-06-18 20:05:27.468468+00:00"
+        email: ''
+        first_name: 'F_instructor2'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_instructor2'
+        password: pbkdf2_sha256$20000$e4sgvajXj26W$ZdSMZKTgeuh3gGn2BRbn/iiebGq66ganqDhud9QVI5s=
+        user_permissions: []
+        username: instructor2
+-   model: authtoken.token
+    pk: instructor2token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 102        
+-   model: auth.user
+    pk: 201
+    fields:
+        date_joined: "2015-06-18 20:05:38.612201+00:00"
+        email: ''
+        first_name: 'F_grader1'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_grader1'
+        password: pbkdf2_sha256$20000$dXnOHJ7Tym4h$Teg7jQ02lONWmTdPUDToUtWYYa889edrANndkAYDJsk=
+        user_permissions: []
+        username: grader1
+-   model: authtoken.token
+    pk: grader1token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 201
+-   model: auth.user
+    pk: 202
+    fields:
+        date_joined: "2015-06-18 20:05:48.310776+00:00"
+        email: ''
+        first_name: 'F_grader2'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_grader2'
+        password: pbkdf2_sha256$20000$dEvOBcrxS2Xt$Ovx2/Q6ovyUTJwFQor4FyX1IMsjiwvtdGV3yYRM0T54=
+        user_permissions: []
+        username: grader2
+-   model: authtoken.token
+    pk: grader2token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 202        
+-   model: auth.user
+    pk: 203
+    fields:
+        date_joined: "2015-06-18 20:05:48.310776+00:00"
+        email: ''
+        first_name: 'F_grader3'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_grader3'
+        password: pbkdf2_sha256$20000$dEvOBcrxS2Xt$Ovx2/Q6ovyUTJwFQor4FyX1IMsjiwvtdGV3yYRM0T54=
+        user_permissions: []
+        username: grader3
+-   model: authtoken.token
+    pk: grader3token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 203    
+-   model: auth.user
+    pk: 204
+    fields:
+        date_joined: "2015-06-18 20:05:48.310776+00:00"
+        email: ''
+        first_name: 'F_grader4'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_grader4'
+        password: pbkdf2_sha256$20000$dEvOBcrxS2Xt$Ovx2/Q6ovyUTJwFQor4FyX1IMsjiwvtdGV3yYRM0T54=
+        user_permissions: []
+        username: grader4
+-   model: authtoken.token
+    pk: grader4token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 204                    
+-   model: auth.user
+    pk: 301
+    fields:
+        date_joined: "2015-06-18 20:05:56.446848+00:00"
+        email: ''
+        first_name: 'F_student1'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student1'
+        password: pbkdf2_sha256$20000$VovANOtBkWkN$1X0LXOxYuFZ3tg3NXSERhRCmQ6OZ+PRFB3UunPR8ch4=
+        user_permissions: []
+        username: student1
+-   model: authtoken.token
+    pk: student1token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 301        
+-   model: auth.user
+    pk: 302
+    fields:
+        date_joined: "2015-06-18 20:06:03.407608+00:00"
+        email: ''
+        first_name: 'F_student2'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student2'
+        password: pbkdf2_sha256$20000$vqzjHD8iO5P0$Hjf2eyNyZWZlcUlQ3FS9JGnvQPAjMKU/FdiOMyHmPhI=
+        user_permissions: []
+        username: student2
+-   model: authtoken.token
+    pk: student2token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 302        
+-   model: auth.user
+    pk: 303
+    fields:
+        date_joined: "2015-06-18 20:06:14.604225+00:00"
+        email: ''
+        first_name: 'F_student3'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student3'
+        password: pbkdf2_sha256$20000$bAmxOHVXhlUz$EiK1UIFgczusoNDGeEn51KTDfAwnCCN1ijpi6Ur6y8w=
+        user_permissions: []
+        username: student3
+-   model: authtoken.token
+    pk: student3token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 303                
+-   model: auth.user
+    pk: 304
+    fields:
+        date_joined: "2015-06-18 20:06:21.821543+00:00"
+        email: ''
+        first_name: 'F_student4'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student4'
+        password: pbkdf2_sha256$20000$mdTnv7q72sC9$ccKpVZrYQHXxLmgPAPx49cv0xVE0DVjf86hnodO03zg=
+        user_permissions: []
+        username: student4
+-   model: authtoken.token
+    pk: student4token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 304        
+-   model: auth.user
+    pk: 305
+    fields:
+        date_joined: "2015-06-18 20:06:21.821543+00:00"
+        email: ''
+        first_name: 'F_student5'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student5'
+        password: pbkdf2_sha256$20000$mdTnv7q72sC9$ccKpVZrYQHXxLmgPAPx49cv0xVE0DVjf86hnodO03zg=
+        user_permissions: []
+        username: student5
+-   model: authtoken.token
+    pk: student5token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 305  
+-   model: auth.user
+    pk: 306
+    fields:
+        date_joined: "2015-06-18 20:06:21.821543+00:00"
+        email: ''
+        first_name: 'F_student6'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student6'
+        password: pbkdf2_sha256$20000$mdTnv7q72sC9$ccKpVZrYQHXxLmgPAPx49cv0xVE0DVjf86hnodO03zg=
+        user_permissions: []
+        username: student6
+-   model: authtoken.token
+    pk: student6token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 306  
+-   model: auth.user
+    pk: 307
+    fields:
+        date_joined: "2015-06-18 20:06:21.821543+00:00"
+        email: ''
+        first_name: 'F_student7'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student7'
+        password: pbkdf2_sha256$20000$mdTnv7q72sC9$ccKpVZrYQHXxLmgPAPx49cv0xVE0DVjf86hnodO03zg=
+        user_permissions: []
+        username: student7
+-   model: authtoken.token
+    pk: student7token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 307  
+-   model: auth.user
+    pk: 308
+    fields:
+        date_joined: "2015-06-18 20:06:21.821543+00:00"
+        email: ''
+        first_name: 'F_student8'
+        groups: []
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: null
+        last_name: 'L_student8'
+        password: pbkdf2_sha256$20000$mdTnv7q72sC9$ccKpVZrYQHXxLmgPAPx49cv0xVE0DVjf86hnodO03zg=
+        user_permissions: []
+        username: student8
+-   model: authtoken.token
+    pk: student8token
+    fields:
+        created: "2015-06-19 00:18:40.984059+00:00"
+        user: 308                               
+    

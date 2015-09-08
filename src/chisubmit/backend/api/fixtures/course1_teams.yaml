@@ -1,0 +1,39 @@
+-   model: api.team
+    pk: 1
+    fields:
+        course: 1
+        team_id: student1-student2
+        extensions: 2
+        active: true
+-   model: api.team
+    pk: 2
+    fields:
+        course: 1
+        team_id: student3-student4
+        extensions: 2
+        active: true
+-   model: api.teammember
+    pk: 1
+    fields:
+        student: 1
+        team: 1
+        confirmed: true
+-   model: api.teammember
+    pk: 2
+    fields:
+        student: 2
+        team: 1
+        confirmed: true
+-   model: api.teammember
+    pk: 3
+    fields:
+        student: 3
+        team: 2
+        confirmed: true
+-   model: api.teammember
+    pk: 4
+    fields:
+        student: 4
+        team: 2
+        confirmed: true
+ 

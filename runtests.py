@@ -3,89 +3,104 @@
 import click
 import unittest
 import sys
+import os
 
 from ConfigParser import ConfigParser
 
-from unittest.runner import TextTestRunner
+from django.test.runner import DiscoverRunner
 
-from chisubmit.tests import api
-from chisubmit.tests import client
-from chisubmit.tests import cli
-from chisubmit.tests.integration.test_complete1 import CLICompleteWorkflowExtensionsPerTeam
-from chisubmit.tests.integration.test_complete2 import CLICompleteWorkflowExtensionsPerStudent
-from chisubmit.tests.integration.test_complete3 import CLICompleteWorkflowCancelSubmission
+import chisubmit.backend.settings
 
-api_tests = unittest.TestLoader().loadTestsFromModule(api)
-client_tests = unittest.TestLoader().loadTestsFromModule(client)
-cli_tests = unittest.TestLoader().loadTestsFromModule(cli)
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "chisubmit.backend.settings")
+django.setup()
 
-unit_tests = {"api": api_tests,
-              "clientlibs": client_tests,
-              "cli": cli_tests}
+from chisubmit.tests.integration.complete.test_complete1 import CLICompleteWorkflowExtensionsPerTeam
+from chisubmit.tests.integration.complete.test_complete2 import CLICompleteWorkflowExtensionsPerStudent
+from chisubmit.tests.integration.complete.test_complete3 import CLICompleteWorkflowCancelSubmission
 
-all_unittests = unittest.TestSuite(unit_tests.values())
 
-integration_tests = {"complete1": CLICompleteWorkflowExtensionsPerTeam,
-                     "complete2": CLICompleteWorkflowExtensionsPerStudent,
-                     "complete3": CLICompleteWorkflowCancelSubmission}
+test_suites = {"api": "chisubmit.tests.unit.api",
+               "clientlibs": "chisubmit.tests.integration.clientlibs",
+               "cli": "chisubmit.tests.integration.cli",
+         
+               "complete1": CLICompleteWorkflowExtensionsPerTeam,
+               "complete2": CLICompleteWorkflowExtensionsPerStudent,
+               "complete3": CLICompleteWorkflowCancelSubmission}
+         
+unit_tests = ["api"]
+
+integration_tests = ["clientlibs", "cli"]
+
+complete_tests = ["complete1", "complete2", "complete3"]
+ 
+all_except_complete = unit_tests + integration_tests
+
+def run_complete_test(runner, name, test_config, git_server, git_staging):
+    suite = unittest.TestSuite()
+    test_class = test_suites[name]
+    for name in unittest.TestLoader().getTestCaseNames(test_class):
+        test = test_class(name)
+        configure_complete_test(test, test_config, git_server, git_staging)
+        suite.addTest(test)    
+    runner.run_tests([], extra_tests=suite)
 
 @click.command()
 @click.option("--failfast", "-f", is_flag=True)
 @click.option("--quiet", "-q", is_flag=True)
 @click.option("--verbose", "-v", is_flag=True)
 @click.option("--buffer", "-b", is_flag=True)
-@click.option("--integration-config", "-c", type=click.File())
-@click.option("--integration-git-server", type=str)
-@click.option("--integration-git-staging", type=str)
-@click.argument('tests', type=str, default="all_unit")
+@click.option("--config", "-c", type=click.File())
+@click.option("--git-server", type=str)
+@click.option("--git-staging", type=str)
+@click.argument('tests', type=str, default="all")
 def runtests(failfast, quiet, verbose, buffer, 
-             integration_config, integration_git_server, integration_git_staging, 
+             config, git_server, git_staging, 
              tests):
     verbosity = 1
     if quiet:
         verbosity = 0
     if verbose:
+        from chisubmit.tests.common import set_cli_verbose
+        set_cli_verbose(True)
         verbosity = 2
         
-    if integration_config is not None:
-        config = ConfigParser()
-        config.readfp(integration_config)
+    if config is not None:
+        test_config = ConfigParser()
+        test_config.readfp(config)
     else:
-        config = None
+        test_config = None
+
+    runner = DiscoverRunner(verbosity=verbosity, failfast=failfast)
         
-    runner = TextTestRunner(verbosity=verbosity, failfast=failfast, buffer=buffer)
-    
     ran = False
     
-    if tests in ("all", "all_unit"):
+    if tests == "all":
         ran = True
-        runner.run(all_unittests)
-        
-    if tests in unit_tests:
+        runner.run_tests([test_suites[t] for t in all_except_complete])
+                
+    if tests in all_except_complete:
         ran = True
-        runner.run(unit_tests[tests])
+        runner.run_tests([test_suites[tests]])
         
-    if tests in integration_tests:
+    if tests in complete_tests:
         ran = True
-        test_class = integration_tests[tests]
-        suite = unittest.TestSuite()
-        for name in unittest.TestLoader().getTestCaseNames(test_class):
-            test = test_class(name)
-            configure_integration_test(test, config, integration_git_server, integration_git_staging)
-            suite.addTest(test)
+        run_complete_test(runner, tests, test_config, git_server, git_staging)
+                
+    if tests == "complete":
+        ran = True
+        for test in complete_tests:
+            run_complete_test(runner, test, test_config, git_server, git_staging)
         
-        runner.run(suite)
         
     if not ran:
-        # TODO: Try to instantiate specific test
-        try:
-            suite = unittest.TestLoader().loadTestsFromName(tests)
-            runner.run(suite)
-        except AttributeError, ae:
-            print "Unknown test: %s" % tests
+        #try:
+            runner.run_tests([tests])
+        #except AttributeError, ae:
+        #    print "Unknown test: %s" % tests
     
     
-def configure_integration_test(test, config, git_server, git_staging):
+def configure_complete_test(test, config, git_server, git_staging):
     if config is None and (git_server is not None or git_staging is not None):
         print "ERROR: You have specified a Git server or staging server, but have"
         print "       not provided a configuration file."

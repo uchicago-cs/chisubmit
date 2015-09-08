@@ -1,0 +1,25 @@
+from defaults import *
+
+# When writing your production settings, make sure to read the deployment checklist:
+# See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
+
+# Uncomment the next line and set the secret key to a random value.
+# There is a simple recipe here: http://techblog.leosoto.com/django-secretkey-generation/
+# SECRET_KEY = '...'
+
+# Update this variable with a list of the hosts that run the chisubmit server.
+# e.g., ["chisubmit.cs.uchicago.edu"]
+ALLOWED_HOSTS = ["*"]
+
+# By default, chisubmit is set up to use SQLite.
+# Change this if you want to use MySQL/PostgreSQL/etc.
+# See https://docs.djangoproject.com/en/1.8/ref/settings/#databases
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.production.sqlite3'),
+    }
+}
+
+DEBUG = False
+

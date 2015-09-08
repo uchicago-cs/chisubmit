@@ -1,0 +1,9 @@
+-   model: api.course
+    pk: 1
+    fields:
+        name: Introduction to Software Testing
+        course_id: cmsc40100 
+        default_extensions: 0
+        extension_policy: per-team
+        git_staging_usernames: user-id
+        git_usernames: user-id

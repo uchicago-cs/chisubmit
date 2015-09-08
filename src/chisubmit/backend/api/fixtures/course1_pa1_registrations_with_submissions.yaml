@@ -1,0 +1,33 @@
+-   model: api.registration
+    pk: 1
+    fields:
+        team: 1
+        assignment: 1
+        final_submission: 2
+-   model: api.registration
+    pk: 2
+    fields:
+        team: 2
+        assignment: 1
+        final_submission: 3
+-   model: api.submission
+    pk: 1
+    fields:
+        registration: 1
+        extensions_used: 0
+        commit_sha: COMMITSHA11111
+        submitted_at: "2042-01-21 19:57:00+00:00"
+-   model: api.submission
+    pk: 2
+    fields:
+        registration: 1
+        extensions_used: 1
+        commit_sha: COMMITSHA22222
+        submitted_at: "2042-01-21 20:13:00+00:00"      
+-   model: api.submission
+    pk: 3
+    fields:
+        registration: 2
+        extensions_used: 2
+        commit_sha: COMMITSHA33333
+        submitted_at: "2042-01-22 20:13:00+00:00"               

@@ -13,7 +13,7 @@ from chisubmit.client.exceptions import UnknownObjectException,\
     UnauthorizedException, BadRequestException, ChisubmitRequestException
 from chisubmit.client.types import AttributeType
 from requests.exceptions import ConnectionError, SSLError
-from requests.packages.urllib3.exceptions import SSLError as SSLError_urllib3
+from urllib3.exceptions import SSLError as SSLError_urllib3
 from click.globals import get_current_context
 from chisubmit.config import Config, ConfigDirectoryNotFoundException
 from chisubmit.client import Chisubmit

@@ -98,8 +98,8 @@ class CourseSerializer(ChisubmitSerializer):
     teams_url = serializers.SerializerMethodField()
     
     
-    git_server_connstr = serializers.CharField(max_length=64, required=False)
-    git_staging_connstr = serializers.CharField(max_length=64, required=False)
+    git_server_connstr = serializers.CharField(max_length=256, required=False)
+    git_staging_connstr = serializers.CharField(max_length=256, required=False)
     git_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
     git_staging_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
     extension_policy = serializers.ChoiceField(choices=Course.EXT_CHOICES, default=Course.EXT_PER_STUDENT)

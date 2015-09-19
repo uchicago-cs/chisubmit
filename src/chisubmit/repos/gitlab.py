@@ -32,8 +32,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
 
     @staticmethod
     def get_connstr_optional_params():
-        return []
-    
+        return ["ldap_uid_template"]
     
     
     def get_credentials(self, username, password, delete_repo = False):

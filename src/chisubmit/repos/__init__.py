@@ -5,7 +5,7 @@ class ConnectionString(object):
 
     def __init__(self, s):
         params = s.split(";")
-        params = [x.split("=") for x in params]
+        params = [x.split("=", 1) for x in params]
 
         try:
             params = dict([(k.strip(), v.strip()) for k,v in params])

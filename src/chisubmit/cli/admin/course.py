@@ -158,7 +158,10 @@ def admin_course_add_student(ctx, course_id, user_id):
     user = get_user_or_exit(ctx, user_id)    
     course.add_student(user)    
     
-@click.command(name="load-students")
+    
+VALID_USER_TYPES = ['student', 'grader', 'instructor']    
+    
+@click.command(name="load-users")
 @click.argument('course_id', type=str)
 @click.argument('csv_file', type=click.File('rb'))
 @click.argument('csv_username_column', type=str)
@@ -167,34 +170,55 @@ def admin_course_add_student(ctx, course_id, user_id):
 @click.argument('csv_email_column', type=str)
 @click.option('--dry-run', is_flag=True)
 @click.option('--sync', is_flag=True)
+@click.option('--user-type', type=click.Choice(VALID_USER_TYPES + ['column']))
+@click.option('--user-type-column', type=str)
 @click.option('--id-from-email', is_flag=True)
 @require_config
 @click.pass_context
-def admin_course_load_students(ctx, course_id, csv_file, csv_username_column, csv_fname_column, csv_lname_column, csv_email_column, dry_run, sync, id_from_email):   
+def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_fname_column, csv_lname_column, csv_email_column,
+                                 dry_run, sync, user_type, user_type_column, id_from_email):   
     course = get_course_or_exit(ctx, course_id)    
+                
+    if user_type == "column" and user_type_column is None:
+        print "You must specify a column with --user-type-column when using '--user-type column'"
+        ctx.exit(CHISUBMIT_FAIL)
                 
     csvf = csv.DictReader(csv_file)
             
-    for col in (csv_username_column, csv_fname_column, csv_lname_column, csv_email_column):
+    columns = [csv_username_column, csv_fname_column, csv_lname_column, csv_email_column]
+    
+    if user_type == "column":
+        columns.append(user_type_column)
+            
+    for col in columns:
         if col not in csvf.fieldnames:
             print "CSV file %s does not have a '%s' column" % (csv_file, col)
             ctx.exit(CHISUBMIT_FAIL)
         
-    usernames = set()
+    student_usernames = set()
         
     for entry in csvf:
         username = entry[csv_username_column]
         
         if id_from_email:
             username = username.split("@")[0].strip()
-
-        usernames.add(username)
         
         first_name = entry[csv_fname_column]
         last_name = entry[csv_lname_column]
         email = entry[csv_email_column]
+        
+        print "Processing %s (%s, %s)" % (username, last_name, first_name)        
+        
+        if user_type == "column":
+            cur_user_type = entry[user_type_column]
+            if cur_user_type not in VALID_USER_TYPES:
+                print "- User %s has invalid user type '%s'." % (username, cur_user_type)
+                continue
+        else:
+            cur_user_type = user_type
 
-        print "Processing %s (%s, %s)" % (username, last_name, first_name)
+        if cur_user_type == "student":
+            student_usernames.add(username)
 
         try:
             user = ctx.obj["client"].get_user(username = username)
@@ -207,25 +231,42 @@ def admin_course_load_students(ctx, course_id, csv_file, csv_username_column, cs
                                                      last_name = last_name,
                                                      email = email)
         
-        try:
-            student = course.get_student(username)
-            if not student.dropped:
-                print "- User %s is already a student in %s" % (username, course_id)
-            else:
+        if cur_user_type == "student":
+            try:
+                student = course.get_student(username)
+                if not student.dropped:
+                    print "- User %s is already a student in %s" % (username, course_id)
+                else:
+                    if not dry_run:
+                        student.dropped = False
+                    print "- Student had previously been marked as dropped, has been un-dropped"
+            except UnknownObjectException, uoe:
+                print "- Adding student %s to %s" % (username, course_id)
                 if not dry_run:
-                    student.dropped = False
-                print "- Student had previously been marked as dropped, has been un-dropped"
-        except UnknownObjectException, uoe:
-            print "- Adding %s to %s" % (username, course_id)
-            if not dry_run:
-                course.add_student(user)
-        
+                    course.add_student(user)
+        elif cur_user_type == "instructor":
+            try:
+                instructor = course.get_instructor(username)
+                print "- User %s is already an instructor in %s" % (username, course_id)
+            except UnknownObjectException, uoe:
+                print "- Adding instructor %s to %s" % (username, course_id)
+                if not dry_run:
+                    course.add_instructor(user)
+        elif cur_user_type == "grader":
+            try:
+                grader = course.get_grader(username)
+                print "- User %s is already a grader in %s" % (username, course_id)
+            except UnknownObjectException, uoe:
+                print "- Adding grader %s to %s" % (username, course_id)
+                if not dry_run:
+                    course.add_grader(user)
+            
         print 
     
     if sync:
         existing_students = course.get_students()
         for existing_student in existing_students:
-            if existing_student.username not in usernames:
+            if existing_student.username not in student_usernames:
                 if not dry_run:
                     existing_student.dropped = True
                 print "Dropped %s" % existing_student.username
@@ -462,7 +503,7 @@ admin_course.add_command(admin_course_show)
 admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)
-admin_course.add_command(admin_course_load_students)
+admin_course.add_command(admin_course_load_users)
 admin_course.add_command(admin_course_set_attribute)
 admin_course.add_command(admin_course_setup_repo)
 admin_course.add_command(admin_course_unsetup_repo)

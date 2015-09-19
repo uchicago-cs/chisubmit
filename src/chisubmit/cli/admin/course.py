@@ -30,7 +30,8 @@
 
 import click
 
-from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
+from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL,\
+    ChisubmitException
 from chisubmit.common.utils import create_connection
 from chisubmit.cli.shared.course import shared_course_list,\
     shared_course_set_user_attribute
@@ -38,7 +39,7 @@ import operator
 from chisubmit.client.exceptions import UnknownObjectException
 from chisubmit.cli.common import get_course_or_exit, get_user_or_exit,\
     api_obj_set_attribute, get_team_or_exit, catch_chisubmit_exceptions,\
-    require_config
+    require_config, get_student_or_exit
 import csv
 
 
@@ -271,7 +272,94 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
                     existing_student.dropped = True
                 print "Dropped %s" % existing_student.username
         
+
+@click.command(name="create-git-users")
+@click.argument('course_id', type=str)
+@click.option('--staging', is_flag=True)
+@click.option('--dry-run', is_flag=True)
+@click.option('--all-types', is_flag=True)
+@click.option('--only-type', type=click.Choice(VALID_USER_TYPES), required = False)
+@require_config
+@click.pass_context
+def admin_course_create_git_users(ctx, course_id, staging, dry_run, all_types, only_type):   
+    course = get_course_or_exit(ctx, course_id)    
+                
+    if all_types and only_type is not None:
+        print "You cannot specify both --all-types and --only-type"
+        ctx.exit(CHISUBMIT_FAIL)
+        
+    if staging and only_type == "student":
+        print "You cannot create student accounts on the staging server."
+        ctx.exit(CHISUBMIT_FAIL)
+          
+    conn = create_connection(course, ctx.obj['config'], staging)          
+          
+    users = []
     
+    if not staging and (all_types or only_type == "student"):
+        users += course.get_students()
+
+    if all_types or only_type == "grader":
+        users += course.get_graders()
+
+    if all_types or only_type == "instructor":
+        users += course.get_instructors()
+
+    for user in users:
+        if conn.exists_user(course, user):
+            print "[SKIP] User '%s' already exists" % user.username
+        else:
+            if dry_run:
+                print "[OK] Created user %s" % user.username
+            else:
+                try:
+                    conn.create_user(course, user)
+                    print "[OK] Created user %s" % user.username
+                except ChisubmitException, ce:
+                    print "[ERROR] Couldn't create user '%s': %s" % (user.username, ce.message)
+    
+@click.command(name="create-individual-teams")
+@click.argument('course_id', type=str)
+@click.option('--dry-run', is_flag=True)
+@click.option('--only', type=str)
+@require_config
+@click.pass_context
+def admin_course_create_individual_teams(ctx, course_id, dry_run, only):      
+    course = get_course_or_exit(ctx, course_id)    
+
+    if only is not None:
+        students = [get_student_or_exit(ctx, course, only)]
+    else:
+        students = course.get_students()
+        
+    
+    for student in students:
+        print "Processing %s (%s, %s)" % (student.username, student.user.last_name, student.user.first_name)        
+
+        try:
+            team = course.get_team(student.username)
+
+            tms = team.get_team_members()
+            if len(tms) == 0:
+                # Incomplete team creation
+                if not dry_run:
+                    team.add_team_member(student.username, confirmed = True)
+                print "- Added user %s to team %s." % (student.username, team.team_id)
+            elif len(tms) == 1 and tms[0].username == student.username:
+                print "- User %s already has an individual team." % student.username
+            else:
+                print "- ERROR: Team '%s' exists but it has these team members: %s" % (team.team_id, [tm.username for tm in tms])
+            
+        except UnknownObjectException, uoe:
+            if not dry_run:
+                team = course.create_team(student.username)
+                team.add_team_member(student.username, confirmed = True)
+            print "- Created individual team for user %s." % student.username
+            
+        print
+        
+        
+            
     
 @click.command(name="set-attribute")
 @click.argument('course_id', type=str)
@@ -504,6 +592,8 @@ admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)
 admin_course.add_command(admin_course_load_users)
+admin_course.add_command(admin_course_create_git_users)
+admin_course.add_command(admin_course_create_individual_teams)
 admin_course.add_command(admin_course_set_attribute)
 admin_course.add_command(admin_course_setup_repo)
 admin_course.add_command(admin_course_unsetup_repo)

@@ -27,6 +27,11 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         return []
     
     @staticmethod
+    def supports_user_creation():
+        return False    
+    
+    
+    @staticmethod
     def get_credentials(username, password, delete_repo = False):
         return "testing-credentials"
     
@@ -42,6 +47,12 @@ class TestingConnection(RemoteRepositoryConnectionBase):
     
     def deinit_course(self, course):
         pass
+        
+    def exists_user(self, course, course_user):
+        pass
+
+    def create_user(self, course, course_user):
+        pass        
         
     def update_instructors(self, course):
         pass

@@ -7,6 +7,8 @@ import gitlab.exceptions
 from chisubmit.repos import RemoteRepositoryConnectionBase, GitCommit, GitTag
 from chisubmit.common import ChisubmitException
 from dateutil.parser import parse
+import random
+import string
 
 class GitLabConnection(RemoteRepositoryConnectionBase):
 
@@ -34,6 +36,9 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     def get_connstr_optional_params():
         return ["ldap_uid_template"]
     
+    @staticmethod
+    def supports_user_creation():
+        return True    
     
     def get_credentials(self, username, password, delete_repo = False):
         try:
@@ -90,6 +95,46 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         group = self.__get_group(course)
         if group is not None:
             rv = self.gitlab.deletegroup(self.__get_group_id(course))
+            
+    def exists_user(self, course, course_user):
+        gitlab_username = self._get_user_git_username(course, course_user)
+        user = self.__get_user_by_username(gitlab_username)
+        
+        if user is None:
+            return False
+        else:
+            return True
+
+
+    def create_user(self, course, course_user):
+        if self.ldap_uid_template is None:
+            raise ChisubmitException("ldap_uid_template has not been set for this course")
+        
+        if "USER" not in self.ldap_uid_template:
+            raise ChisubmitException("ldap_uid_template does not include USER: %s" % self.ldap_uid_template)
+        
+        gitlab_user_username = self._get_user_git_username(course, course_user)
+        
+        gitlab_user_name = "%s %s" % (course_user.user.first_name, course_user.user.last_name)
+
+        gitlab_user_email = course_user.user.email
+        
+        # Password doesn't actually matter since we use
+        # LDAP authentication. Just in case, we set it to
+        # something complicated
+        gitlab_user_password = ''.join([random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for i in range(25)])
+        
+        gitlab_extern_uid = self.ldap_uid_template.replace("USER", gitlab_user_username)
+    
+        self.gitlab.createuser(name = gitlab_user_name, 
+                               username = gitlab_user_username, 
+                               password = gitlab_user_password,
+                               email = gitlab_user_email,
+                               provider = "ldap",
+                               confirm = False,
+                               extern_uid = gitlab_extern_uid                           
+                               )
+        
     
     def update_instructors(self, course):
         for instructor in course.get_instructors():

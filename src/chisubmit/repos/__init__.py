@@ -5,7 +5,7 @@ class ConnectionString(object):
 
     def __init__(self, s):
         params = s.split(";")
-        params = [x.split("=") for x in params]
+        params = [x.split("=", 1) for x in params]
 
         try:
             params = dict([(k.strip(), v.strip()) for k,v in params])
@@ -65,6 +65,10 @@ class RemoteRepositoryConnectionBase(object):
     def get_connstr_optional_params():
         pass
 
+    @staticmethod
+    @abc.abstractmethod
+    def supports_user_creation():
+        pass
 
     @abc.abstractmethod
     def get_credentials(self, username, password, delete_repo = False):
@@ -84,6 +88,14 @@ class RemoteRepositoryConnectionBase(object):
 
     @abc.abstractmethod
     def init_course(self, course, fail_if_exists=True):
+        pass
+
+    @abc.abstractmethod
+    def exists_user(self, course, course_user):
+        pass
+
+    @abc.abstractmethod
+    def create_user(self, course, course_user):
         pass
 
     @abc.abstractmethod

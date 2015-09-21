@@ -67,8 +67,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         csv_file = "students.csv"
         self.gen_csv(students, csv_file)
         
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email"])
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -86,8 +86,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         csv_file = "students.csv"
         self.gen_csv(students, csv_file)
         
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -96,8 +96,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         self.assertEquals(len(user_objs), len(students) + 1)
         self.assertEquals(len(student_objs), len(students))
 
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -114,8 +114,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         csv_file = "students.csv"
         self.gen_csv(students, csv_file)
         
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -127,8 +127,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         students.update(self.gen_students(["student5"]))
         self.gen_csv(students, csv_file)
 
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -145,8 +145,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         csv_file = "students.csv"
         self.gen_csv(students, csv_file)
         
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -158,8 +158,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         del students["student3"]
         self.gen_csv(students, csv_file)
 
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--sync"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student", "--sync"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -177,8 +177,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         csv_file1 = "course1.csv"
         self.gen_csv(students1, csv_file1)
         
-        result = admin.run("admin course load-students",
-                           [COURSE1_ID, csv_file1, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE1_ID, csv_file1, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()
@@ -191,8 +191,8 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         csv_file2 = "course2.csv"
         self.gen_csv(students2, csv_file2)
         
-        result = admin.run("admin course load-students",
-                           [COURSE2_ID, csv_file2, "username", "first", "last", "email"])        
+        result = admin.run("admin course load-users",
+                           [COURSE2_ID, csv_file2, "username", "first", "last", "email", "--user-type", "student"])        
         self.assertEquals(result.exit_code, 0)
 
         user_objs = User.objects.all()

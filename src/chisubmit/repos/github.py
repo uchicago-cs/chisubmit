@@ -31,6 +31,11 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
     def get_connstr_optional_params():
         return []
 
+    @staticmethod
+    def supports_user_creation():
+        return False
+
+
     def get_credentials(self, username, password, delete_repo = False):
         gh = Github(username, password)
         token = None
@@ -95,6 +100,12 @@ class GitHubConnection(RemoteRepositoryConnectionBase):
             
         if graders_ghteam is not None:
             graders_ghteam.delete()
+
+    def exists_user(self, course, course_user):
+        raise NotImplementedError
+
+    def create_user(self, course, course_user):
+        raise NotImplementedError
 
     def update_instructors(self, course):
         instructors_ghteam = self.__get_ghteam_by_name(self.__get_instructors_ghteam_name(course))

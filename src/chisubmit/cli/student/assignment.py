@@ -12,7 +12,6 @@ from chisubmit.cli.shared.assignment import shared_assignment_list
 from datetime import timedelta
 from chisubmit.client.exceptions import BadRequestException,\
     UnknownObjectException
-from django.core.exceptions import ObjectDoesNotExist
 
 
 @click.group(name="assignment")

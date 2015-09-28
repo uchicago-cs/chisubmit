@@ -38,10 +38,38 @@ def student_assignment_register(ctx, course, assignment_id, partner):
         # If get_instructor doesn't raise an exception, then the user
         # is an instructor, and we don't include the user in the list
         # of partners.
-        assignment.register(students = partner)    
+        r = assignment.register(students = partner)    
     except UnknownObjectException:
         # Otherwise, we include the current user
-        assignment.register(students = partner + (user.username,))    
+        r = assignment.register(students = partner + (user.username,))    
+
+    print "Your registration for %s (%s) is complete." % (r.registration.assignment.assignment_id, r.registration.assignment.name)
+    
+    if len(r.team_members) > 1:
+        some_unconfirmed = False
+        print 
+        print "Your team name is '%s'." % r.team.team_id
+        print
+        print "The team is composed of the following students:"
+        print
+        for tm in r.team_members:
+            if tm.confirmed:
+                conf = ""
+            else:
+                conf = "UNCONFIRMED"
+                some_unconfirmed = True
+                
+            print " - %s, %s (%s) %s" % (tm.student.user.last_name, 
+                                         tm.student.user.first_name,
+                                         tm.student.user.username,
+                                         conf)
+             
+            if some_unconfirmed:
+                print
+                print "Note: Some students have not yet confirmed that they are part of"
+                print "      this team. To confirm they are part of this team, they just"
+                print "      need to register as a team themselves (using this same"
+                print "      command, and listing the same team members)."
     
     return CHISUBMIT_SUCCESS
 

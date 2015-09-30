@@ -7,6 +7,7 @@ from chisubmit.common.utils import convert_datetime_to_utc
 import operator
 from chisubmit.cli.shared.assignment import shared_assignment_list,\
     shared_assignment_set_attribute
+from chisubmit.client.exceptions import UnknownObjectException
 
 
 @click.group(name="assignment")
@@ -67,18 +68,13 @@ def instructor_assignment_register(ctx, course, assignment_id, student):
 @pass_course
 @click.pass_context
 def instructor_assignment_stats(ctx, course, assignment_id):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
-        
-    title = "Assignment '%s'" % (assignment.name)
-    print title
-    print "=" * len(title)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+             
+    all_students = course.get_students()
          
-    student_dict = {s.user.id: s.user for s in course.students if not s.dropped}
+    student_dict = {s.user.username: s.user for s in all_students if not s.dropped}
     students = set(student_dict.keys())
-    dropped = set([s.user.id for s in course.students if s.dropped])
+    dropped = set([s.user.username for s in all_students if s.dropped])
     
     teams_unconfirmed = []
     nteams = 0
@@ -87,34 +83,41 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     nsubmissions = 0
     unsubmitted = []
     
-    for team in course.teams:
-        if team.has_assignment(assignment.id):
-            nteams += 1
+    for team in course.get_teams():
+        try:
+            registration = team.get_assignment_registration(assignment.assignment_id)
+        except UnknownObjectException:
+            continue
+        
+        nteams += 1
+        
+        if registration.final_submission is not None:
+            nsubmissions += 1
+        else:
+            unsubmitted.append(team)
             
-            if team.has_submitted(assignment.id):
-                nsubmissions += 1
-            else:
-                unsubmitted.append(team)
-                
-            unconfirmed = False
-            for student in team.students:
-                student_id = student.user.id
-                if student_id not in dropped:
-                    try:
-                        students.remove(student_id)
-                        nstudents_assignment += 1
-                        if student.status == 0: # Unconfirmed
-                            unconfirmed = True
-                    except KeyError, ke:
-                        print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (student_id, team.id)
-                
-            if unconfirmed:
-                teams_unconfirmed.append(team)
+        unconfirmed = False
+        for tm in team.get_team_members():
+            if tm.username not in dropped:
+                try:
+                    students.remove(tm.username)
+                    nstudents_assignment += 1
+                    if not tm.confirmed:
+                        unconfirmed = True
+                except KeyError, ke:
+                    print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (tm.username, team.team_id)
+            
+        if unconfirmed:
+            teams_unconfirmed.append(team)
                 
     assert(nstudents == len(students) + nstudents_assignment)                
+            
+    title = "Assignment '%s'" % (assignment.name)
+    print title
+    print "=" * len(title)
                
     print 
-    print "%i / %i students in %i teams have signed up for assignment %s" % (nstudents_assignment, nstudents, nteams, assignment.id)
+    print "%i / %i students in %i teams have signed up for assignment %s" % (nstudents_assignment, nstudents, nteams, assignment.assignment_id)
     print
     print "%i / %i teams have submitted the assignment" % (nsubmissions, nteams)
     
@@ -133,7 +136,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
             print "Teams that have not submitted"
             print "-----------------------------"
             for t in unsubmitted:
-                print t.id
+                print t.team_id
                 
     return CHISUBMIT_SUCCESS
 

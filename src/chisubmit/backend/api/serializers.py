@@ -388,6 +388,13 @@ class TeamMemberSerializer(ChisubmitSerializer):
     
     readonly_fields = { "confirmed": GradersAndStudents }        
 
+    def __init__(self, *args, **kwargs):
+        if kwargs.has_key("context"):        
+            username_f = self.fields['username']
+            username_f.queryset = username_f.queryset.filter(course = kwargs['context']['course'])
+
+        super(TeamMemberSerializer, self).__init__(*args, **kwargs)
+
     def get_url(self, obj):
         return reverse('teammember-detail', args=[self.context["course"].course_id, obj.team.team_id, obj.student.user.username], request=self.context["request"])
     
@@ -464,6 +471,13 @@ class RegistrationSerializer(ChisubmitSerializer):
                       "grader_username": Students,
                       "grader": Students                      
                     }   
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.has_key("context"):   
+            grader_username_f = self.fields['grader_username']
+            grader_username_f.queryset = grader_username_f.queryset.filter(course = kwargs['context']['course'])
+
+        super(RegistrationSerializer, self).__init__(*args, **kwargs)
 
     def get_url(self, obj):
         return reverse('registration-detail', args=[self.context["course"].course_id, obj.team.team_id, obj.assignment.assignment_id], request=self.context["request"])

@@ -577,7 +577,7 @@ class TeamMemberList(APIView):
             raise PermissionDenied        
         
         team_obj = get_team(course_obj, request.user, roles, team_id)
-        
+
         serializer = TeamMemberSerializer(data=request.data, context=serializer_context)
         if serializer.is_valid():
             student = serializer.validated_data["student"]

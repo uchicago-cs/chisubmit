@@ -99,10 +99,10 @@ def shared_team_show(ctx, course, team_id):
             print "ID: %s" % assignment.assignment_id
             print "Name: %s" % assignment.name
             print "Deadline: %s" % convert_datetime_to_local(assignment.deadline).isoformat(" ")        
-            #if ta.submitted_at is not None:
-            #    print "Last submitted at: %s" % convert_datetime_to_local(ta.submitted_at).isoformat(" ")
-            #    print "Commit SHA: %s" % ta.commit_sha
-            #    print "Extensions used: %i" % ta.extensions_used
-            #else:
-            #    print "NOT SUBMITTED"    
-            #print    
+            if r.final_submission is not None:
+                print "Last submitted at: %s" % convert_datetime_to_local(r.final_submission.submitted_at).isoformat(" ")
+                print "Commit SHA: %s" % r.final_submission.commit_sha
+                print "Extensions used: %i" % r.final_submission.extensions_used
+            else:
+                print "NOT SUBMITTED"    
+            print    

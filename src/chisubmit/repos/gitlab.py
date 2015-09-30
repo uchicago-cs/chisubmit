@@ -130,7 +130,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                                username = gitlab_user_username, 
                                password = gitlab_user_password,
                                email = gitlab_user_email,
-                               provider = "ldap",
+                               provider = "ldapmain",    # TODO: Make this configurable
                                confirm = False,
                                extern_uid = gitlab_extern_uid                           
                                )

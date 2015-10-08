@@ -123,6 +123,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         team_git_repos += y
         team_commits += z
         
+        for s in students:
+            result = s.run("student course show-extensions")
+            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
+        
         # Team 0 submits with one extension to pa1
         # Student 0 and 1 now have 2 extensions left each
         result = students_team[0][0].run("student assignment submit", 
@@ -138,6 +142,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         self.assertEqual(t.get_extensions_available(), 2)
         self.assertEqual(s1.get_extensions_available(), 2)
         self.assertEqual(s2.get_extensions_available(), 2)
+
+        for s in students:
+            result = s.run("student course show-extensions")
+            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
         
         # Team 1 submits with two extensions to pa2
         # Student 2 and 3 now have 1 extension left each
@@ -154,6 +162,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         self.assertEqual(t.get_extensions_available(), 1)
         self.assertEqual(s1.get_extensions_available(), 1)
         self.assertEqual(s2.get_extensions_available(), 1)
+
+        for s in students:
+            result = s.run("student course show-extensions")
+            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         result = students_team[0][0].run("student team show", [teams[0]])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
@@ -237,7 +249,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         self.assertEqual(t.get_extensions_available(), 0)
         self.assertEqual(s1.get_extensions_available(), 1)
         self.assertEqual(s2.get_extensions_available(), 0)
-                        
+
+        for s in students:
+            result = s.run("student course show-extensions")
+            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)                        
 
         # Team 2 tries submitting to pa5 with zero extensions and is accepted
         result = students_team[2][0].run("student assignment submit", 
@@ -253,7 +268,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         self.assertEqual(t.get_extensions_available(), 0)
         self.assertEqual(s1.get_extensions_available(), 1)
         self.assertEqual(s2.get_extensions_available(), 0)
-                        
+
+        for s in students:
+            result = s.run("student course show-extensions")
+            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)                        
 
         # Team 3 tries submitting to pa5 with zero extensions and is accepted
         result = students_team[3][0].run("student assignment submit", 
@@ -274,5 +292,8 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
             result = student_team[0].run("student team show", [team])
             self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
+        for s in students:
+            result = s.run("student course show-extensions")
+            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
         
         

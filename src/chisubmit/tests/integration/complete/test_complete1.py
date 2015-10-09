@@ -267,7 +267,7 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         result = instructors[0].run("instructor grading push-grading-branches", ["--to-staging", "pa1"])
         self.assertEquals(result.exit_code, 0)
         
-        result = graders[0].run("grader create-local-grading-repos", [graders[0].user_id, "pa1"])
+        result = graders[0].run("grader create-local-grading-repos", ["pa1"])
         self.assertEquals(result.exit_code, 0)        
                 
         team1_grading_repo_path = "chisubmit-test/repositories/%s/%s/%s" % (course_id, "pa1", teams[0])
@@ -304,7 +304,7 @@ Comments: >
         with open(team1_rubric_path, "w") as f:
             f.write(team1_rubric)
 
-        result = graders[0].run("grader validate-rubrics", [graders[0].user_id, "pa1", "--only", teams[0]])
+        result = graders[0].run("grader validate-rubrics", ["pa1", "--only", teams[0]])
         self.assertEquals(result.exit_code, 0)        
     
         team_git_repos[0].index.add(["pa1.rubric.txt"])
@@ -332,17 +332,17 @@ Comments: >
         with open(team2_rubric_path, "w") as f:
             f.write(team2_rubric)
 
-        result = graders[0].run("grader validate-rubrics", [graders[0].user_id, "pa1", "--only", teams[1]])
+        result = graders[0].run("grader validate-rubrics", ["pa1", "--only", teams[1]])
         self.assertEquals(result.exit_code, 0)        
 
         team_git_repos[1].index.add(["pa1.rubric.txt"])
         team_git_repos[1].index.add(["bar"])
         team_git_repos[1].index.commit("Finished grading")
 
-        result = graders[0].run("grader validate-rubrics", [graders[0].user_id, "pa1"])
+        result = graders[0].run("grader validate-rubrics", ["pa1"])
         self.assertEquals(result.exit_code, 0)                
 
-        result = graders[0].run("grader push-grading-branches", [graders[0].user_id, "pa1"])
+        result = graders[0].run("grader push-grading-branches", ["pa1"])
         self.assertEquals(result.exit_code, 0)                
 
         result = instructors[0].run("instructor grading pull-grading-branches", ["--from-staging", "pa1"])

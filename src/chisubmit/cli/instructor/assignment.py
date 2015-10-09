@@ -89,14 +89,8 @@ def instructor_assignment_stats(ctx, course, assignment_id):
         except UnknownObjectException:
             continue
         
-        nteams += 1
-        
-        if registration.final_submission is not None:
-            nsubmissions += 1
-        else:
-            unsubmitted.append(team)
-            
         unconfirmed = False
+        includes_dropped = False
         for tm in team.get_team_members():
             if tm.username not in dropped:
                 try:
@@ -106,6 +100,16 @@ def instructor_assignment_stats(ctx, course, assignment_id):
                         unconfirmed = True
                 except KeyError, ke:
                     print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (tm.username, team.team_id)
+            else:
+                includes_dropped = True
+
+        if not includes_dropped:
+            nteams += 1
+            
+            if registration.final_submission is not None:
+                nsubmissions += 1
+            else:
+                unsubmitted.append(team)
             
         if unconfirmed:
             teams_unconfirmed.append(team)

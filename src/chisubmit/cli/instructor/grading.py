@@ -16,6 +16,8 @@ import operator
 import random
 import itertools
 import os.path
+import yaml
+from chisubmit.client.exceptions import UnknownObjectException
 
 @click.group(name="grading")
 @click.pass_context
@@ -214,13 +216,14 @@ def instructor_grading_list_grades(ctx, course):
 @click.argument('assignment_id', type=str)
 @click.option('--from-assignment', type=str)
 @click.option('--avoid-assignment', type=str)
-@click.option('--only-graders', type=str)
+@click.option('--grader-file', type=click.File('r'))
+@click.option('--dry-run', is_flag=True)
 @click.option('--reset', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, only_graders, reset):
+def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignment, avoid_assignment, grader_file, dry_run, reset):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     if from_assignment is not None:
@@ -237,36 +240,52 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
         print "--avoid_assignment and --from_assignment are mutually exclusive"
         ctx.exit(CHISUBMIT_FAIL)
 
-
-    graders = course.get_graders()
+    if grader_file is not None:
+        grader_workload = yaml.load(grader_file)
+        graders = []
+        
+        for username in grader_workload:
+            try:
+                grader = course.get_grader(username)
+                graders.append(grader)
+            except UnknownObjectException:
+                print "No such grader: %s" % username
+                ctx.exit(CHISUBMIT_FAIL)
+    else:
+        graders = course.get_graders()
+        grader_workload = {g.user.username: "remainder" for g in graders}
 
     if len(graders) == 0:
-        print "ERROR: This course has no graders."
+        print "ERROR: No graders."
         ctx.exit(CHISUBMIT_FAIL)
-    
-    if only_graders is not None:
-        only_graders = only_graders.split(",")
-        l = []
-        for g in graders:
-            if g.user.username in only_graders:
-                l.append(g)
-                only_graders.remove(g.user.username)
-                
-        if len(only_graders) > 0:
-            print "No such graders: %s" % ", ".join(only_graders)
-            ctx.exit(CHISUBMIT_FAIL)
-            
-        graders = l
-    
+        
+    from pprint import pprint
+        
     teams_registrations = get_teams_registrations(course, assignment)
     teams = teams_registrations.keys()
 
-    min_teams_per_grader = len(teams_registrations) / len(graders)
-    extra_teams = len(teams_registrations) % len(graders)
+    n_teams = len(teams)
+    teams_per_grader = {}
+    teams_per_grader_assigned = dict([(g.user.username, 0) for g in graders])    
+    assigned = 0
+    n_graders_assigned_remainder = 0
+    for username, workload in grader_workload.items():
+        if workload != "remainder":
+            if not isinstance(workload, int) or workload <= 0:
+                print "Invalid workload for grader '%s': %s" % (username, workload)
+            teams_per_grader[username] = workload
+            assigned += workload
+        else:
+            teams_per_grader[username] = None
+            n_graders_assigned_remainder += 1
+                        
+    min_teams_per_grader = (n_teams - assigned) / n_graders_assigned_remainder
+    extra_teams = (n_teams - assigned) % n_graders_assigned_remainder
 
-    teams_per_grader = dict([(g.user.username, min_teams_per_grader) for g in graders])
-    teams_per_grader_assigned = dict([(g.user.username, 0) for g in graders])
-    
+    for username in teams_per_grader:
+        if teams_per_grader[username] is None:
+            teams_per_grader[username] = min_teams_per_grader
+            
     random.seed(course.course_id + assignment_id)
     random.shuffle(graders)
 
@@ -274,6 +293,8 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
     # teams to grade. Make sure they are able to get at least one.
     for g in graders[:extra_teams]:
         teams_per_grader[g.user.username] += 1
+    
+    assert sum([v for v in teams_per_grader.values()]) == n_teams
 
     team_grader = {t.team_id: None for t in teams_registrations.keys()}
 
@@ -345,8 +366,11 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
             else:
                 print "Team %s's submission isn't ready for grading yet" % (team.team_id)
         else:
-            if registration.grader_username != team_grader[team.team_id]:
-                registration.grader_username = team_grader[team.team_id]
+            if not dry_run:
+                if registration.grader_username != team_grader[team.team_id]:
+                    registration.grader_username = team_grader[team.team_id]
+            else:
+                print "%s: %s" % (team.team_id, team_grader[team.team_id])
     print 
     for grader_id, assigned in teams_per_grader_assigned.items():
         if teams_per_grader[grader_id] != 0:

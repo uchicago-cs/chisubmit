@@ -18,14 +18,20 @@ def grader(ctx):
     pass
 
 @click.command(name="create-local-grading-repos")
-@click.argument('grader_id', type=str)
+@click.option('--grader', type=str)
 @click.argument('assignment_id', type=str)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
-    grader = get_grader_or_exit(ctx, course, grader_id)
+def grader_create_local_grading_repos(ctx, course, grader, assignment_id):
+    if grader is None:
+        user = ctx.obj["client"].get_user()    
+        
+        grader = get_grader_or_exit(ctx, course, user.username)
+    else:
+        grader = get_grader_or_exit(ctx, course, grader)
+        
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     teams_registrations = get_teams_registrations(course, assignment, grader = grader)
@@ -52,15 +58,21 @@ def grader_create_local_grading_repos(ctx, course, grader_id, assignment_id):
 
 
 @click.command(name="validate-rubrics")
-@click.argument('grader_id', type=str)
 @click.argument('assignment_id', type=str)
+@click.option('--grader', type=str)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
-    grader = get_grader_or_exit(ctx, course, grader_id)
+def grader_validate_rubrics(ctx, course, assignment_id, grader, only):
+    if grader is None:
+        user = ctx.obj["client"].get_user()    
+        
+        grader = get_grader_or_exit(ctx, course, user.username)
+    else:
+        grader = get_grader_or_exit(ctx, course, grader)
+
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only)
@@ -88,14 +100,20 @@ def grader_validate_rubrics(ctx, course, grader_id, assignment_id, only):
 
 
 @click.command(name="push-grading-branches")
-@click.argument('grader_id', type=str)
 @click.argument('assignment_id', type=str)
+@click.option('--grader', type=str)
 @click.option('--only', type=str)
 @require_local_config
 @pass_course
 @click.pass_context
-def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
-    grader = get_grader_or_exit(ctx, course, grader_id)
+def grader_push_grading_branches(ctx, course, assignment_id, grader, only):
+    if grader is None:
+        user = ctx.obj["client"].get_user()    
+        
+        grader = get_grader_or_exit(ctx, course, user.username)
+    else:
+        grader = get_grader_or_exit(ctx, course, grader)
+
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only, only_ready_for_grading=True)
@@ -111,15 +129,21 @@ def grader_push_grading_branches(ctx, course, grader_id, assignment_id, only):
     return CHISUBMIT_SUCCESS
 
 @click.command(name="pull-grading-branches")
-@click.argument('grader_id', type=str)
 @click.argument('assignment_id', type=str)
+@click.option('--grader', type=str)
 @click.option('--only', type=str)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def grader_pull_grading_branches(ctx, course, grader_id, assignment_id, only):
-    grader = get_grader_or_exit(ctx, course, grader_id)
+def grader_pull_grading_branches(ctx, course, assignment_id, grader, only):
+    if grader is None:
+        user = ctx.obj["client"].get_user()    
+        
+        grader = get_grader_or_exit(ctx, course, user.username)
+    else:
+        grader = get_grader_or_exit(ctx, course, grader)
+
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only, only_ready_for_grading=True)

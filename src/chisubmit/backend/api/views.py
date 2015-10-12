@@ -724,7 +724,7 @@ class Submit(APIView):
                                 commit_sha = commit_sha,
                                 submitted_at = now)
         
-        valid, error_response, extensions = submission.validate()
+        valid, error_response, extensions = submission.validate(ignore_deadline = ignore_deadline)
         
         if not valid:
             return error_response

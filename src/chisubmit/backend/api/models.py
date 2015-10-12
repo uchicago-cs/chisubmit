@@ -323,7 +323,7 @@ class Submission(models.Model):
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
     
-    def validate(self):
+    def validate(self, ignore_deadline = False):
         extensions_needed = compute_extensions_needed(submission_time = self.submitted_at, 
                                                       deadline = self.registration.assignment.deadline)
         extensions_available = self.registration.team.get_extensions_available()
@@ -343,13 +343,12 @@ class Submission(models.Model):
                       "submitted_at": self.submitted_at.isoformat(sep=" "),
                       "deadline": self.registration.assignment.deadline.isoformat(sep=" ")}
         
-        if self.extensions_used != extensions_needed:
+        if not ignore_deadline and self.extensions_used != extensions_needed:
             msg = "The number of requested extensions does not match the number of extensions needed."
             response_data = {"errors": [msg]}
             response_data.update(error_data)
             return False, Response(response_data, status=status.HTTP_400_BAD_REQUEST), None            
-        
-        if extensions_available + extensions_used_in_existing_submission < extensions_needed:
+        if not ignore_deadline and extensions_available + extensions_used_in_existing_submission < extensions_needed:
             msg = "The number of available extensions is insufficient."
             response_data = {"errors": [msg]}
             response_data.update(error_data)
@@ -363,7 +362,10 @@ class Submission(models.Model):
             # They are 'credited' to the available extensions
             extensions_available += extensions_used_in_existing_submission
             
-            extensions_available -= extensions_needed
+            if ignore_deadline:
+                extensions_available -= self.extensions_used
+            else:
+                extensions_available -= extensions_needed
 
             extensions["extensions_available_after"] = extensions_available
             

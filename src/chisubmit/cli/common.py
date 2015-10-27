@@ -278,7 +278,10 @@ def get_teams_registrations(course, assignment, only_ready_for_grading = False, 
 def create_grading_repos(config, course, assignment, teams_registrations):
     repos = []
 
-    for team, registration in teams_registrations.items():
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
+
+    for team in teams:
+        registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
         if repo is None:

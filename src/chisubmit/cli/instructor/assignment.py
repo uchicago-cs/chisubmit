@@ -176,6 +176,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     nstudents = len(student_dict)
     nstudents_assignment = 0
     nsubmissions = 0
+    nstudents_submitted = 0
     unsubmitted = []
     
     for team in course.get_teams():
@@ -186,7 +187,8 @@ def instructor_assignment_stats(ctx, course, assignment_id):
         
         unconfirmed = False
         includes_dropped = False
-        for tm in team.get_team_members():
+        team_members = team.get_team_members()
+        for tm in team_members:
             if tm.username not in dropped:
                 try:
                     students.remove(tm.username)
@@ -203,6 +205,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
             
             if registration.final_submission is not None:
                 nsubmissions += 1
+                nstudents_submitted += len(team_members)
             else:
                 unsubmitted.append(team)
             
@@ -218,7 +221,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     print 
     print "%i / %i students in %i teams have signed up for assignment %s" % (nstudents_assignment, nstudents, nteams, assignment.assignment_id)
     print
-    print "%i / %i teams have submitted the assignment" % (nsubmissions, nteams)
+    print "%i / %i teams have submitted the assignment (%i students)" % (nsubmissions, nteams, nstudents_submitted)
     
     if ctx.obj["verbose"]:
         if len(students) > 0:

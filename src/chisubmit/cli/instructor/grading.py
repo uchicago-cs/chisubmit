@@ -18,6 +18,7 @@ import itertools
 import os.path
 import yaml
 from chisubmit.client.exceptions import UnknownObjectException
+import math
 
 @click.group(name="grading")
 @click.pass_context
@@ -258,9 +259,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
     if len(graders) == 0:
         print "ERROR: No graders."
         ctx.exit(CHISUBMIT_FAIL)
-        
-    from pprint import pprint
-        
+            
     teams_registrations = get_teams_registrations(course, assignment)
     teams = teams_registrations.keys()
 
@@ -268,7 +267,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
     teams_per_grader = {}
     teams_per_grader_assigned = dict([(g.user.username, 0) for g in graders])    
     assigned = 0
-    n_graders_assigned_remainder = 0
+    graders_assigned_remainder = []
     for username, workload in grader_workload.items():
         if workload != "remainder":
             if not isinstance(workload, int) or workload <= 0:
@@ -277,22 +276,22 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
             assigned += workload
         else:
             teams_per_grader[username] = None
-            n_graders_assigned_remainder += 1
+            graders_assigned_remainder.append(username)
                         
-    min_teams_per_grader = (n_teams - assigned) / n_graders_assigned_remainder
-    extra_teams = (n_teams - assigned) % n_graders_assigned_remainder
+    min_teams_per_grader = (n_teams - assigned) / len(graders_assigned_remainder)
+    extra_teams = (n_teams - assigned) % len(graders_assigned_remainder)
 
     for username in teams_per_grader:
         if teams_per_grader[username] is None:
             teams_per_grader[username] = min_teams_per_grader
             
     random.seed(course.course_id + assignment_id)
-    random.shuffle(graders)
+    random.shuffle(graders_assigned_remainder)
 
     # so many graders in this course that some will end up expecting zero
     # teams to grade. Make sure they are able to get at least one.
-    for g in graders[:extra_teams]:
-        teams_per_grader[g.user.username] += 1
+    for username in graders_assigned_remainder[:extra_teams]:
+        teams_per_grader[username] += 1
     
     assert sum([v for v in teams_per_grader.values()]) == n_teams
 
@@ -315,7 +314,6 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
     if avoid_assignment is not None:
         avoid_assignment_registrations = get_teams_registrations(course, avoid_assignment)
 
-
     if not reset:
         for t in teams:
             if teams_registrations[t].grader is None:
@@ -323,7 +321,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
             else:
                 grader_id = teams_registrations[t].grader.user.username
                 team_grader[t.team_id] = grader_id
-                teams_per_grader[grader_id] -= 1
+                teams_per_grader[grader_id] = max(0, teams_per_grader[grader_id] - 1)
                 teams_per_grader_assigned[grader_id] += 1
 
     not_ready_for_grading = []
@@ -452,65 +450,109 @@ def instructor_grading_list_submissions(ctx, course, assignment_id):
     return CHISUBMIT_SUCCESS
 
 
+def print_grades_stats(grades):
+    grades.sort()
+    avg = sum(grades) / len(grades)
+    stdev = math.sqrt(sum([(x-avg)**2 for x in grades])/len(grades))
+    print
+    print "     Average grade: %.2f" % avg
+    print "Standard deviation: %.2f" % stdev
+    print
+    print "               Max: %.2f" % grades[-1]
+    print "    Upper Quartile: %.2f" % grades[ int(len(grades)*0.75) ]
+    print "            Median: %.2f" % grades[ int(len(grades)*0.5) ]
+    print "    Lower Quartile: %.2f" % grades[ int(len(grades)*0.25) ]
+    print "               Min: %.2f" % grades[0]
+    print
+
+
+
 @click.command(name="show-grading-status")
 @click.argument('assignment_id', type=str)
 @click.option('--by-grader', is_flag=True)
+@click.option('--include-diff-urls', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader):
-    assignment = course.get_assignment(assignment_id)
-    if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)
+def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader, include_diff_urls):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    rubric_components = assignment.get_rubric_components()
 
-    teams = get_teams(course, assignment)
-    teams.sort(key=operator.attrgetter("id"))
+    teams_registrations = get_teams_registrations(course, assignment)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
     
     team_status = []
     graders = set()
     
     for team in teams:
-        ta = team.get_assignment(assignment_id)
-        grade_ids = [g.grade_component_id for g in ta.grades]
+        registration = teams_registrations[team]
+        grades = registration.get_grades()
+        
+        grade_rc_ids = [g.rubric_component_id for g in grades]
 
-        if ta.grader is not None:
-            grader_id = ta.grader.id
+        if registration.grader is None:
+            grader_str = "<no grader assigned>"
         else:
-            grader_id = "<no grader assigned>"
+            grader_str = registration.grader.user.username
             
-        graders.add(grader_id)
+        graders.add(grader_str)
 
         has_some = False
         has_all = True
-        for gc in assignment.grade_components:
-            if gc.id in grade_ids:
+        for rc in rubric_components:
+            if rc.id in grade_rc_ids:
                 has_some = True
             else:
                 has_all = False
-
+                        
         if not has_some:
-            team_status.append((team.team_id, grader_id, "NOT GRADED"))
+            grading_status = "NOT GRADED"
         elif has_all:
-            team_status.append((team.team_id, grader_id, "GRADED"))
+            grading_status = "GRADED"
         else:
-            team_status.append((team.team_id, grader_id, "PARTIALLY GRADED"))
+            grading_status = "PARTIALLY GRADED"
+
+        total_grade = registration.get_total_grade()
+            
+        if include_diff_urls and has_some:
+            commit_sha = registration.final_submission.commit_sha[:8]
+            diff_url = "https://mit.cs.uchicago.edu/cs121-aut-15-staging/%s/compare/%s...%s-grading" % (team.team_id, commit_sha, assignment.assignment_id)
+        else:
+            diff_url = ""
+            
+        team_status.append((team.team_id, grader_str, total_grade, diff_url, grading_status))
 
     if not by_grader:
-        for team, grader, status in team_status:
-            print "%-40s %-20s %s" % (team, status, grader)
+        for team, grader, total_grade, diff_url, status in team_status:
+            print "%-40s %-20s %-20.2f %10s  %s" % (team, status, total_grade, grader, diff_url)
     else:
+        all_grades = []
         for grader in sorted(list(graders)):
             print grader
             print "-" * len(grader)
             
+            grades = []
+            
             team_status_grader = [ts for ts in team_status if ts[1] == grader]
             
-            for team, _, status in team_status_grader:
-                print "%-40s %s" % (team, status)
-
+            for team, _, total_grade, diff_url, status in team_status_grader:
+                if status == "NOT GRADED":
+                    print "%-40s %s  %s" % (team, status, diff_url)
+                else:
+                    print "%-40s %s %8.2f  %s" % (team, status, total_grade, diff_url)
+                    if status == "GRADED":
+                        grades.append(total_grade)
+                        
+            if len(grades) > 0:
+                all_grades += grades
+                print_grades_stats(grades)
             print
+
+        if len(all_grades) > 0:
+            print "TOTAL"
+            print "-----"
+            print_grades_stats(all_grades)
 
     return CHISUBMIT_SUCCESS
 
@@ -546,11 +588,13 @@ def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_t
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     teams_registrations = get_teams_registrations(course, assignment, only = only, only_ready_for_grading=not all_teams)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
 
     if len(teams_registrations) == 0:
         ctx.exit(CHISUBMIT_FAIL)
 
-    for team, registration in teams_registrations.items():
+    for team in teams:
+        registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
@@ -587,8 +631,10 @@ def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_stag
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
     
     teams_registrations = get_teams_registrations(course, assignment, only = only, only_ready_for_grading=not all_teams)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
 
-    for team, registration in teams_registrations.items():
+    for team in teams:
+        registration = teams_registrations[team]
         print ("Pushing grading branch for team %s... " % team.team_id),
         gradingrepo_push_grading_branch(ctx.obj['config'], course, team, registration, to_staging = to_staging, to_students = to_students)
         print "done."
@@ -610,8 +656,10 @@ def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_st
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
     
     teams_registrations = get_teams_registrations(course, assignment, only = only)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
 
-    for team, registration in teams_registrations.items():
+    for team in teams:
+        registration = teams_registrations[team]
         print "Pulling grading branch for team %s... " % team.team_id
         gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration, from_staging = from_staging, from_students = from_students)
 
@@ -634,8 +682,10 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
         ctx.exit(CHISUBMIT_FAIL)
 
     teams_registrations = get_teams_registrations(course, assignment, only_ready_for_grading=not all_teams)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
 
-    for team, registration in teams_registrations.items():
+    for team in teams:
+        registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
         
         if repo is None:
@@ -664,12 +714,13 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
 @click.command(name="collect-rubrics")
 @click.argument('assignment_id', type=str)
 @click.option('--dry-run', is_flag=True)
+@click.option('--only', type=str)
 @click.option('--grader-id', type=str)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grader_id):
+def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, only, grader_id):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     if grader_id is not None:
@@ -679,9 +730,11 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, grad
 
     rcs = assignment.get_rubric_components()
 
-    teams_registrations = get_teams_registrations(course, assignment, grader=grader)
-
-    for team, registration in teams_registrations.items():
+    teams_registrations = get_teams_registrations(course, assignment, grader=grader, only=only)
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
+    
+    for team in teams:
+        registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
         if repo is None:
             print "Repository for %s does not exist" % (team.team_id)

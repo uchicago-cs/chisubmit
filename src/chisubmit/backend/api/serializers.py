@@ -448,7 +448,8 @@ class RegistrationSerializer(ChisubmitSerializer):
     grader_username = PersonRelatedField(
                                          source = "grader",
                                          queryset=Grader.objects.all(),
-                                         required = False
+                                         required = False,
+                                         allow_null=True
                                          )
     grader = GraderSerializer(read_only=True, required=False)
 

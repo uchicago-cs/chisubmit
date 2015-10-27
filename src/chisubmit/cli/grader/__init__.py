@@ -42,10 +42,6 @@ def grader_create_local_grading_repos(ctx, course, grader, assignment_id):
 
     repos = create_grading_repos(ctx.obj['config'], course, assignment, teams_registrations)
 
-    if not repos:
-        print "There was some kind of problem creating the grading repos."
-        ctx.exit(CHISUBMIT_FAIL)
-
     for repo in repos:
         repo.set_grader_author()
 
@@ -55,6 +51,24 @@ def grader_create_local_grading_repos(ctx, course, grader, assignment_id):
         print "done"
         
     return CHISUBMIT_SUCCESS
+
+def validate_repo_rubric(ctx, course, assignment, team, registration):
+    repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
+    if not repo:
+        print "Repository for %s does not exist" % (team.team_id)
+        ctx.exit(CHISUBMIT_FAIL)
+
+    rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
+
+    if not os.path.exists(rubricfile):
+        print "Repository for %s does not exist have a rubric for assignment %s" % (team.team_id, assignment.assignment_id)
+        ctx.exit(CHISUBMIT_FAIL)
+
+    try:
+        RubricFile.from_file(open(rubricfile), assignment)
+        return (True, None)
+    except ChisubmitRubricException, cre:
+        return (False, cre.message)
 
 
 @click.command(name="validate-rubrics")
@@ -78,23 +92,12 @@ def grader_validate_rubrics(ctx, course, assignment_id, grader, only):
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only)
     
     for team, registration in teams_registrations.items():
+        valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
 
-        repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
-        if not repo:
-            print "Repository for %s does not exist" % (team.team_id)
-            ctx.exit(CHISUBMIT_FAIL)
-    
-        rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
-    
-        if not os.path.exists(rubricfile):
-            print "Repository for %s does not exist have a rubric for assignment %s" % (team.team_id, assignment.assignment_id)
-            ctx.exit(CHISUBMIT_FAIL)
-    
-        try:
-            RubricFile.from_file(open(rubricfile), assignment)
+        if valid:
             print "%s: Rubric OK." % team.team_id
-        except ChisubmitRubricException, cre:
-            print "%s: Rubric ERROR: %s" % (team.team_id, cre.message)
+        else:
+            print "%s: Rubric ERROR: %s" % (team.team_id, error_msg)
 
     return CHISUBMIT_SUCCESS
 
@@ -103,10 +106,11 @@ def grader_validate_rubrics(ctx, course, assignment_id, grader, only):
 @click.argument('assignment_id', type=str)
 @click.option('--grader', type=str)
 @click.option('--only', type=str)
+@click.option('--skip-rubric-validation', is_flag=True)
 @require_local_config
 @pass_course
 @click.pass_context
-def grader_push_grading_branches(ctx, course, assignment_id, grader, only):
+def grader_push_grading_branches(ctx, course, assignment_id, grader, only, skip_rubric_validation):
     if grader is None:
         user = ctx.obj["client"].get_user()    
         
@@ -123,6 +127,12 @@ def grader_push_grading_branches(ctx, course, assignment_id, grader, only):
         ctx.exit(CHISUBMIT_FAIL)
 
     for team, registration in teams_registrations.items():
+        if not skip_rubric_validation:
+            valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
+            if not valid:
+                print "Not pushing branch for team %s. Rubric does not validate: %s" % (team.team_id, error_msg)
+                continue
+        
         print "Pushing grading branch for team %s... " % team.team_id
         gradingrepo_push_grading_branch(ctx.obj['config'], course, team, registration, to_staging = True)
 

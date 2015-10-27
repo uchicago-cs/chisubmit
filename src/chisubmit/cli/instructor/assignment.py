@@ -1,13 +1,17 @@
 import click
 from chisubmit.cli.common import pass_course, DATETIME, get_assignment_or_exit,\
-    catch_chisubmit_exceptions, require_local_config
+    catch_chisubmit_exceptions, require_local_config, get_team_or_exit,\
+    get_assignment_registration_or_exit
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
-from chisubmit.common.utils import convert_datetime_to_utc
+from chisubmit.common.utils import convert_datetime_to_utc, create_connection,\
+    convert_datetime_to_local
 import operator
 from chisubmit.cli.shared.assignment import shared_assignment_list,\
     shared_assignment_set_attribute
-from chisubmit.client.exceptions import UnknownObjectException
+from chisubmit.client.exceptions import UnknownObjectException,\
+    BadRequestException
+from chisubmit.cli.student.assignment import print_commit
 
 
 @click.group(name="assignment")
@@ -61,6 +65,97 @@ def instructor_assignment_register(ctx, course, assignment_id, student):
     
     return CHISUBMIT_SUCCESS
 
+
+@click.command(name="submit")
+@click.argument('team_id', type=str)    
+@click.argument('assignment_id', type=str)
+@click.argument('commit_sha', type=str)
+@click.argument('extensions', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context  
+def instructor_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, extensions):
+    team = get_team_or_exit(ctx, course, team_id)
+    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
+            
+    conn = create_connection(course, ctx.obj['config'])
+    
+    if conn is None:
+        print "Could not connect to git server."
+        ctx.exit(CHISUBMIT_FAIL)
+    
+    commit = conn.get_commit(course, team, commit_sha)
+    
+    if commit is None:
+        print "Commit %s does not exist in repository" % commit_sha
+        ctx.exit(CHISUBMIT_FAIL)
+    
+    if registration.final_submission is not None:
+        prior_commit_sha = registration.final_submission.commit_sha
+        prior_submitted_at_utc = registration.final_submission.submitted_at
+        prior_submitted_at_local = convert_datetime_to_local(prior_submitted_at_utc)            
+        
+        submission_commit = conn.get_commit(course, team, prior_commit_sha)            
+        
+        if prior_commit_sha == commit_sha:
+            print "The team has already submitted assignment %s" % registration.assignment.assignment_id
+            print "They submitted the following commit on %s:" % prior_submitted_at_local
+            print
+            if submission_commit is None:
+                print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+            else:
+                print_commit(submission_commit)
+            print
+            print "You are trying to submit the same commit again (%s)" % prior_commit_sha
+            print "If you want to re-submit, please specify a different commit"
+            ctx.exit(CHISUBMIT_FAIL)
+            
+        print
+        print "WARNING: This team has already submitted assignment %s and you" % registration.assignment.assignment_id 
+        print "are about to overwrite the previous submission of the following commit:"
+        print
+        if submission_commit is None:
+            print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+        else:
+            print_commit(submission_commit)
+        print
+
+    if registration.final_submission is not None:
+        msg = "THE ABOVE SUBMISSION FOR %s (%s) WILL BE CANCELLED." % (registration.assignment.assignment_id, registration.assignment.name)
+        
+        print "!"*len(msg)
+        print msg
+        print "!"*len(msg)
+        print
+        print "If you continue, their submission for %s (%s)" % (registration.assignment.assignment_id, registration.assignment.name)
+        print "will now point to the following commit:"                
+    else:
+        print "You are going to make a submission for %s (%s)." % (registration.assignment.assignment_id, registration.assignment.name)
+        print "The commit you are submitting is the following:"
+    print
+    print_commit(commit)
+    print
+    print "PLEASE VERIFY THIS IS THE EXACT COMMIT YOU WANT TO SUBMIT"
+    print
+    print "Are you sure you want to continue? (y/n): ", 
+    
+    yesno = raw_input()
+    
+    if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
+        try:
+            submit_response = registration.submit(commit_sha, extensions, ignore_deadline=True, dry_run=False)
+                        
+            print "The submission has been completed."
+            return CHISUBMIT_SUCCESS
+
+        except BadRequestException, bre:        
+            print "ERROR: The submission was not completed. The server reported the following errors:"
+            bre.print_errors()
+            return CHISUBMIT_FAIL        
+
+
+
 @click.command(name="stats")
 @click.argument('assignment_id', type=str)
 @catch_chisubmit_exceptions
@@ -81,6 +176,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     nstudents = len(student_dict)
     nstudents_assignment = 0
     nsubmissions = 0
+    nstudents_submitted = 0
     unsubmitted = []
     
     for team in course.get_teams():
@@ -89,15 +185,10 @@ def instructor_assignment_stats(ctx, course, assignment_id):
         except UnknownObjectException:
             continue
         
-        nteams += 1
-        
-        if registration.final_submission is not None:
-            nsubmissions += 1
-        else:
-            unsubmitted.append(team)
-            
         unconfirmed = False
-        for tm in team.get_team_members():
+        includes_dropped = False
+        team_members = team.get_team_members()
+        for tm in team_members:
             if tm.username not in dropped:
                 try:
                     students.remove(tm.username)
@@ -106,6 +197,17 @@ def instructor_assignment_stats(ctx, course, assignment_id):
                         unconfirmed = True
                 except KeyError, ke:
                     print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (tm.username, team.team_id)
+            else:
+                includes_dropped = True
+
+        if not includes_dropped:
+            nteams += 1
+            
+            if registration.final_submission is not None:
+                nsubmissions += 1
+                nstudents_submitted += len(team_members)
+            else:
+                unsubmitted.append(team)
             
         if unconfirmed:
             teams_unconfirmed.append(team)
@@ -119,7 +221,7 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     print 
     print "%i / %i students in %i teams have signed up for assignment %s" % (nstudents_assignment, nstudents, nteams, assignment.assignment_id)
     print
-    print "%i / %i teams have submitted the assignment" % (nsubmissions, nteams)
+    print "%i / %i teams have submitted the assignment (%i students)" % (nsubmissions, nteams, nstudents_submitted)
     
     if ctx.obj["verbose"]:
         if len(students) > 0:
@@ -147,5 +249,6 @@ instructor_assignment.add_command(shared_assignment_set_attribute)
 instructor_assignment.add_command(instructor_assignment_add)
 instructor_assignment.add_command(instructor_assignment_add_rubric_component)
 instructor_assignment.add_command(instructor_assignment_register)
+instructor_assignment.add_command(instructor_assignment_submit)
 instructor_assignment.add_command(instructor_assignment_stats)
 

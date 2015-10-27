@@ -30,6 +30,7 @@
 
 import yaml
 import textwrap
+from yaml.scanner import ScannerError
 
 def feq(a, b, eps=0.01):
     return abs(a - b) <= eps
@@ -124,7 +125,10 @@ class RubricFile(object):
         
     @classmethod
     def from_file(cls, rubric_file, assignment):
-        rubric = yaml.load(rubric_file)
+        try:
+            rubric = yaml.load(rubric_file)
+        except ScannerError, se:
+            raise ChisubmitRubricException("YAML syntax error in rubric file: %s" % str(se)) 
 
         if not rubric.has_key(RubricFile.FIELD_POINTS):
             raise ChisubmitRubricException("Rubric file doesn't have a '%s' field." % RubricFile.FIELD_POINTS)
@@ -149,8 +153,22 @@ class RubricFile(object):
             if not component.has_key(RubricFile.FIELD_POINTS_OBTAINED):
                 raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (rubric_component.description, RubricFile.FIELD_POINTS_OBTAINED))
             
-            points_possible = component[RubricFile.FIELD_POINTS_POSSIBLE]
-            points_obtained = component[RubricFile.FIELD_POINTS_OBTAINED]
+            try:
+                points_obtained = component[RubricFile.FIELD_POINTS_OBTAINED]
+                if points_obtained is not None:
+                    points_obtained = float(points_obtained)
+            except ValueError:
+                raise ChisubmitRubricException("Obtained points in grade component '%s' does not appear to be a number: %s" %
+                                                (rubric_component.description, component[RubricFile.FIELD_POINTS_OBTAINED]))
+
+            try:
+                points_possible = float(component[RubricFile.FIELD_POINTS_POSSIBLE])
+                if points_possible is not None:
+                    points_possible = float(points_possible)
+            except ValueError:
+                raise ChisubmitRubricException("Possible points in grade component '%s' does not appear to be a number: %s" %
+                                                (rubric_component.description, component[RubricFile.FIELD_POINTS_POSSIBLE]))
+
             
             if points_possible != rubric_component.points:
                 raise ChisubmitRubricException("Grade component '%s' in rubric has incorrect possible points (expected %i, got %i)" %

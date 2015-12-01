@@ -153,11 +153,12 @@ def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
     return CHISUBMIT_SUCCESS
 
 @click.command(name="list-grades")
+@click.option('--detailed', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_list_grades(ctx, course):
+def instructor_grading_list_grades(ctx, course, detailed):
     students = [s for s in course.get_students() if not s.dropped]
     assignments = course.get_assignments()
 
@@ -183,32 +184,41 @@ def instructor_grading_list_grades(ctx, course):
                     g["__BONUSES"] = registration.get_total_bonuses()                    
                     g["__TOTAL"] = registration.get_total_grade()
 
-    fields = ["Last Name","First Name"]
+    fields = ["Username","Last Name","First Name"]
     for assignment in assignments:
-        rubric_components = assignment.get_rubric_components()
-        fields += ["%s - %s" % (assignment.assignment_id, rc.description) for rc in rubric_components]
-        fields.append("%s - Penalties" % assignment.assignment_id)
-        fields.append("%s - Bonuses" % assignment.assignment_id) 
-        fields.append("%s - Total" % assignment.assignment_id)
+        if detailed:
+            rubric_components = assignment.get_rubric_components()
+            fields += ["%s - %s" % (assignment.assignment_id, rc.description) for rc in rubric_components]
+            fields.append("%s - Penalties" % assignment.assignment_id)
+            fields.append("%s - Bonuses" % assignment.assignment_id) 
+            fields.append("%s - Total" % assignment.assignment_id)
+        else:
+            fields.append("%s" % assignment.assignment_id)
 
     print ",".join(fields)
 
     for student in students:
-        fields = [student.user.last_name, student.user.first_name]
+        fields = [student.user.username, student.user.last_name, student.user.first_name]
         for assignment in assignments:
             grades = student_grades[student.user.username][assignment.assignment_id]
-            rubric_components = assignment.get_rubric_components()
-            for rc in rubric_components:
-                if not grades.has_key(rc.description):
+            if detailed:
+                rubric_components = assignment.get_rubric_components()
+                for rc in rubric_components:
+                    if not grades.has_key(rc.description):
+                        fields.append("")
+                    else:
+                        fields.append(str(grades[rc.description]))
+                if len(grades) == 0:
+                    fields += ["","",""]
+                else:
+                    fields.append(str(grades["__PENALTIES"]))
+                    fields.append(str(grades["__BONUSES"]))
+                    fields.append(str(grades["__TOTAL"]))
+            else:
+                if len(grades) == 0:
                     fields.append("")
                 else:
-                    fields.append(str(grades[rc.description]))
-            if len(grades) == 0:
-                fields += ["","",""]
-            else:
-                fields.append(str(grades["__PENALTIES"]))
-                fields.append(str(grades["__BONUSES"]))
-                fields.append(str(grades["__TOTAL"]))
+                    fields.append(str(grades["__TOTAL"]))
 
         print ",".join(fields)
 

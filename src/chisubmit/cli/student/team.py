@@ -48,10 +48,7 @@ def student_repo_check(ctx, course, team_id):
 @pass_course
 @click.pass_context
 def student_repo_pristine_clone(ctx, course, team_id):
-    team = course.get_team(team_id)
-    if team is None:
-        print "Team %s does not exist or you do not have access to it" % team_id
-        ctx.exit(CHISUBMIT_FAIL)
+    team = get_team_or_exit(ctx, course, team_id)
     
     conn = create_connection(course, ctx.obj['config'])
     
@@ -62,7 +59,7 @@ def student_repo_pristine_clone(ctx, course, team_id):
         print "The repository for '%s' does not exist or you do not have permission to access it." % team_id
         ctx.exit(CHISUBMIT_FAIL)
 
-    tempdir = tempfile.mkdtemp(prefix="%s-%s-" % (course.id, team.id))
+    tempdir = tempfile.mkdtemp(prefix="%s-%s-" % (course.course_id, team.team_id))
     
     repo_url = conn.get_repository_git_url(course, team)
     

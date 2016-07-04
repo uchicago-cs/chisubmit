@@ -1,5 +1,6 @@
 import datetime
 import pytz
+from pango import AttrType
 
 class ChisubmitAPIException(Exception):
 
@@ -36,6 +37,9 @@ class AttributeException(Exception):
         return "%s = %s" % (self.name, self.value)
 
 class NoSuchAttributeException(AttributeException):
+    pass
+
+class UnexpectedRelationshipURLException(AttributeException):
     pass
 
 class AttributeNotEditableException(AttributeException):
@@ -169,6 +173,16 @@ class Attribute(object):
         return self.type.to_json(value)    
 
 
+class Relationship(object):
+    def __init__(self, name, reltype):
+        assert(isinstance(reltype, AttributeType))
+        assert(reltype.attrtype == AttributeType.OBJECT)
+        assert(issubclass(reltype.subtype, ChisubmitAPIObject))
+        
+        self.name = name
+        self.reltype = reltype
+        
+
 class ChisubmitAPIObject(object):
         
     def __init__(self, api_client, headers, attributes):
@@ -187,6 +201,14 @@ class ChisubmitAPIObject(object):
 
     def __get_api_attr(self, attrname):
         return self._api_attributes.get(attrname)
+    
+    def __is_relationship_attr(self, attrname):
+        if attrname.endswith("_url"):
+            rel_name = attrname[:-4]
+        else:
+            rel_name = attrname
+            
+        return rel_name in self._api_relationships
         
     def _initAttributes(self):
         for api_attr in self._api_attributes.keys():
@@ -194,16 +216,28 @@ class ChisubmitAPIObject(object):
 
     def _updateAttributes(self, attributes):
         for attrname, attrvalue in attributes.items():
-            api_attr = self.__get_api_attr(attrname)
-
-            if api_attr is None:
-                raise NoSuchAttributeException(attrname, attrvalue)
-            else:
-                if attrvalue is None:
-                    checked_value = None
+            if attrname == "url":
+                object.__setattr__(self, attrname, attrvalue)
+            elif self.__is_relationship_attr(attrname):
+                if attrname.endswith("_url"):
+                    object.__setattr__(self, attrname, attrvalue)
                 else:
-                    checked_value = api_attr.to_python(attrvalue, self._headers, self._api_client)
-                object.__setattr__(self, attrname, checked_value)       
+                    # TODO. Store included data.
+                    pass            
+            else:
+                if attrname.endswith("_url"):
+                    raise UnexpectedRelationshipURLException(attrname, attrvalue)
+                    
+                api_attr = self.__get_api_attr(attrname)
+    
+                if api_attr is None:
+                    raise NoSuchAttributeException(attrname, attrvalue)
+                else:
+                    if attrvalue is None:
+                        checked_value = None
+                    else:
+                        checked_value = api_attr.to_python(attrvalue, self._headers, self._api_client)
+                    object.__setattr__(self, attrname, checked_value)       
 
     def __setattr__(self, name, value):
         api_attr = self.__get_api_attr(name)

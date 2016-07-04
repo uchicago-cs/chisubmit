@@ -31,16 +31,13 @@ import chisubmit.client.users
 import chisubmit.client.assignment
 import chisubmit.client.team
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
-    APIStringType, APIIntegerType
+    APIStringType, APIIntegerType, Relationship, APIObjectType
 from chisubmit.client.users import User
 import datetime
 
 class Course(ChisubmitAPIObject):
     
-    _api_attributes = {"url": Attribute(name="url", 
-                                   attrtype=APIStringType, 
-                                   editable=False),    
-    
+    _api_attributes = {
                        "course_id": Attribute(name="course_id", 
                                        attrtype=APIStringType, 
                                        editable=True),    
@@ -72,27 +69,27 @@ class Course(ChisubmitAPIObject):
                        "default_extensions": Attribute(name="default_extensions", 
                                                        attrtype=APIIntegerType, 
                                                        editable=True),
-                       
-                       "instructors_url": Attribute(name="instructors_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),
-                       
-                       "graders_url": Attribute(name="graders_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),       
-                       
-                       "students_url": Attribute(name="students_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),                                                                                
-
-                       "assignments_url": Attribute(name="assignments_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),                                                                                
-                       
-                       "teams_url": Attribute(name="teams_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),                                                                                
                       }
+    
+    _api_relationships = {
+
+                          "instructors": Relationship(name="instructors", 
+                                                      reltype=APIObjectType("chisubmit.client.users.Instructor")),  
+                       
+                          "graders": Relationship(name="graders", 
+                                                  reltype=APIObjectType("chisubmit.client.users.Grader")), 
+
+                          "students": Relationship(name="students", 
+                                                   reltype=APIObjectType("chisubmit.client.users.Student")), 
+
+                          "assignments": Relationship(name="assignments", 
+                                                      reltype=APIObjectType("chisubmit.client.assignment.Assignment")), 
+
+                          "teams": Relationship(name="teams", 
+                                                reltype=APIObjectType("chisubmit.client.team.Team")), 
+                          
+                          }    
+                       
 
 
     def get_instructors(self):

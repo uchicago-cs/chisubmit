@@ -29,7 +29,7 @@
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
     APIIntegerType, APIBooleanType, APIObjectType, APIDateTimeType, APIDictType,\
-    APIDecimalType
+    APIDecimalType, Relationship
 from chisubmit.client.users import Student, User, Grader
 from chisubmit.client.assignment import Assignment, RubricComponent
 from chisubmit.common.utils import is_submission_ready_for_grading
@@ -37,18 +37,7 @@ from chisubmit.common.utils import is_submission_ready_for_grading
 
 class Team(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),
-
-                       "students_url": Attribute(name="students_url", 
-                                                 attrtype=APIStringType, 
-                                                 editable=False),  
-                       
-                       "assignments_url": Attribute(name="assignments_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),  
-                       
+    _api_attributes = {
                        "team_id": Attribute(name="team_id", 
                                             attrtype=APIStringType, 
                                             editable=True),  
@@ -61,6 +50,14 @@ class Team(ChisubmitAPIObject):
                                            attrtype=APIBooleanType, 
                                            editable=True),
                       }
+    
+    _api_relationships = {
+                          "students": Relationship(name="students", 
+                                                   reltype=APIObjectType(Student)),  
+                       
+                          "assignments": Relationship(name="assignments", 
+                                                      reltype=APIObjectType(Assignment)), 
+                          }
     
     def get_team_members(self):
         """
@@ -171,13 +168,10 @@ class Team(ChisubmitAPIObject):
     
 class TeamMember(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),
-
+    _api_attributes = {
                        "username": Attribute(name="username", 
-                                            attrtype=APIStringType, 
-                                            editable=False),  
+                                             attrtype=APIStringType, 
+                                             editable=False),  
     
                        "student": Attribute(name="student", 
                                             attrtype=APIObjectType(Student), 
@@ -188,12 +182,12 @@ class TeamMember(ChisubmitAPIObject):
                                               editable=True),                       
                       }
     
+    _api_relationships = { }
+    
+    
 class Submission(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),
-
+    _api_attributes = {
                        "id": Attribute(name="id", 
                                        attrtype=APIIntegerType, 
                                        editable=False),  
@@ -211,12 +205,31 @@ class Submission(ChisubmitAPIObject):
                                         editable=True)                    
                       }          
     
+    _api_relationships = { }
+    
+    
+class Grade(ChisubmitAPIObject):
+
+    _api_attributes = {                       
+                       "rubric_component_id": Attribute(name="rubric_component_id", 
+                                                        attrtype=APIIntegerType, 
+                                                        editable=False),
+                             
+                       "rubric_component": Attribute(name="rubric_component", 
+                                                     attrtype=APIObjectType(RubricComponent), 
+                                                     editable=False),   
+                       
+                       "points": Attribute(name="points", 
+                                           attrtype=APIDecimalType, 
+                                           editable=True)
+                       }       
+    
+    _api_relationships = { }
+    
+    
 class Registration(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),
-
+    _api_attributes = {
                        "assignment_id": Attribute(name="assignment_id", 
                                                   attrtype=APIStringType, 
                                                   editable=False),  
@@ -232,10 +245,6 @@ class Registration(ChisubmitAPIObject):
                        "grader": Attribute(name="grader", 
                                         attrtype=APIObjectType(Grader), 
                                         editable=False),  
-                       
-                       "submissions_url": Attribute(name="submissions_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),     
                                               
                        "final_submission_id": Attribute(name="final_submission_id", 
                                                      attrtype=APIIntegerType, 
@@ -243,20 +252,22 @@ class Registration(ChisubmitAPIObject):
 
                        "final_submission": Attribute(name="final_submission", 
                                                      attrtype=APIObjectType(Submission), 
-                                                     editable=False),
-                       
-                       "final_submission_url": Attribute(name="final_submission_url", 
-                                                         attrtype=APIStringType, 
-                                                         editable=False),                                     
-
-                       "grades_url": Attribute(name="grades_url", 
-                                               attrtype=APIStringType, 
-                                               editable=False),                                     
+                                                     editable=False),                             
 
                        "grade_adjustments": Attribute(name="grade_adjustments", 
                                                       attrtype=APIDictType(APIDecimalType), 
                                                       editable=True),                                     
                       }
+    
+    _api_relationships = {
+
+                          "submissions": Relationship(name="submissions", 
+                                                      reltype=APIObjectType(Submission)),  
+                       
+                          "grades": Relationship(name="grades", 
+                                                 reltype=APIObjectType(Grade)), 
+                          
+                          }        
     
     def get_submissions(self):
         """
@@ -424,22 +435,6 @@ class SubmissionResponse(ChisubmitAPIObject):
                                                      editable=False),  
                        }    
     
+    _api_relationships = { }
     
-class Grade(ChisubmitAPIObject):
-
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),
                        
-                       "rubric_component_id": Attribute(name="rubric_component_id", 
-                                                        attrtype=APIIntegerType, 
-                                                        editable=False),
-                             
-                       "rubric_component": Attribute(name="rubric_component", 
-                                                     attrtype=APIObjectType(RubricComponent), 
-                                                     editable=False),   
-                       
-                       "points": Attribute(name="points", 
-                                           attrtype=APIDecimalType, 
-                                           editable=True)
-                       }                          

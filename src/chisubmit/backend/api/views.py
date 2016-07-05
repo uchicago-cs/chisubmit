@@ -492,7 +492,7 @@ class Register(APIView):
     
 
 class TeamList(APIView):
-    def get(self, request, course_id, format=None):
+    def get(self, request, course_id, format=None):       
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}
         
@@ -504,8 +504,16 @@ class TeamList(APIView):
         else:
             teams = []
         
-        serializer = TeamSerializer(teams, many=True, context=serializer_context)
-        return Response(serializer.data)
+        serialized_teams = []
+        for team in teams:
+            ts = TeamSerializer(team, context=serializer_context)
+            serialized_team = ts.data 
+            if "students" in request.query_params.get("include", []):
+                tms = TeamMemberSerializer(team.teammember_set.all(), many=True, context=serializer_context)
+                serialized_team["students"] = tms.data
+            serialized_teams.append(serialized_team)
+        
+        return Response(serialized_teams)
 
     def post(self, request, course_id, format=None):
         course_obj, roles = get_course(request, course_id)

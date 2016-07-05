@@ -17,6 +17,33 @@ class TeamTests(ChisubmitClientLibsTestCase):
         
         self.assertEquals(len(teams), len(COURSE1_TEAMS))
         self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+
+    def test_get_teams_include_students(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        teams = course.get_teams(include_students = True)
+        
+        self.assertEquals(len(teams), len(COURSE1_TEAMS))
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+
+    def test_get_teams_include_assignments(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        teams = course.get_teams(include_assignments = True)
+        
+        self.assertEquals(len(teams), len(COURSE1_TEAMS))
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+
+    def test_get_teams_include_students_and_assignments(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        teams = course.get_teams(include_students = True, include_assignments = True)
+        
+        self.assertEquals(len(teams), len(COURSE1_TEAMS))
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
         
     def test_get_team(self):
         c = self.get_api_client("admintoken")

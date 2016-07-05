@@ -371,15 +371,29 @@ class Course(ChisubmitAPIObject):
         )
         return chisubmit.client.assignment.Assignment(self._api_client, headers, data)    
     
-    def get_teams(self):
+    def get_teams(self, include_students=False, include_assignments=False):
         """
         :calls: GET /courses/:course/teams/
         :rtype: List of :class:`chisubmit.client.team.Team`
         """
         
+        include = []
+        
+        if include_students:
+            include.append("students")
+
+        if include_assignments:
+            include.append("assignments")
+            
+        if len(include) > 0:
+            params = {"include": include}
+        else:
+            params = None
+        
         headers, data = self._api_client._requester.request(
             "GET",
-            self.teams_url
+            self.teams_url,
+            params = params
         )
         return [chisubmit.client.team.Team(self._api_client, headers, elem) for elem in data]        
     

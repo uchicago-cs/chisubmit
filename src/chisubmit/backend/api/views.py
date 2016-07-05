@@ -505,12 +505,21 @@ class TeamList(APIView):
             teams = []
         
         serialized_teams = []
+
+        include = request.query_params.getlist("include")
+        
         for team in teams:
             ts = TeamSerializer(team, context=serializer_context)
             serialized_team = ts.data 
-            if "students" in request.query_params.get("include", []):
+
+            if "students" in include:
                 tms = TeamMemberSerializer(team.teammember_set.all(), many=True, context=serializer_context)
                 serialized_team["students"] = tms.data
+
+            if "assignments" in include:
+                rs = RegistrationSerializer(team.registration_set.all(), many=True, context=serializer_context)
+                serialized_team["assignments"] = rs.data
+            
             serialized_teams.append(serialized_team)
         
         return Response(serialized_teams)

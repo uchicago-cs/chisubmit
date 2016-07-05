@@ -222,8 +222,9 @@ class ChisubmitAPIObject(object):
                 if attrname.endswith("_url"):
                     object.__setattr__(self, attrname, attrvalue)
                 else:
-                    # TODO. Store included data.
-                    pass            
+                    rel = self._api_relationships[attrname]
+                    rel_values = [rel.reltype.to_python(elem, self._headers, self._api_client) for elem in attrvalue]
+                    setattr(self, "_rel_" + attrname, rel_values)
             else:
                 if attrname.endswith("_url"):
                     raise UnexpectedRelationshipURLException(attrname, attrvalue)
@@ -240,6 +241,9 @@ class ChisubmitAPIObject(object):
                     object.__setattr__(self, attrname, checked_value)       
 
     def __setattr__(self, name, value):
+        if self.__is_relationship_attr("_rel_" + name):
+            raise AttributeNotEditableException(name, value)
+
         api_attr = self.__get_api_attr(name)
         if api_attr is None:        
             object.__setattr__(self, name, value)
@@ -252,6 +256,25 @@ class ChisubmitAPIObject(object):
                 else:
                     self.edit(**{name: value})                
                 object.__setattr__(self, name, value)
+                    
+    def get_related(self, name):
+        rel = self._api_relationships.get(name, None)
+        
+        if rel is None:
+            raise
+        
+        if hasattr(self, "_rel_" + name):
+            cached_rel = getattr(self, "_rel_" + name)
+            if cached_rel is not None:
+                return cached_rel
+        
+        rel_url = getattr(self, name + "_url")
+        headers, data = self._api_client._requester.request(
+            "GET",
+            rel_url
+        )
+        
+        return [rel.reltype.to_python(elem, headers, self._api_client) for elem in data]                
                     
     def save(self):
         if self._api_client._deferred_save:

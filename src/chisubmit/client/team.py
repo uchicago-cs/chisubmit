@@ -289,6 +289,25 @@ class Registration(ChisubmitAPIObject):
                                                    extensions_used=self.final_submission.extensions_used)    
 
 
+class TeamMember(ChisubmitAPIObject):
+
+    _api_attributes = {
+                       "username": Attribute(name="username", 
+                                             attrtype=APIStringType, 
+                                             editable=False),  
+    
+                       "student": Attribute(name="student", 
+                                            attrtype=APIObjectType(Student), 
+                                            editable=False),  
+                       
+                       "confirmed": Attribute(name="confirmed", 
+                                              attrtype=APIBooleanType, 
+                                              editable=True),                       
+                      }
+    
+    _api_relationships = { }
+
+
 class Team(ChisubmitAPIObject):
 
     _api_attributes = {
@@ -307,7 +326,7 @@ class Team(ChisubmitAPIObject):
     
     _api_relationships = {
                           "students": Relationship(name="students", 
-                                                   reltype=APIObjectType(Student)),  
+                                                   reltype=APIObjectType(TeamMember)),  
                        
                           "assignments": Relationship(name="assignments", 
                                                       reltype=APIObjectType(Registration)), 
@@ -319,12 +338,10 @@ class Team(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.team.TeamMember`
         """
         
-        headers, data = self._api_client._requester.request(
-            "GET",
-            self.students_url
-        )
-        return [TeamMember(self._api_client, headers, elem) for elem in data]        
-    
+        team_members = self.get_related("students")
+        
+        return team_members
+        
     def get_team_member(self, username):
         """
         :calls: GET /courses/:course/teams/:team/students/:username
@@ -370,11 +387,9 @@ class Team(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.team.Registration`
         """
         
-        headers, data = self._api_client._requester.request(
-            "GET",
-            self.assignments_url
-        )
-        return [Registration(self._api_client, headers, elem) for elem in data]        
+        registrations = self.get_related("assignments")
+        
+        return registrations   
     
     def get_assignment_registration(self, assignment_id):
         """
@@ -421,23 +436,7 @@ class Team(ChisubmitAPIObject):
         return Registration(self._api_client, headers, data)         
     
     
-class TeamMember(ChisubmitAPIObject):
 
-    _api_attributes = {
-                       "username": Attribute(name="username", 
-                                             attrtype=APIStringType, 
-                                             editable=False),  
-    
-                       "student": Attribute(name="student", 
-                                            attrtype=APIObjectType(Student), 
-                                            editable=False),  
-                       
-                       "confirmed": Attribute(name="confirmed", 
-                                              attrtype=APIBooleanType, 
-                                              editable=True),                       
-                      }
-    
-    _api_relationships = { }
     
     
 

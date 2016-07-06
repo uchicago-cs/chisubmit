@@ -411,7 +411,7 @@ class Course(ChisubmitAPIObject):
         return teams             
         
     
-    def get_team(self, team_id, include_students=False, include_assignments=False):
+    def get_team(self, team_id, include_students=False, include_assignments=False, include_grades = False):
         """
         :calls: GET /courses/:course/teams/
         :rtype: :class:`chisubmit.client.team.Team`
@@ -427,6 +427,9 @@ class Course(ChisubmitAPIObject):
         if include_assignments:
             include.append("assignments")
             
+        if include_grades:
+            include.append("assignments__grades")            
+
         if len(include) > 0:
             params = {"include": include}
         else:

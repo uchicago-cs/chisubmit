@@ -248,11 +248,19 @@ class AssignmentDetail(APIView):
     def get(self, request, course_id, assignment_id, format=None):
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}   
+
+        include = request.query_params.getlist("include")
         
         assignment_obj = get_assignment(course_obj, request.user, roles, assignment_id)
         serializer = AssignmentSerializer(assignment_obj, context=serializer_context)
         
-        return Response(serializer.data)
+        serialized_assignment = serializer.data 
+
+        if "rubric" in include:
+            rcs = RubricComponentSerializer(assignment_obj.get_rubric_components(), many=True, context=serializer_context)
+            serialized_assignment["rubric"] = rcs.data
+                    
+        return Response(serialized_assignment)
 
     def patch(self, request, course_id, assignment_id, format=None):
         course_obj, roles = get_course(request, course_id)

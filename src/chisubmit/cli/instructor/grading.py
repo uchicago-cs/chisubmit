@@ -489,10 +489,10 @@ def print_grades_stats(grades):
 @pass_course
 @click.pass_context
 def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader, include_diff_urls):
-    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    assignment = get_assignment_or_exit(ctx, course, assignment_id, include_rubric = True)
     rubric_components = assignment.get_rubric_components()
 
-    teams_registrations = get_teams_registrations(course, assignment)
+    teams_registrations = get_teams_registrations(course, assignment, include_grades = True)
     teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
     
     team_status = []

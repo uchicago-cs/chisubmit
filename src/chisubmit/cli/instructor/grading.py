@@ -160,15 +160,18 @@ def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
 @click.pass_context
 def instructor_grading_list_grades(ctx, course, detailed):
     students = [s for s in course.get_students() if not s.dropped]
-    assignments = course.get_assignments()
+    assignments = course.get_assignments(include_rubric=True)
 
     students.sort(key=operator.attrgetter("user.last_name"))
     assignments.sort(key=operator.attrgetter("deadline"))
 
     student_grades = dict([(s.user.username,dict([(a.assignment_id,{}) for a in assignments])) for s in students])
 
-    for team in course.get_teams():
-        for registration in team.get_assignment_registrations():
+    teams = course.get_teams(include_students=True, include_assignments=True, include_grades=True)
+
+    for team in teams:
+        registrations = team.get_assignment_registrations()
+        for registration in registrations:
             assignment_id = registration.assignment.assignment_id
             for student in team.get_team_members():
                 student_id = student.username
@@ -527,7 +530,7 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
             
         if include_diff_urls and has_some:
             commit_sha = registration.final_submission.commit_sha[:8]
-            diff_url = "https://mit.cs.uchicago.edu/cs121-aut-15-staging/%s/compare/%s...%s-grading" % (team.team_id, commit_sha, assignment.assignment_id)
+            diff_url = "https://mit.cs.uchicago.edu/%s-staging/%s/compare/%s...%s-grading" % (course.course_id, team.team_id, commit_sha, assignment.assignment_id)
         else:
             diff_url = ""
             

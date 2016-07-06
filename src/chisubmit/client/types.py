@@ -257,21 +257,23 @@ class ChisubmitAPIObject(object):
                     self.edit(**{name: value})                
                 object.__setattr__(self, name, value)
                     
-    def get_related(self, name):
+    def get_related(self, name, force_request=False, params = None):
         rel = self._api_relationships.get(name, None)
-        
+
         if rel is None:
             raise
         
-        if hasattr(self, "_rel_" + name):
-            cached_rel = getattr(self, "_rel_" + name)
-            if cached_rel is not None:
-                return cached_rel
+        if not force_request and params is None:
+            if hasattr(self, "_rel_" + name):
+                cached_rel = getattr(self, "_rel_" + name)
+                if cached_rel is not None:
+                    return cached_rel
         
         rel_url = getattr(self, name + "_url")
         headers, data = self._api_client._requester.request(
             "GET",
-            rel_url
+            rel_url,
+            params = params
         )
         
         return [rel.reltype.to_python(elem, headers, self._api_client) for elem in data]                

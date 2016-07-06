@@ -202,6 +202,23 @@ class AssignmentList(APIView):
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}   
                 
         assignments = Assignment.objects.filter(course = course_obj)
+        
+        serialized_assignments = []
+
+        include = request.query_params.getlist("include")
+
+        for assignment in assignments:
+            asr = AssignmentSerializer(assignment, context=serializer_context)
+            serialized_assignment = asr.data 
+
+            if "rubric" in include:
+                rcs = RubricComponentSerializer(assignment.get_rubric_components(), many=True, context=serializer_context)
+                serialized_assignment["rubric"] = rcs.data
+            
+            serialized_assignments.append(serialized_assignment)
+        
+        return Response(serialized_assignments)        
+        
         serializer = AssignmentSerializer(assignments, many=True, context=serializer_context)
         return Response(serializer.data)
 
@@ -507,7 +524,8 @@ class TeamList(APIView):
         serialized_teams = []
 
         include = request.query_params.getlist("include")
-        
+
+        # TODO: This needs to be generalized and refactored
         for team in teams:
             ts = TeamSerializer(team, context=serializer_context)
             serialized_team = ts.data 
@@ -516,7 +534,23 @@ class TeamList(APIView):
                 tms = TeamMemberSerializer(team.teammember_set.all(), many=True, context=serializer_context)
                 serialized_team["students"] = tms.data
 
-            if "assignments" in include:
+            if "assignments__grades" in include:
+                serialized_registrations = [] 
+                registrations = team.registration_set.all()
+                
+                for registration in registrations:
+                    rs = RegistrationSerializer(registration, context=serializer_context)
+                    serialized_registration = rs.data
+                    
+                    grades = registration.grade_set.all()
+                    gs = GradeSerializer(grades, many=True, context=serializer_context)
+                    
+                    serialized_registration["grades"] = gs.data
+                    
+                    serialized_registrations.append(serialized_registration)
+                    
+                serialized_team["assignments"] = serialized_registrations
+            elif "assignments" in include:
                 rs = RegistrationSerializer(team.registration_set.all(), many=True, context=serializer_context)
                 serialized_team["assignments"] = rs.data
             

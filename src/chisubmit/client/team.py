@@ -144,11 +144,9 @@ class Registration(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.team.Submission`
         """
         
-        headers, data = self._api_client._requester.request(
-            "GET",
-            self.submissions_url
-        )
-        return [Submission(self._api_client, headers, elem) for elem in data]        
+        submissions = self.get_related("submissions")
+        
+        return submissions        
     
     def get_submission(self, submission):
         """
@@ -190,11 +188,9 @@ class Registration(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.team.Grade`
         """
         
-        headers, data = self._api_client._requester.request(
-            "GET",
-            self.grades_url
-        )
-        return [Grade(self._api_client, headers, elem) for elem in data]            
+        grades = self.get_related("grades")
+        
+        return grades             
     
     def add_grade(self, rubric_component, points = None):
         """

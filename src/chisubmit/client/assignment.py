@@ -97,11 +97,9 @@ class Assignment(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.assignment.RubricComponent`
         """
         
-        headers, data = self._api_client._requester.request(
-            "GET",
-            self.rubric_url
-        )
-        return [RubricComponent(self._api_client, headers, elem) for elem in data]    
+        rubric_components = self.get_related("rubric")
+        
+        return rubric_components
     
     
     def create_rubric_component(self, description, points, order = None):

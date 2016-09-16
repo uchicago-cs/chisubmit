@@ -1,6 +1,5 @@
 import datetime
 import pytz
-from pango import AttrType
 
 class ChisubmitAPIException(Exception):
 

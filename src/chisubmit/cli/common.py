@@ -168,9 +168,9 @@ def get_user_or_exit(ctx, username):
         print "User %s does not exist" % username
         ctx.exit(CHISUBMIT_FAIL)    
 
-def get_assignment_or_exit(ctx, course, assignment_id):
+def get_assignment_or_exit(ctx, course, assignment_id, include_rubric = False):
     try:
-        return course.get_assignment(assignment_id = assignment_id)
+        return course.get_assignment(assignment_id = assignment_id, include_rubric = include_rubric)
     except UnknownObjectException:
         print "Assignment %s does not exist" % assignment_id
         ctx.exit(CHISUBMIT_FAIL)
@@ -247,22 +247,26 @@ class DateTimeParamType(click.ParamType):
 DATETIME = DateTimeParamType()
 
 
-def get_teams_registrations(course, assignment, only_ready_for_grading = False, grader = None, only = None):
+def get_teams_registrations(course, assignment, only_ready_for_grading=False, grader=None, only=None, include_grades=False):
     if only is not None:
         try:
-            team = course.get_team(only)
+            team = course.get_team(only, include_assignments=True, include_grades=include_grades)
             teams = [team]
         except UnknownObjectException:
             return {}
     else:
-        teams = course.get_teams()
+        teams = course.get_teams(include_assignments=True, include_grades=include_grades)
 
-    # TODO: sideload the registrations
     rv = {}
     
     for team in teams:
         try:
-            registration = team.get_assignment_registration(assignment.assignment_id)
+            registrations = team.get_assignment_registrations()
+            registration = [r for r in registrations if r.assignment_id == assignment.assignment_id]
+            if len(registration) == 0:
+                continue
+            else:
+                registration = registration[0]
             
             if (only_ready_for_grading and not registration.is_ready_for_grading()) or (grader is not None and registration.grader_username != grader.user.username):
                 continue

@@ -50,7 +50,7 @@ class Chisubmit(object):
         )
         return [chisubmit.client.course.Course(self, headers, elem) for elem in data]    
     
-    def get_course(self, course_id):
+    def get_course(self, course_id, include_users=False, include_assignments=False, include_teams=False):
         """
         :calls: GET /courses/:course
         :param course_id: string
@@ -58,9 +58,29 @@ class Chisubmit(object):
         """
         assert isinstance(course_id, (str, unicode)), course_id
         
+        include = []
+        
+        if include_users:
+            include.append("instructors")
+            include.append("students")
+            include.append("graders")
+
+        if include_assignments:
+            include.append("assignments")
+            include.append("assignments__rubric")
+            
+        if include_teams:
+            include.append("teams")
+            
+        if len(include) > 0:
+            params = {"include": include}
+        else:
+            params = None            
+        
         headers, data = self._requester.request(
             "GET",
-            "/courses/" + course_id
+            "/courses/" + course_id,
+            params = params
         )
         return chisubmit.client.course.Course(self, headers, data)
  

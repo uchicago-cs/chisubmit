@@ -7,7 +7,9 @@ from chisubmit.backend.api.models import Course, Assignment, TeamMember,\
 
 class TeamTests(ChisubmitClientLibsTestCase):
     
-    fixtures = ['users', 'course1', 'course1_users', 'course1_teams']
+    fixtures = ['users', 'course1', 'course1_users', 'course1_teams',
+                'course1_pa1', 'course1_pa1_registrations',
+                'course1_pa2']
     
     def test_get_teams(self):
         c = self.get_api_client("admintoken")
@@ -17,6 +19,54 @@ class TeamTests(ChisubmitClientLibsTestCase):
         
         self.assertEquals(len(teams), len(COURSE1_TEAMS))
         self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+
+    def test_get_teams_include_students(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        teams = course.get_teams(include_students = True)
+        
+        self.assertEquals(len(teams), len(COURSE1_TEAMS))
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+        
+        for team in teams:
+            self.assertTrue(hasattr(team, "_rel_students"))
+            self.assertEquals(len(team._rel_students), len(COURSE1_TEAM_MEMBERS[team.team_id]))
+            
+            team_members = team.get_team_members()
+            
+            self.assertEquals(len(team_members), len(COURSE1_TEAM_MEMBERS[team.team_id]))
+            self.assertItemsEqual([tm.username for tm in team_members], COURSE1_TEAM_MEMBERS[team.team_id])
+            self.assertItemsEqual([tm.student.user.username for tm in team_members], COURSE1_TEAM_MEMBERS[team.team_id])
+
+
+    def test_get_teams_include_assignments(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        teams = course.get_teams(include_assignments = True)
+        
+        self.assertEquals(len(teams), len(COURSE1_TEAMS))
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+
+        for team in teams:
+            self.assertTrue(hasattr(team, "_rel_assignments"))
+
+
+    def test_get_teams_include_students_and_assignments(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40100")
+        teams = course.get_teams(include_students = True, include_assignments = True)
+        
+        self.assertEquals(len(teams), len(COURSE1_TEAMS))
+        self.assertItemsEqual([t.team_id for t in teams], COURSE1_TEAMS)
+        
+        for team in teams:
+            self.assertTrue(hasattr(team, "_rel_students"))
+            self.assertTrue(hasattr(team, "_rel_assignments"))
+            self.assertEquals(len(team._rel_students), len(COURSE1_TEAM_MEMBERS[team.team_id]))
+        
         
     def test_get_team(self):
         c = self.get_api_client("admintoken")

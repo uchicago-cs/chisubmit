@@ -30,6 +30,7 @@
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType, APIObjectType,\
     APIIntegerType, APIBooleanType
 
+
 class User(ChisubmitAPIObject):
     _api_attributes = {"username": Attribute(name="username", 
                                             attrtype=APIStringType, 
@@ -47,14 +48,14 @@ class User(ChisubmitAPIObject):
                                          attrtype=APIStringType, 
                                          editable=False)
                       }    
+
+    _api_relationships = { }
+
     
 
 class Instructor(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),  
-    
+    _api_attributes = {    
                        "username": Attribute(name="username", 
                                             attrtype=APIStringType, 
                                             editable=False),  
@@ -71,6 +72,9 @@ class Instructor(ChisubmitAPIObject):
                                                         attrtype=APIStringType, 
                                                         editable=True)
                       }
+    
+    _api_relationships = { }
+    
     
 class Grader(ChisubmitAPIObject):
 
@@ -95,16 +99,15 @@ class Grader(ChisubmitAPIObject):
                                                         editable=True)
                       }
     
+    _api_relationships = { }
+    
     # TODO
     def get_conflicts(self):
         return []
     
 class Student(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),  
-    
+    _api_attributes = {    
                        "username": Attribute(name="username", 
                                             attrtype=APIStringType, 
                                             editable=False),  
@@ -125,3 +128,6 @@ class Student(ChisubmitAPIObject):
                                             attrtype=APIBooleanType, 
                                             editable=True),  
                       }    
+    
+    _api_relationships = { }
+    

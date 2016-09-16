@@ -29,18 +29,38 @@
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
     APIIntegerType, APIDateTimeType, APIDecimalType, APIBooleanType,\
-    APIObjectType, APIListType
+    APIObjectType, APIListType, Relationship
 
-class Assignment(ChisubmitAPIObject):
+class RubricComponent(ChisubmitAPIObject):
 
     _api_attributes = {"url": Attribute(name="url", 
                                        attrtype=APIStringType, 
                                        editable=False),  
+
+                       "id": Attribute(name="id", 
+                                       attrtype=APIIntegerType, 
+                                       editable=False),  
                        
-                       "rubric_url": Attribute(name="rubric_url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),                         
-                       
+                       "description": Attribute(name="name", 
+                                                attrtype=APIStringType, 
+                                                editable=True),  
+    
+                       "order": Attribute(name="order", 
+                                          attrtype=APIIntegerType, 
+                                          editable=True),  
+    
+                       "points": Attribute(name="points", 
+                                           attrtype=APIDecimalType, 
+                                           editable=True)
+                                              
+                      }      
+    
+    _api_relationships = { }
+    
+
+class Assignment(ChisubmitAPIObject):
+
+    _api_attributes = {                       
                        "assignment_id": Attribute(name="assignment_id", 
                                        attrtype=APIStringType, 
                                        editable=True),  
@@ -60,11 +80,16 @@ class Assignment(ChisubmitAPIObject):
                        "max_students": Attribute(name="max_students", 
                                                attrtype=APIIntegerType, 
                                                editable=True),
-                       
-                       "rubric_url": Attribute(name="rubric_url", 
-                                                    attrtype=APIStringType, 
-                                                    editable=False),                       
                       }
+    
+    _api_relationships = {
+
+                          "rubric": Relationship(name="instructors", 
+                                                 reltype=APIObjectType(RubricComponent)),
+                          
+                         }  
+    
+    
     
     def get_rubric_components(self):
         """
@@ -72,11 +97,9 @@ class Assignment(ChisubmitAPIObject):
         :rtype: List of :class:`chisubmit.client.assignment.RubricComponent`
         """
         
-        headers, data = self._api_client._requester.request(
-            "GET",
-            self.rubric_url
-        )
-        return [RubricComponent(self._api_client, headers, elem) for elem in data]    
+        rubric_components = self.get_related("rubric")
+        
+        return rubric_components
     
     
     def create_rubric_component(self, description, points, order = None):
@@ -119,29 +142,7 @@ class Assignment(ChisubmitAPIObject):
         )
         return RegistrationResponse(self._api_client, headers, data)       
     
-class RubricComponent(ChisubmitAPIObject):
-
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),  
-
-                       "id": Attribute(name="id", 
-                                       attrtype=APIIntegerType, 
-                                       editable=False),  
-                       
-                       "description": Attribute(name="name", 
-                                                attrtype=APIStringType, 
-                                                editable=True),  
-    
-                       "order": Attribute(name="order", 
-                                          attrtype=APIIntegerType, 
-                                          editable=True),  
-    
-                       "points": Attribute(name="points", 
-                                           attrtype=APIDecimalType, 
-                                           editable=True)
-                                              
-                      }        
+  
     
 class RegistrationResponse(ChisubmitAPIObject):
     
@@ -164,5 +165,8 @@ class RegistrationResponse(ChisubmitAPIObject):
                                           editable=False),  
                                               
                       }
+    
+    _api_relationships = { }
+    
     
         

@@ -202,6 +202,23 @@ class AssignmentList(APIView):
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}   
                 
         assignments = Assignment.objects.filter(course = course_obj)
+        
+        serialized_assignments = []
+
+        include = request.query_params.getlist("include")
+
+        for assignment in assignments:
+            asr = AssignmentSerializer(assignment, context=serializer_context)
+            serialized_assignment = asr.data 
+
+            if "rubric" in include:
+                rcs = RubricComponentSerializer(assignment.get_rubric_components(), many=True, context=serializer_context)
+                serialized_assignment["rubric"] = rcs.data
+            
+            serialized_assignments.append(serialized_assignment)
+        
+        return Response(serialized_assignments)        
+        
         serializer = AssignmentSerializer(assignments, many=True, context=serializer_context)
         return Response(serializer.data)
 
@@ -231,11 +248,19 @@ class AssignmentDetail(APIView):
     def get(self, request, course_id, assignment_id, format=None):
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}   
+
+        include = request.query_params.getlist("include")
         
         assignment_obj = get_assignment(course_obj, request.user, roles, assignment_id)
         serializer = AssignmentSerializer(assignment_obj, context=serializer_context)
         
-        return Response(serializer.data)
+        serialized_assignment = serializer.data 
+
+        if "rubric" in include:
+            rcs = RubricComponentSerializer(assignment_obj.get_rubric_components(), many=True, context=serializer_context)
+            serialized_assignment["rubric"] = rcs.data
+                    
+        return Response(serialized_assignment)
 
     def patch(self, request, course_id, assignment_id, format=None):
         course_obj, roles = get_course(request, course_id)
@@ -492,7 +517,7 @@ class Register(APIView):
     
 
 class TeamList(APIView):
-    def get(self, request, course_id, format=None):
+    def get(self, request, course_id, format=None):       
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}
         
@@ -504,8 +529,42 @@ class TeamList(APIView):
         else:
             teams = []
         
-        serializer = TeamSerializer(teams, many=True, context=serializer_context)
-        return Response(serializer.data)
+        serialized_teams = []
+
+        include = request.query_params.getlist("include")
+
+        # TODO: This needs to be generalized and refactored
+        for team in teams:
+            ts = TeamSerializer(team, context=serializer_context)
+            serialized_team = ts.data 
+
+            if "students" in include:
+                tms = TeamMemberSerializer(team.teammember_set.all(), many=True, context=serializer_context)
+                serialized_team["students"] = tms.data
+
+            if "assignments__grades" in include:
+                serialized_registrations = [] 
+                registrations = team.registration_set.all()
+                
+                for registration in registrations:
+                    rs = RegistrationSerializer(registration, context=serializer_context)
+                    serialized_registration = rs.data
+                    
+                    grades = registration.grade_set.all()
+                    gs = GradeSerializer(grades, many=True, context=serializer_context)
+                    
+                    serialized_registration["grades"] = gs.data
+                    
+                    serialized_registrations.append(serialized_registration)
+                    
+                serialized_team["assignments"] = serialized_registrations
+            elif "assignments" in include:
+                rs = RegistrationSerializer(team.registration_set.all(), many=True, context=serializer_context)
+                serialized_team["assignments"] = rs.data
+            
+            serialized_teams.append(serialized_team)
+        
+        return Response(serialized_teams)
 
     def post(self, request, course_id, format=None):
         course_obj, roles = get_course(request, course_id)

@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 from enum import Enum
+from datetime import timedelta
 from django.db.utils import IntegrityError
 from chisubmit.common.utils import compute_extensions_needed,\
     is_submission_ready_for_grading
@@ -196,6 +197,7 @@ class Assignment(models.Model):
     assignment_id = models.SlugField()
     name = models.CharField(max_length=64)
     deadline = models.DateTimeField()
+    grace_period = models.DurationField(default=timedelta(seconds=0))
 
     # Options
     min_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
@@ -322,7 +324,9 @@ class Submission(models.Model):
     extensions_used = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
+    grace_period = models.BooleanField(default=False)
     
+    # TODO: Grace period
     def validate(self, ignore_deadline = False):
         extensions_needed = compute_extensions_needed(submission_time = self.submitted_at, 
                                                       deadline = self.registration.assignment.deadline)

@@ -778,10 +778,12 @@ class Submit(APIView):
             msg = " You made a submission before the deadline, and the deadline has passed."
             return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
         
+        # TODO: Grace period
         submission = Submission(registration = registration_obj,
                                 extensions_used = extensions_requested,
                                 commit_sha = commit_sha,
-                                submitted_at = now)
+                                submitted_at = now,
+                                grace_period = False)
         
         valid, error_response, extensions = submission.validate(ignore_deadline = ignore_deadline)
         
@@ -796,11 +798,13 @@ class Submit(APIView):
             else:
                 response_status = status.HTTP_200_OK
             
+            # TODO: Grace period
             response_data = {"submission": submission,
                              "extensions_before": extensions["extensions_available_before"],
-                             "extensions_after": extensions["extensions_available_after"]
+                             "extensions_after": extensions["extensions_available_after"],
+                             "grace_period": False
                              }
-                
+            
             serializer = SubmissionResponseSerializer(response_data, context=serializer_context)            
             return Response(serializer.data, status=response_status)        
         

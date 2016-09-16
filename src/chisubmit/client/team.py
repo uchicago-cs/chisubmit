@@ -71,6 +71,10 @@ class Submission(ChisubmitAPIObject):
     
                        "submitted_at": Attribute(name="submitted_at", 
                                         attrtype=APIDateTimeType, 
+                                        editable=True) ,
+
+                       "grace_period": Attribute(name="grace_period", 
+                                        attrtype=APIBooleanType, 
                                         editable=True)                    
                       }          
     
@@ -91,6 +95,10 @@ class SubmissionResponse(ChisubmitAPIObject):
                        "extensions_after": Attribute(name="extensions_before", 
                                                      attrtype=APIIntegerType, 
                                                      editable=False),  
+
+                       "grace_period": Attribute(name="grace_period", 
+                                        attrtype=APIBooleanType, 
+                                        editable=True)                    
                        }    
     
     _api_relationships = { }

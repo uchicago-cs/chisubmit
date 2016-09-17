@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 from enum import Enum
+from datetime import timedelta
 from django.db.utils import IntegrityError
 from chisubmit.common.utils import compute_extensions_needed,\
     is_submission_ready_for_grading
@@ -196,6 +197,7 @@ class Assignment(models.Model):
     assignment_id = models.SlugField()
     name = models.CharField(max_length=64)
     deadline = models.DateTimeField()
+    grace_period = models.DurationField(default=timedelta(seconds=0))
 
     # Options
     min_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
@@ -312,20 +314,40 @@ class Registration(models.Model):
         else:
             return is_submission_ready_for_grading(assignment_deadline=self.assignment.deadline, 
                                                    submission_date=self.final_submission.submitted_at,
-                                                   extensions_used=self.final_submission.extensions_used)
+                                                   extensions_used=self.final_submission.extensions_used,
+                                                   assignment_grace_period=self.assignment.grace_period)
 
     class Meta:
         unique_together = ("team", "assignment")
+
+
+class SubmissionValidationException(Exception):
+    def __init__(self, error_response):
+        Exception.__init__(self)
+        self.error_response = error_response
 
 class Submission(models.Model):
     registration = models.ForeignKey(Registration) 
     extensions_used = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
+    grace_period = models.BooleanField(default=False)
     
     def validate(self, ignore_deadline = False):
+        deadline = self.registration.assignment.deadline
+        grace_period = self.registration.assignment.grace_period
+        effective_deadline = deadline + grace_period
+        
         extensions_needed = compute_extensions_needed(submission_time = self.submitted_at, 
-                                                      deadline = self.registration.assignment.deadline)
+                                                      deadline = effective_deadline)
+        extensions_needed_without_grace_period = compute_extensions_needed(submission_time = self.submitted_at, 
+                                                      deadline = deadline)
+        
+        if extensions_needed_without_grace_period == extensions_needed + 1:
+            in_grace_period = True
+        else:
+            in_grace_period = False
+        
         extensions_available = self.registration.team.get_extensions_available()
                 
         if extensions_available < 0:
@@ -347,12 +369,14 @@ class Submission(models.Model):
             msg = "The number of requested extensions does not match the number of extensions needed."
             response_data = {"errors": [msg]}
             response_data.update(error_data)
-            return False, Response(response_data, status=status.HTTP_400_BAD_REQUEST), None            
+            response = Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+            raise SubmissionValidationException(response)
         if not ignore_deadline and extensions_available + extensions_used_in_existing_submission < extensions_needed:
             msg = "The number of available extensions is insufficient."
             response_data = {"errors": [msg]}
             response_data.update(error_data)
-            return False, Response(response_data, status=status.HTTP_400_BAD_REQUEST), None                    
+            response = Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+            raise SubmissionValidationException(response)
         else:     
             extensions = {}
             extensions["extensions_available_before"] = extensions_available
@@ -369,7 +393,7 @@ class Submission(models.Model):
 
             extensions["extensions_available_after"] = extensions_available
             
-            return True, None, extensions                    
+            return extensions, in_grace_period                    
         
 class Grade(models.Model):
     registration = models.ForeignKey(Registration)

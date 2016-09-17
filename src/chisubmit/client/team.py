@@ -62,16 +62,20 @@ class Submission(ChisubmitAPIObject):
                                        editable=False),  
     
                        "extensions_used": Attribute(name="extensions_used", 
-                                               attrtype=APIIntegerType, 
-                                               editable=True),  
+                                                    attrtype=APIIntegerType, 
+                                                    editable=True),  
 
                        "commit_sha": Attribute(name="commit_sha", 
-                                            attrtype=APIStringType, 
-                                            editable=True),  
+                                               attrtype=APIStringType, 
+                                               editable=True),  
     
                        "submitted_at": Attribute(name="submitted_at", 
-                                        attrtype=APIDateTimeType, 
-                                        editable=True)                    
+                                                 attrtype=APIDateTimeType, 
+                                                 editable=True) ,
+
+                       "in_grace_period": Attribute(name="in_grace_period", 
+                                                    attrtype=APIBooleanType, 
+                                                    editable=True)                    
                       }          
     
     _api_relationships = { }    
@@ -91,6 +95,10 @@ class SubmissionResponse(ChisubmitAPIObject):
                        "extensions_after": Attribute(name="extensions_before", 
                                                      attrtype=APIIntegerType, 
                                                      editable=False),  
+
+                       "in_grace_period": Attribute(name="in_grace_period", 
+                                                    attrtype=APIBooleanType, 
+                                                    editable=True)                    
                        }    
     
     _api_relationships = { }

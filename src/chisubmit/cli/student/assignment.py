@@ -149,16 +149,7 @@ def print_commit(commit):
 def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, extensions, force, yes):
     team = get_team_or_exit(ctx, course, team_id)
     registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
-    
-    if registration.final_submission is not None:
-        if is_submission_ready_for_grading(assignment_deadline=registration.assignment.deadline, 
-                                           submission_date=registration.final_submission.submitted_at,
-                                           extensions_used=registration.final_submission.extensions_used):
-            print "You cannot re-submit this assignment."
-            print "You made a submission before the deadline, and the deadline has passed."
-    
-            ctx.exit(CHISUBMIT_FAIL)
-        
+            
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:

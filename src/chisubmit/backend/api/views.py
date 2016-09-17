@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from chisubmit.backend.api.models import Course, Student, Instructor, Grader,\
     Assignment, Team, RubricComponent, get_user_by_username, TeamMember,\
-    Registration, Submission, Grade, CourseRoles
+    Registration, Submission, Grade, CourseRoles, SubmissionValidationException
 from chisubmit.backend.api.serializers import CourseSerializer,\
     StudentSerializer, InstructorSerializer, GraderSerializer,\
     AssignmentSerializer, TeamSerializer, UserSerializer,\
@@ -783,26 +783,27 @@ class Submit(APIView):
                                 commit_sha = commit_sha,
                                 submitted_at = now)
         
-        valid, error_response, extensions = submission.validate(ignore_deadline = ignore_deadline)
+        try:
+            extensions, in_grace_period = submission.validate(ignore_deadline = ignore_deadline)
+        except SubmissionValidationException, sve:
+            return sve.error_response
         
-        if not valid:
-            return error_response
+        if not dry_run:
+            submission.save()
+            registration_obj.final_submission = submission
+            registration_obj.save()
+            response_status = status.HTTP_201_CREATED
         else:
-            if not dry_run:
-                submission.save()
-                registration_obj.final_submission = submission
-                registration_obj.save()
-                response_status = status.HTTP_201_CREATED
-            else:
-                response_status = status.HTTP_200_OK
-            
-            response_data = {"submission": submission,
-                             "extensions_before": extensions["extensions_available_before"],
-                             "extensions_after": extensions["extensions_available_after"]
-                             }
-                
-            serializer = SubmissionResponseSerializer(response_data, context=serializer_context)            
-            return Response(serializer.data, status=response_status)        
+            response_status = status.HTTP_200_OK
+        
+        response_data = {"submission": submission,
+                         "extensions_before": extensions["extensions_available_before"],
+                         "extensions_after": extensions["extensions_available_after"],
+                         "in_grace_period": in_grace_period
+                         }
+        
+        serializer = SubmissionResponseSerializer(response_data, context=serializer_context)            
+        return Response(serializer.data, status=response_status)        
         
 
 class SubmissionList(APIView):     

@@ -522,6 +522,7 @@ class SubmissionResponseSerializer(serializers.Serializer):
     submission = SubmissionSerializer()
     extensions_before = serializers.IntegerField() 
     extensions_after = serializers.IntegerField() 
+    in_grace_period = serializers.BooleanField()
     
 class GradeSerializer(ChisubmitSerializer):
     rubric_component_id = serializers.PrimaryKeyRelatedField(

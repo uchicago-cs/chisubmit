@@ -763,28 +763,30 @@ class Submit(APIView):
         now = get_datetime_now_utc()
                 
         commit_sha = serializer.validated_data["commit_sha"]
-        extensions_requested = serializer.validated_data["extensions"]
-        ignore_deadline = serializer.validated_data["ignore_deadline"]
+        
+        if "extensions_override" in serializer.validated_data:
+            extensions_override = serializer.validated_data["extensions_override"]
+        else:
+            extensions_override = None
         
         dry_run = request.query_params.get("dry_run", "false") in ("true", "True")
         
-        if ignore_deadline:
-            if not (CourseRoles.ADMIN in roles or CourseRoles.INSTRUCTOR in roles):
-                msg = "Nice try! Only admins and instructors can ignore the deadline."
+        if not (CourseRoles.ADMIN in roles or CourseRoles.INSTRUCTOR in roles):
+            if extensions_override is not None:
+                msg = "Nice try! Only admins and instructors can override the number of extensions."
                 return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not ignore_deadline and registration_obj.is_ready_for_grading():
+
+        if extensions_override is None and registration_obj.is_ready_for_grading():
             msg = "You cannot re-submit assignment %s." % (registration_obj.assignment.assignment_id)
             msg = " You made a submission before the deadline, and the deadline has passed."
             return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
-        
-        submission = Submission(registration = registration_obj,
-                                extensions_used = extensions_requested,
-                                commit_sha = commit_sha,
-                                submitted_at = now)
-        
+                
         try:
-            extensions, in_grace_period = submission.validate(ignore_deadline = ignore_deadline)
+            submission, extensions = Submission.create(registration = registration_obj,
+                                                       commit_sha = commit_sha,
+                                                       submitted_at = now,
+                                                       extensions_override = extensions_override)
         except SubmissionValidationException, sve:
             return sve.error_response
         
@@ -799,8 +801,11 @@ class Submit(APIView):
         response_data = {"submission": submission,
                          "extensions_before": extensions["extensions_available_before"],
                          "extensions_after": extensions["extensions_available_after"],
-                         "in_grace_period": in_grace_period
+                         "in_grace_period": submission.in_grace_period
                          }
+        
+        if extensions_override is not None:
+            response_data["extensions_override"] = extensions["extensions_override"]
         
         serializer = SubmissionResponseSerializer(response_data, context=serializer_context)            
         return Response(serializer.data, status=response_status)        

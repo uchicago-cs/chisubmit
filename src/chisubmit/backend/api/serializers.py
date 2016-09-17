@@ -514,14 +514,14 @@ class RegistrationResponseSerializer(serializers.Serializer):
     registration = RegistrationSerializer()    
     
 class SubmissionRequestSerializer(serializers.Serializer):
-    extensions = serializers.IntegerField(default=0, min_value=0) 
     commit_sha = serializers.CharField(max_length=40)
-    ignore_deadline = serializers.BooleanField()
+    extensions_override = serializers.IntegerField(required = False, allow_null = True, min_value=0)
 
 class SubmissionResponseSerializer(serializers.Serializer):
     submission = SubmissionSerializer()
-    extensions_before = serializers.IntegerField() 
-    extensions_after = serializers.IntegerField() 
+    extensions_before = serializers.IntegerField(min_value=0) 
+    extensions_after = serializers.IntegerField(min_value=0) 
+    extensions_override = serializers.IntegerField(required = False)     
     in_grace_period = serializers.BooleanField()
     
 class GradeSerializer(ChisubmitSerializer):

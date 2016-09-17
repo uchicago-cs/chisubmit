@@ -19,13 +19,14 @@ class SubmitTests(APITestCase):
         
         post_data = {
                      "commit_sha": "COMMITSHATEST",
-                     "extensions": 0                     
                     }
         response = self.client.post(url, data = post_data)
         response_data = response.json()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response_data["in_grace_period"], False)      
         self.assertEqual(response_data["submission"]["extensions_used"], 0)               
+        self.assertEqual(response_data["extensions_before"], 2)
+        self.assertEqual(response_data["extensions_after"], 2)
         
     def test_correct_no_extensions_grace_period(self):
         user = User.objects.get(username='student1')
@@ -41,13 +42,14 @@ class SubmitTests(APITestCase):
         
         post_data = {
                      "commit_sha": "COMMITSHATEST",
-                     "extensions": 0                     
                     }
         response = self.client.post(url, data = post_data)
         response_data = response.json()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response_data["in_grace_period"], True)
         self.assertEqual(response_data["submission"]["extensions_used"], 0)               
+        self.assertEqual(response_data["extensions_before"], 2)
+        self.assertEqual(response_data["extensions_after"], 2)
         
     def test_correct_dry_run(self):
         user = User.objects.get(username='student1')
@@ -57,27 +59,12 @@ class SubmitTests(APITestCase):
         
         post_data = {
                      "commit_sha": "COMMITSHATEST",
-                     "extensions": 0                     
                     }
         response = self.client.post(url + "?dry_run=true", data = post_data)
         response_data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response_data["in_grace_period"], False)
-        self.assertEqual(response_data["submission"]["extensions_used"], 0)               
-        
-        
-    def test_incorrect_excessive_extensions(self):
-        user = User.objects.get(username='student1')
-        self.client.force_authenticate(user=user)
-
-        url = reverse('submit', args=["cmsc40100", "student1-student2", "pa1"])
-        
-        post_data = {
-                     "commit_sha": "COMMITSHATEST",
-                     "extensions": 1                     
-                    }
-        response = self.client.post(url, data = post_data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)           
+        self.assertEqual(response_data["submission"]["extensions_used"], 0)                 
         
     def test_correct_one_extension(self):
         user = User.objects.get(username='student1')
@@ -97,7 +84,10 @@ class SubmitTests(APITestCase):
         response = self.client.post(url, data = post_data)
         response_data = response.json()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response_data["in_grace_period"], False)      
+        self.assertEqual(response_data["in_grace_period"], False)    
+        self.assertEqual(response_data["submission"]["extensions_used"], 1) 
+        self.assertEqual(response_data["extensions_before"], 2)
+        self.assertEqual(response_data["extensions_after"], 1)
         
     def test_correct_one_extension_grace_period(self):
         user = User.objects.get(username='student1')
@@ -113,31 +103,14 @@ class SubmitTests(APITestCase):
         
         post_data = {
                      "commit_sha": "COMMITSHATEST",
-                     "extensions": 1                   
                     }
         response = self.client.post(url, data = post_data)
         response_data = response.json()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response_data["in_grace_period"], True)
-        self.assertEqual(response_data["submission"]["extensions_used"], 1)            
-        
-    def test_incorrect_insufficient_extensions_requested(self):
-        user = User.objects.get(username='student1')
-        self.client.force_authenticate(user=user)
-        
-        deadline = get_datetime_now_utc() - timedelta(hours=23)
-        assignment_obj = Assignment.objects.get(assignment_id = "pa1")
-        assignment_obj.deadline = deadline
-        assignment_obj.save()
-
-        url = reverse('submit', args=["cmsc40100", "student1-student2", "pa1"])
-        
-        post_data = {
-                     "commit_sha": "COMMITSHATEST",
-                     "extensions": 0                
-                    }
-        response = self.client.post(url, data = post_data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response_data["submission"]["extensions_used"], 1)
+        self.assertEqual(response_data["extensions_before"], 2)
+        self.assertEqual(response_data["extensions_after"], 1)
         
     def test_incorrect_insufficient_extensions_in_team(self):
         user = User.objects.get(username='student1')
@@ -152,10 +125,33 @@ class SubmitTests(APITestCase):
         
         post_data = {
                      "commit_sha": "COMMITSHATEST",
-                     "extensions": 3            
                     }
         response = self.client.post(url, data = post_data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)                 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+    def test_incorrect_insufficient_extensions_in_team_extensions_override(self):
+        user = User.objects.get(username='instructor1')
+        self.client.force_authenticate(user=user)
+        
+        deadline = get_datetime_now_utc() - timedelta(hours=23 + 24 + 24)
+        assignment_obj = Assignment.objects.get(assignment_id = "pa1")
+        assignment_obj.deadline = deadline
+        assignment_obj.save()
+
+        url = reverse('submit', args=["cmsc40100", "student1-student2", "pa1"])
+        
+        post_data = {
+                     "commit_sha": "COMMITSHATEST",
+                     "extensions_override": 2            
+                    }
+        response = self.client.post(url, data = post_data)
+        response_data = response.json()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response_data["in_grace_period"], False)
+        self.assertEqual(response_data["submission"]["extensions_used"], 2)                           
+        self.assertEqual(response_data["extensions_override"], 2)        
+        self.assertEqual(response_data["extensions_before"], 2)
+        self.assertEqual(response_data["extensions_after"], 0)
         
 class SubmitWithExistingSubmissionsTests(APITestCase):
     

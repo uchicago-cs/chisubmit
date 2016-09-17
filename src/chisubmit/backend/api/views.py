@@ -801,6 +801,7 @@ class Submit(APIView):
         response_data = {"submission": submission,
                          "extensions_before": extensions["extensions_available_before"],
                          "extensions_after": extensions["extensions_available_after"],
+                         "extensions_needed": extensions["extensions_needed"],
                          "in_grace_period": submission.in_grace_period
                          }
         

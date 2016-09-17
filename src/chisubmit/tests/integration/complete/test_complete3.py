@@ -67,15 +67,11 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         
         # Team 0 and 1 submit with one extension to pa1
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa1", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
         
         result = students_team[1][0].run("student assignment submit", 
-                                         [teams[1], "pa1", team_commits[1][0].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa1", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
 
@@ -94,10 +90,7 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
 
         # Team 1 resubmits and is successful because the deadline hasn't passed yet
         result = students_team[1][0].run("student assignment submit", 
-                                         [teams[1], "pa1", team_commits[1][1].hexsha, 
-                                          "--extensions", "1",
-                                          "--force",
-                                          "--yes"])
+                                         ["pa1", "--yes", "--commit-sha", team_commits[1][0].hexsha])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         
@@ -111,17 +104,13 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         
         # Team 0 submits and is successful because they cancelled their previous submission
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][1].hexsha, 
-                                          "--extensions", "2",
-                                          "--yes"])
+                                         ["pa1", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
 
         # Team 1 submits and fails because their previous submission is final
         result = students_team[1][0].run("student assignment submit", 
-                                         [teams[1], "pa1", team_commits[1][0].hexsha, 
-                                          "--extensions", "2",
-                                          "--yes"])
+                                         ["pa1", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
         
         # Team 1 cancels their submission

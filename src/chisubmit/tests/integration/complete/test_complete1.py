@@ -131,75 +131,46 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
 
         team_git_paths, team_git_repos, team_commits = self.create_team_repos(admin, course_id, teams, students_team)
         
-        # Try to submit without enough extensions
-        result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
-                                          "--extensions", "0",
-                                          "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-        
-        # Try to submit with too many extensions
-        result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
-                                          "--extensions", "2",
-                                          "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-
         # Submit with just the right number
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa1", "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         result = students_team[0][0].run("student team show", [teams[0]])
         self.assertEquals(result.exit_code, 0)
 
-        # Try submitting an already-submitted assignment
+        # Try submitting an already-submitted assignment, with the same
+        # commit as before (without --commit-sha)
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][1].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa1", "--yes"])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         # Try submitting an already-submitted assignment, with the same
-        # commit as before 
+        # commit as before (with --commit-sha)
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes", "--force"])
+                                         ["pa1", "--yes", "--commit-sha", team_commits[0][1].hexsha])
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-
 
         # Submit an already-submitted assignment
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][1].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes", "--force"])
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)        
+                                         ["pa1", "--yes", "--commit-sha", team_commits[0][0].hexsha])
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
         
         result = students_team[0][0].run("student team show", [teams[0]])
         self.assertEquals(result.exit_code, 0)
         
-        # Try requesting more extensions than the team has
-        result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa2", team_commits[0][1].hexsha, 
-                                          "--extensions", "3",
-                                          "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-        
         # Try submitting for a project the team is not registered for
         result = students_team[1][0].run("student assignment submit", 
-                                         [teams[1], "pa2", team_commits[1][1].hexsha, 
-                                          "--extensions", "0",
-                                          "--yes"])        
+                                         ["pa2", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         result = students_team[1][0].run("student assignment submit", 
-                                         [teams[1], "pa1", team_commits[1][1].hexsha, 
-                                         "--extensions", "1",
-                                         "--yes"])
+                                         ["pa1", "--yes", "--commit-sha", team_commits[1][0].hexsha])
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        
+        result = students_team[1][0].run("student assignment submit", 
+                                         ["pa1", "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)         
 
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)

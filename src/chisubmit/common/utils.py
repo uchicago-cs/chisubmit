@@ -30,15 +30,10 @@
 
 import datetime
 import pytz
-import random
-import hashlib
-import base64
-import string
 from tzlocal import get_localzone
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
 import math
 from datetime import timedelta
-import os
 
 localzone = get_localzone()
 
@@ -82,9 +77,9 @@ def compute_extensions_needed(submission_time, deadline):
     else:
         return int(extensions_needed)
 
-def is_submission_ready_for_grading(assignment_deadline, submission_date, extensions_used):
+def is_submission_ready_for_grading(assignment_deadline, submission_date, extensions_used, assignment_grace_period=datetime.timedelta(0)):
     now = get_datetime_now_utc()
-    deadline = assignment_deadline + timedelta(days=extensions_used)
+    deadline = assignment_deadline + assignment_grace_period + timedelta(days=extensions_used)
     
     if now > deadline:
         return True

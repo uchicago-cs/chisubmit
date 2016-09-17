@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='submission',
-            name='grace_period',
+            name='in_grace_period',
             field=models.BooleanField(default=False),
         ),
     ]

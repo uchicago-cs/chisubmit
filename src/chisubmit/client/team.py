@@ -96,6 +96,10 @@ class SubmissionResponse(ChisubmitAPIObject):
                                                      attrtype=APIIntegerType, 
                                                      editable=False),  
 
+                       "extensions_override": Attribute(name="extensions_override", 
+                                                     attrtype=APIIntegerType, 
+                                                     editable=False),  
+
                        "in_grace_period": Attribute(name="in_grace_period", 
                                                     attrtype=APIBooleanType, 
                                                     editable=True)                    

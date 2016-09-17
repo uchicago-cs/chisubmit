@@ -67,6 +67,16 @@ def convert_datetime_to_local(dt, default_tz = localzone):
         dt = localzone.localize(dt)
     return dt.astimezone(localzone)
 
+def parse_timedelta(s):
+    l = s.split(":")
+    l = [int(x) for x in l]
+    if len(l) == 2:
+        return datetime.timedelta(hours=l[0], minutes=l[1])
+    elif len(l) == 3:
+        return datetime.timedelta(hours=l[0], minutes=l[1], seconds=l[2])
+    else:
+        raise ValueError("Incorrectly formatted timedelta: %s" % s)
+
 def compute_extensions_needed(submission_time, deadline):
     delta = (submission_time - deadline).total_seconds()
 

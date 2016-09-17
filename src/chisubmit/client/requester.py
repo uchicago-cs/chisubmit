@@ -36,8 +36,13 @@ from requests.exceptions import HTTPError
 from chisubmit.client.exceptions import UnknownObjectException,\
     ChisubmitRequestException, BadRequestException, UnauthorizedException
 import base64
+import datetime
 
-
+def json_serial(obj):
+    if isinstance(obj, datetime.timedelta):
+        return str(obj)
+    
+    raise TypeError("Type not serializable")
 
 class Requester(object):
     
@@ -67,7 +72,7 @@ class Requester(object):
             all_headers.update(headers)
 
         if data is not None:
-            data = json.dumps(data)
+            data = json.dumps(data, default=json_serial)
             
         # TODO: try..except
         response = self.__session.request(url = url,

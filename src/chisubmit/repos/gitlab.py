@@ -252,6 +252,9 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                  committer_name, committer_email, parse(gitlab_commit["committed_date"]))
             return commit
     
+    def get_latest_commit(self, course, team, branch="master"):  
+        return self.get_commit(course, team, branch)  
+    
     def create_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
         pass 
         # TODO: Commenting out for now, since GitLab doesn't support updating/removing

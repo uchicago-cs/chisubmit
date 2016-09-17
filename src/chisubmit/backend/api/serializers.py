@@ -520,6 +520,7 @@ class SubmissionRequestSerializer(serializers.Serializer):
 class SubmissionResponseSerializer(serializers.Serializer):
     submission = SubmissionSerializer()
     extensions_before = serializers.IntegerField(min_value=0) 
+    extensions_needed = serializers.IntegerField(min_value=0) 
     extensions_after = serializers.IntegerField(min_value=0) 
     extensions_override = serializers.IntegerField(required = False)     
     in_grace_period = serializers.BooleanField()

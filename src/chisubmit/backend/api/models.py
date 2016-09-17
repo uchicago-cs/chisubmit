@@ -396,6 +396,7 @@ class Submission(models.Model):
             extensions_available -= extensions_used 
 
             extensions["extensions_available_after"] = extensions_available
+            extensions["extensions_needed"] = extensions_needed            
             
             submission = cls(registration = registration,
                              extensions_used = extensions_used,

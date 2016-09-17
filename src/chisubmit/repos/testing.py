@@ -87,8 +87,10 @@ class TestingConnection(RemoteRepositoryConnectionBase):
         repo_path = self.__get_team_path(course, team)
         repo = LocalGitRepo(repo_path)
         
-        return repo.get_commit(commit_sha)        
-        
+        return repo.get_commit(commit_sha)    
+    
+    def get_latest_commit(self, course, team, branch="master"):
+        return self.get_commit(course, team, branch)        
     
     def create_submission_tag(self, course, team, tag_name, tag_message, commit_sha):
         repo_path = self.__get_team_path(course, team)

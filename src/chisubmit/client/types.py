@@ -1,5 +1,6 @@
 import datetime
 import pytz
+from chisubmit.common.utils import parse_timedelta
 
 class ChisubmitAPIException(Exception):
 
@@ -56,12 +57,13 @@ class AttributeType(object):
     INTEGER = 2
     DECIMAL = 3
     DATETIME = 4
-    BOOLEAN = 5
-    OBJECT = 6
-    LIST = 7
-    DICT = 8
+    TIMEDELTA = 5
+    BOOLEAN = 6
+    OBJECT = 7
+    LIST = 8
+    DICT = 9
         
-    primitive_types = [STRING, INTEGER, DECIMAL, DATETIME, BOOLEAN]
+    primitive_types = [STRING, INTEGER, DECIMAL, DATETIME, TIMEDELTA, BOOLEAN]
     composite_types = [OBJECT, LIST, DICT]
     
     def __init__(self, attrtype, subtype = None):
@@ -116,6 +118,15 @@ class AttributeType(object):
                 raise AttributeTypeException(value, self)
                 
             return dt        
+        elif self.attrtype == AttributeType.TIMEDELTA:
+            if not isinstance(value, basestring):
+                raise AttributeTypeException(value, self)
+            try:
+                return parse_timedelta(value)
+            except ValueError, ve:
+                raise AttributeTypeException(value, self)
+                
+            return dt        
         elif self.attrtype == AttributeType.LIST:
             if not isinstance(value, (list, tuple)):
                 raise AttributeTypeException(value, self)
@@ -146,6 +157,7 @@ APIStringType = AttributeType(AttributeType.STRING)
 APIIntegerType = AttributeType(AttributeType.INTEGER)
 APIDecimalType = AttributeType(AttributeType.DECIMAL)
 APIDateTimeType = AttributeType(AttributeType.DATETIME)
+APITimeDeltaType = AttributeType(AttributeType.TIMEDELTA)
 APIBooleanType = AttributeType(AttributeType.BOOLEAN)
 
 def APIListType(subtype):

@@ -328,51 +328,52 @@ class SubmissionValidationException(Exception):
 
 class Submission(models.Model):
     registration = models.ForeignKey(Registration) 
-    extensions_used = models.IntegerField(default=0, validators = [MinValueValidator(0)])
+    extensions_used = models.IntegerField(validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    grace_period = models.BooleanField(default=False)
+    in_grace_period = models.BooleanField(default=False)
     
-    def validate(self, ignore_deadline = False):
-        deadline = self.registration.assignment.deadline
-        grace_period = self.registration.assignment.grace_period
+    @classmethod
+    def create(cls, registration, commit_sha, submitted_at, extensions_override):
+        deadline = registration.assignment.deadline
+        grace_period = registration.assignment.grace_period
         effective_deadline = deadline + grace_period
         
-        extensions_needed = compute_extensions_needed(submission_time = self.submitted_at, 
+        extensions_needed = compute_extensions_needed(submission_time = submitted_at, 
                                                       deadline = effective_deadline)
-        extensions_needed_without_grace_period = compute_extensions_needed(submission_time = self.submitted_at, 
+        extensions_needed_without_grace_period = compute_extensions_needed(submission_time = submitted_at, 
                                                       deadline = deadline)
         
-        if extensions_needed_without_grace_period == extensions_needed + 1:
+        if extensions_override is None and extensions_needed_without_grace_period == extensions_needed + 1:
             in_grace_period = True
         else:
             in_grace_period = False
         
-        extensions_available = self.registration.team.get_extensions_available()
+        extensions_available = registration.team.get_extensions_available()
                 
         if extensions_available < 0:
             msg = "The number of available extensions is negative"
             return False, Response({"fatal": [msg]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR), None           
 
-        if self.registration.final_submission is not None:
-            extensions_used_in_existing_submission = self.registration.final_submission.extensions_used
+        if registration.final_submission is not None:
+            extensions_used_in_existing_submission = registration.final_submission.extensions_used
         else:
             extensions_used_in_existing_submission = 0 
         
         error_data = {"extensions_available": extensions_available,
-                      "extensions_requested": self.extensions_used,
                       "extensions_needed": extensions_needed,
-                      "submitted_at": self.submitted_at.isoformat(sep=" "),
-                      "deadline": self.registration.assignment.deadline.isoformat(sep=" ")}
+                      "submitted_at": submitted_at.isoformat(sep=" "),
+                      "deadline": registration.assignment.deadline.isoformat(sep=" ")}
         
-        if not ignore_deadline and self.extensions_used != extensions_needed:
-            msg = "The number of requested extensions does not match the number of extensions needed."
+        if extensions_override is None and extensions_available + extensions_used_in_existing_submission < extensions_needed:
+            msg = "You do not have enough extensions to make this submission."
             response_data = {"errors": [msg]}
             response_data.update(error_data)
             response = Response(response_data, status=status.HTTP_400_BAD_REQUEST)
             raise SubmissionValidationException(response)
-        if not ignore_deadline and extensions_available + extensions_used_in_existing_submission < extensions_needed:
-            msg = "The number of available extensions is insufficient."
+        if extensions_override is not None and extensions_available + extensions_used_in_existing_submission - extensions_override < 0:
+            msg = "The extensions override you have specified would leave the team with a negative number of extensions."
+            error_data["extensions_override"] = extensions_override
             response_data = {"errors": [msg]}
             response_data.update(error_data)
             response = Response(response_data, status=status.HTTP_400_BAD_REQUEST)
@@ -386,14 +387,24 @@ class Submission(models.Model):
             # They are 'credited' to the available extensions
             extensions_available += extensions_used_in_existing_submission
             
-            if ignore_deadline:
-                extensions_available -= self.extensions_used
+            if extensions_override is not None:
+                extensions["extensions_override"] = extensions_override
+                extensions_used = extensions_override
             else:
-                extensions_available -= extensions_needed
+                extensions_used = extensions_needed
+
+            extensions_available -= extensions_used 
 
             extensions["extensions_available_after"] = extensions_available
+            extensions["extensions_needed"] = extensions_needed            
             
-            return extensions, in_grace_period                    
+            submission = cls(registration = registration,
+                             extensions_used = extensions_used,
+                             commit_sha = commit_sha,
+                             submitted_at = submitted_at,
+                             in_grace_period = in_grace_period)
+            
+            return submission, extensions                    
         
 class Grade(models.Model):
     registration = models.ForeignKey(Registration)

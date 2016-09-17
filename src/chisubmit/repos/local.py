@@ -88,7 +88,7 @@ class LocalGitRepo(object):
             return commit_obj
         except BadObject, bo:
             return None
-        
+              
 
     def get_tag(self, tag):
         tags = [t for t in self.repo.tags if t.name == tag]

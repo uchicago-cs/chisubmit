@@ -29,7 +29,7 @@
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
     APIIntegerType, APIDateTimeType, APIDecimalType, APIBooleanType,\
-    APIObjectType, APIListType, Relationship
+    APIObjectType, APIListType, Relationship, APITimeDeltaType
 
 class RubricComponent(ChisubmitAPIObject):
 
@@ -71,6 +71,10 @@ class Assignment(ChisubmitAPIObject):
     
                        "deadline": Attribute(name="deadline", 
                                         attrtype=APIDateTimeType, 
+                                        editable=True),  
+
+                       "grace_period": Attribute(name="grace_period", 
+                                        attrtype=APITimeDeltaType, 
                                         editable=True),  
     
                        "min_students": Attribute(name="min_students", 

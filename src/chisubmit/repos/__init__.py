@@ -129,6 +129,10 @@ class RemoteRepositoryConnectionBase(object):
     @abc.abstractmethod
     def get_commit(self, course, team, commit_sha):
         pass
+    
+    @abc.abstractmethod
+    def get_latest_commit(self, course, team, branch="master"):  
+        pass    
 
     @abc.abstractmethod
     def create_submission_tag(self, course, team, tag_name, tag_message, commit_sha):

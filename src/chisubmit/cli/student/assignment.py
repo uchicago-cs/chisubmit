@@ -136,66 +136,114 @@ def print_commit(commit):
 
 
 @click.command(name="submit")
-@click.argument('team_id', type=str)    
 @click.argument('assignment_id', type=str)
-@click.argument('commit_sha', type=str)
-@click.option('--extensions', type=int, default=0)
-@click.option('--force', is_flag=True)
+@click.option('--commit-sha', type=str)
 @click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context  
-def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, extensions, force, yes):
-    team = get_team_or_exit(ctx, course, team_id)
-    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
-            
+def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
+    user = ctx.obj["client"].get_user()
+
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    # Determine team for this assignment
+    teams = course.get_teams(include_students=True, include_assignments=True)
+    teams_registered_for_assignment = []
+    for t in teams:
+        if user.username not in [tm.username for tm in t.get_team_members()]:
+            continue
+        
+        registrations = t.get_assignment_registrations()
+        for r in registrations:
+            if r.assignment_id == assignment_id:
+                teams_registered_for_assignment.append((t,r))
+                
+    if len(teams_registered_for_assignment) == 0:
+        print "You are not registered for assignment %s" % assignment_id
+        ctx.exit(CHISUBMIT_FAIL)        
+    elif len(teams_registered_for_assignment) > 1:
+        print "You are registered for assignment %s in more than one team" % assignment_id
+        print "Please notify your instructor about this."
+        ctx.exit(CHISUBMIT_FAIL)        
+
+    team, registration = teams_registered_for_assignment[0]
+    team_members = team.get_team_members()    
+                
+    title = "SUBMISSION FOR ASSIGNMENT %s (%s)" % (assignment.assignment_id, assignment.name)
+    print title
+    print "-" * len(title)
+    print
+    if len(team_members) == 1:
+        student = team_members[0].student
+        individual = True
+        print "This is an INDIVIDUAL submission for %s %s" % (student.user.first_name, student.user.last_name)
+    else:
+        students = [tm.student for tm in team_members]
+        individual = False
+        print "This is a TEAM submission for team %s with the following students:" % team.team_id
+        for s in students:
+            print " - %s %s" % (s.user.first_name, s.user.last_name)
+    print
+                
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:
         print "Could not connect to git server."
         ctx.exit(CHISUBMIT_FAIL)
     
-    commit = conn.get_commit(course, team, commit_sha)
-    
-    if commit is None:
-        print "Commit %s does not exist in repository" % commit_sha
-        ctx.exit(CHISUBMIT_FAIL)
+    if commit_sha is None:
+        commit = conn.get_latest_commit(course, team)
+                
+        user_specified_commit = False
+    else:    
+        commit = conn.get_commit(course, team, commit_sha)
+        
+        if commit is None:
+            print "Commit %s does not exist in repository" % commit_sha
+            ctx.exit(CHISUBMIT_FAIL)
 
+        user_specified_commit = True
+        
     try:
-        submit_response = registration.submit(commit_sha, extensions, dry_run=True)
+        submit_response = registration.submit(commit.sha, dry_run = True)
     except BadRequestException, bre:
         response_data = bre.json
-        extensions_needed = response_data["extensions_needed"]
-        extensions_available = response_data["extensions_available"]
         
-        deadline_utc = parse(response_data["deadline"])
-        submitted_at_utc = parse(response_data["submitted_at"])
-        deadline_local = convert_datetime_to_local(deadline_utc)
-        submitted_at_local = convert_datetime_to_local(submitted_at_utc)        
-        
-        if extensions_needed > extensions_available:
-            msg1 = "You do not have enough extensions to submit this assignment."
-            msg2 = "You would need %i extensions to submit this assignment at this " \
-                   "time, but you only have %i left" % (extensions_needed, extensions_available)
-        elif extensions < extensions_needed:
-            msg1 = "The number of extensions you have requested is insufficient."
-            msg2 = "You need to request %s extensions." % extensions_needed
-        elif extensions > extensions_needed:
-            msg1 = "The number of extensions you have requested is excessive."
-            msg2 = "You only need to request %s extensions." % extensions_needed
-
-        print
-        print msg1
-        print            
-        print "     Deadline (UTC): %s" % deadline_utc.isoformat(sep=" ")
-        print "          Now (UTC): %s" % submitted_at_utc.isoformat(sep=" ")
-        print 
-        print "   Deadline (Local): %s" % deadline_local.isoformat(sep=" ")
-        print "        Now (Local): %s" % submitted_at_local.isoformat(sep=" ")
-        print 
-        print msg2 
-        print
+        if "extensions_needed" in response_data and "extensions_available" in response_data:
+            extensions_needed = response_data["extensions_needed"]
+            extensions_available = response_data["extensions_available"]
+            
+            deadline_utc = parse(response_data["deadline"])
+            submitted_at_utc = parse(response_data["submitted_at"])
+            deadline_local = convert_datetime_to_local(deadline_utc)
+            submitted_at_local = convert_datetime_to_local(submitted_at_utc)        
+            
+            if extensions_needed > extensions_available:
+                msg1 = "You do not have enough extensions to submit this assignment."
+                msg2 = "You would need %i extensions to submit this assignment at this " \
+                       "time, but you only have %i left" % (extensions_needed, extensions_available)
+    
+                print
+                print msg1
+                print            
+                print "     Deadline (UTC): %s" % deadline_utc.isoformat(sep=" ")
+                print "          Now (UTC): %s" % submitted_at_utc.isoformat(sep=" ")
+                print 
+                print "   Deadline (Local): %s" % deadline_local.isoformat(sep=" ")
+                print "        Now (Local): %s" % submitted_at_local.isoformat(sep=" ")
+                print 
+                print msg2 
+                print
+            else:
+                print "ERROR: Your submission cannot be completed. The server reported the following:"
+                print
+                bre.print_errors()
+        else:
+            print "ERROR: Your submission cannot be completed. The server reported the following:"
+            print
+            bre.print_errors()
 
         ctx.exit(CHISUBMIT_FAIL)
     
@@ -207,8 +255,9 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
         
         submission_commit = conn.get_commit(course, team, prior_commit_sha)            
         
-        if prior_commit_sha == commit_sha:
+        if prior_commit_sha == commit.sha:
             print "You have already submitted assignment %s" % registration.assignment.assignment_id
+            print
             print "You submitted the following commit on %s:" % prior_submitted_at_local
             print
             if submission_commit is None:
@@ -216,60 +265,66 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
             else:
                 print_commit(submission_commit)
             print
-            print "You are trying to submit the same commit again (%s)" % prior_commit_sha
-            print "If you want to re-submit, please specify a different commit"
+            if user_specified_commit:
+                print "You are trying to submit the same commit again (%s)" % prior_commit_sha
+                print "If you want to re-submit, please specify a different commit."
+            else:
+                print "The above commit is the latest commit in your repository."
+                print
+                print "If you were expecting to see a different commit, make sure you've pushed"
+                print "your latest code to your repository."
             ctx.exit(CHISUBMIT_FAIL)
             
-        if not force:
-            print        
-            print "You have already submitted assignment %s" % registration.assignment.assignment_id
-            print "You submitted the following commit on %s:" % prior_submitted_at_local
-            print
-            if submission_commit is None:
-                print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
-            else:
-                print_commit(submission_commit)
-            print
-            print "If you want to submit again, please use the --force option"
-            ctx.exit(CHISUBMIT_FAIL)
+        print "You have already submitted assignment %s" % registration.assignment.assignment_id
+        print
+        print "You submitted the following commit on %s:" % prior_submitted_at_local
+        print
+        if submission_commit is None:
+            print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
         else:
-            print
-            print "WARNING: You have already submitted assignment %s and you" % registration.assignment.assignment_id 
-            print "are about to overwrite the previous submission of the following commit:"
-            print
-            if submission_commit is None:
-                print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
-            else:
-                print_commit(submission_commit)
-            print
+            print_commit(submission_commit)
+        print
 
-    if registration.final_submission is not None and force:
-        msg = "THE ABOVE SUBMISSION FOR %s (%s) WILL BE CANCELLED." % (registration.assignment.assignment_id, registration.assignment.name)
+        msg = "IF YOU CONTINUE, THE ABOVE SUBMISSION FOR %s (%s) WILL BE CANCELLED." % (registration.assignment.assignment_id, registration.assignment.name)
         
         print "!"*len(msg)
         print msg
         print "!"*len(msg)
-        print
-        print "If you continue, your submission for %s (%s)" % (registration.assignment.assignment_id, registration.assignment.name)
-        print "will now point to the following commit:"                
+        print        
+        if not user_specified_commit:
+            print "If you continue, your submission will instead point to the latest commit in your repository:"
+        else:
+            print "If you continue, your submission will instead point to the following commit:"                
     else:
-        print "You are going to make a submission for %s (%s)." % (registration.assignment.assignment_id, registration.assignment.name)
-        print "The commit you are submitting is the following:"
+        if not user_specified_commit:
+            print "The latest commit in your repository is the following:"
+        else:
+            print "The commit you are submitting is the following:"
     print
     print_commit(commit)
     print
     print "PLEASE VERIFY THIS IS THE EXACT COMMIT YOU WANT TO SUBMIT"
     print
-    print "Your team currently has %i extensions" % (submit_response.extensions_before)
+    if individual:
+        print "You currently have %i extensions" % (submit_response.extensions_before)
+    else:
+        print "Your team currently has %i extensions" % (submit_response.extensions_before)
     print
     if registration.final_submission is not None:
         print "You used %i extensions in your previous submission of this assignment." % prior_extensions_used
-        print "and you are going to use %i additional extensions now." % (extensions - prior_extensions_used)
+        print "and you are going to use %i additional extensions now." % (submit_response.extensions_needed - prior_extensions_used)
     else:
-        print "You are going to use %i extensions on this submission." % extensions
+        print "You are going to use %i extensions on this submission." % submit_response.extensions_needed
     print
     print "You will have %i extensions left after this submission." % submit_response.extensions_after
-    print 
+    print
+    
+    if submit_response.in_grace_period:
+        print "NOTE: You are submitting after the deadline, but the instructor has"
+        print "allowed some extra time after the deadline for students to submit"
+        print "without having to consume an extension."
+        print
+     
     print "Are you sure you want to continue? (y/n): ", 
     
     if not yes:
@@ -280,7 +335,7 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
         try:
-            submit_response = registration.submit(commit_sha, extensions, dry_run=False)
+            submit_response = registration.submit(commit.sha, dry_run=False)
             
             # TODO: Can't do this until GitLab supports updating tags
             #    
@@ -290,13 +345,38 @@ def student_assignment_submit(ctx, course, team_id, assignment_id, commit_sha, e
             # else:
             #     conn.update_submission_tag(course, team, tag_name, message, commit.sha)
             
+            print
             print "Your submission has been completed."
+
+            if submit_response.in_grace_period:
+                print
+                print "Your submission was made during the deadline's grace period. This means"
+                print "that, although your submission was technically made *after* the"
+                print "deadline, we are counting it as if it had been made before the deadline."
+                print
+                print "In the future, you should not rely on the presence of this grace period!"
+                print "Your instructor may choose not to use one in future assignments, or may"
+                print "use a shorter grace period. Your instructor is also aware of what"
+                print "submissions are made during the grace period; if you repeatedly submit"
+                print "during the grace period, your instructor may bring this to your attention."
+            
             return CHISUBMIT_SUCCESS
 
-        except BadRequestException, bre:        
+        except BadRequestException, bre:
+            print        
             print "ERROR: Your submission was not completed. The server reported the following errors:"
             bre.print_errors()
-            return CHISUBMIT_FAIL        
+            return CHISUBMIT_FAIL
+    else:
+        print "Your submission has not been completed."
+        print
+        print "If you chose not to proceed because the above commit is not the one you wanted"
+        print "to submit, make sure you've pushed your latest code to your repository before"
+        print "attempting to submit again."
+        print
+        print "If you want to submit a different commit from your latest commit (e.g., an earlier"
+        print "commit), you can use the --commit-sha option to specify a different commit."
+        return CHISUBMIT_FAIL
     
     
 @click.command(name="cancel-submit")

@@ -92,7 +92,15 @@ class SubmissionResponse(ChisubmitAPIObject):
                                                       attrtype=APIIntegerType, 
                                                       editable=False),  
 
-                       "extensions_after": Attribute(name="extensions_before", 
+                       "extensions_after": Attribute(name="extensions_after", 
+                                                     attrtype=APIIntegerType, 
+                                                     editable=False),  
+                       
+                       "extensions_needed": Attribute(name="extensions_needed", 
+                                                     attrtype=APIIntegerType, 
+                                                     editable=False),                         
+
+                       "extensions_override": Attribute(name="extensions_override", 
                                                      attrtype=APIIntegerType, 
                                                      editable=False),  
 
@@ -219,20 +227,21 @@ class Registration(ChisubmitAPIObject):
         return Grade(self._api_client, headers, data)
 
     
-    def submit(self, commit_sha, extensions, ignore_deadline = False, dry_run=False):
+    def submit(self, commit_sha, extensions_override = None, dry_run=False):
         """
         :calls: POST /courses/:course/teams/:team/assignments/:assignment/submit/
         :rtype: :class:`chisubmit.client.team.Submission`
         """
         
-        post_data = {"commit_sha": commit_sha,
-                     "extensions": extensions,
-                     "ignore_deadline": ignore_deadline}
+        post_data = {"commit_sha": commit_sha}
         
         if dry_run:
             qs = "?dry_run=true"
         else:
             qs = ""
+            
+        if extensions_override is not None:
+            post_data["extensions_override"] = extensions_override
         
         headers, data = self._api_client._requester.request(
             "POST",

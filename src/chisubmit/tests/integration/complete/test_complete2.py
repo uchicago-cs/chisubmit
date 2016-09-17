@@ -130,9 +130,7 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         # Team 0 submits with one extension to pa1
         # Student 0 and 1 now have 2 extensions left each
         result = students_team[0][0].run("student assignment submit", 
-                                         [teams[0], "pa1", team_commits[0][0].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa1", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
         
         s1 = course.get_student(get_user_by_username(students_team[0][0].user_id))
@@ -150,9 +148,7 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         # Team 1 submits with two extensions to pa2
         # Student 2 and 3 now have 1 extension left each
         result = students_team[1][0].run("student assignment submit", 
-                                         [teams[1], "pa2", team_commits[1][0].hexsha, 
-                                          "--extensions", "2",
-                                          "--yes"])
+                                         ["pa2", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         s1 = course.get_student(get_user_by_username(students_team[1][0].user_id))
@@ -182,12 +178,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         # Team 3 with Student 1 and 3, with 2 and 1 extensions left respectively.
         # This team can only submit to projects requiring one extension
 
-        # Team 2 tries to submit to pa3 with one extension (one less than needed)
-        # and is denied
+        # Team 2 tries to submit to pa3, but they are denied because they would 
+        # need two extensions to submit.
         result = students_team[2][0].run("student assignment submit", 
-                                         [teams[2], "pa3", team_commits[2][0].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa3", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
 
         s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
@@ -199,47 +193,10 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
         self.assertEqual(s2.get_extensions_available(), 1)
 
 
-        # Team 2 tries to submit to pa3 with two extensions (the right number,
-        # but not enough because one of the students only has one extension left)
-        # and is denied
+        # Team 2 tries submitting to pa4 and it goes through because it only
+        # requires one extensions
         result = students_team[2][0].run("student assignment submit", 
-                                         [teams[2], "pa3", team_commits[2][0].hexsha, 
-                                          "--extensions", "2",
-                                          "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-
-        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
-        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
-        t = course.get_team(teams[2])
-        
-        self.assertEqual(t.get_extensions_available(), 1)
-        self.assertEqual(s1.get_extensions_available(), 2)
-        self.assertEqual(s2.get_extensions_available(), 1)
-
-
-        # Team 2 tries submitting to pa4 with zero extensions (one less than needed)
-        # and is denied
-        result = students_team[2][0].run("student assignment submit", 
-                                         [teams[2], "pa4", team_commits[2][1].hexsha, 
-                                          "--extensions", "0",
-                                          "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
-
-        s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
-        s2 = course.get_student(get_user_by_username(students_team[2][1].user_id))
-        t = course.get_team(teams[2])
-        
-        self.assertEqual(t.get_extensions_available(), 1)
-        self.assertEqual(s1.get_extensions_available(), 2)
-        self.assertEqual(s2.get_extensions_available(), 1)
-
-
-        # Team 2 tries submitting to pa4 with one extension (the correct number)
-        # and it goes through
-        result = students_team[2][0].run("student assignment submit", 
-                                         [teams[2], "pa4", team_commits[2][1].hexsha, 
-                                          "--extensions", "1",
-                                          "--yes"])
+                                         ["pa4", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
@@ -256,9 +213,7 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
 
         # Team 2 tries submitting to pa5 with zero extensions and is accepted
         result = students_team[2][0].run("student assignment submit", 
-                                         [teams[2], "pa5", team_commits[2][1].hexsha, 
-                                          "--extensions", "0",
-                                          "--yes"])
+                                         ["pa5", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
                         
         s1 = course.get_student(get_user_by_username(students_team[2][0].user_id))
@@ -273,11 +228,9 @@ class CLICompleteWorkflowExtensionsPerStudent(ChisubmitCLITestCase):
             result = s.run("student course show-extensions")
             self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)                        
 
-        # Team 3 tries submitting to pa5 with zero extensions and is accepted
+        # Team 3 tries submitting to pa5 and is accepted (doesn't require extensions)
         result = students_team[3][0].run("student assignment submit", 
-                                         [teams[3], "pa5", team_commits[3][1].hexsha, 
-                                          "--extensions", "0",
-                                          "--yes"])
+                                         ["pa5", "--yes"])        
         self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
 
         s1 = course.get_student(get_user_by_username(students_team[3][0].user_id))

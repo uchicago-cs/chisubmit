@@ -18,6 +18,7 @@ django.setup()
 from chisubmit.tests.integration.complete.test_complete1 import CLICompleteWorkflowExtensionsPerTeam
 from chisubmit.tests.integration.complete.test_complete2 import CLICompleteWorkflowExtensionsPerStudent
 from chisubmit.tests.integration.complete.test_complete3 import CLICompleteWorkflowCancelSubmission
+from chisubmit.tests.integration.complete.test_complete4 import CLICompleteWorkflowGracePeriods
 
 
 test_suites = {"api": "chisubmit.tests.unit.api",
@@ -26,13 +27,15 @@ test_suites = {"api": "chisubmit.tests.unit.api",
          
                "complete1": CLICompleteWorkflowExtensionsPerTeam,
                "complete2": CLICompleteWorkflowExtensionsPerStudent,
-               "complete3": CLICompleteWorkflowCancelSubmission}
+               "complete3": CLICompleteWorkflowCancelSubmission,
+               "complete4": CLICompleteWorkflowGracePeriods}
+
          
 unit_tests = ["api"]
 
 integration_tests = ["clientlibs", "cli"]
 
-complete_tests = ["complete1", "complete2", "complete3"]
+complete_tests = ["complete1", "complete2", "complete3", "complete4"]
  
 all_except_complete = unit_tests + integration_tests
 

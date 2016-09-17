@@ -317,7 +317,14 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
         print "You are going to use %i extensions on this submission." % submit_response.extensions_needed
     print
     print "You will have %i extensions left after this submission." % submit_response.extensions_after
-    print 
+    print
+    
+    if submit_response.in_grace_period:
+        print "NOTE: You are submitting after the deadline, but the instructor has"
+        print "allowed some extra time after the deadline for students to submit"
+        print "without having to consume an extension."
+        print
+     
     print "Are you sure you want to continue? (y/n): ", 
     
     if not yes:
@@ -340,6 +347,19 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
             
             print
             print "Your submission has been completed."
+
+            if submit_response.in_grace_period:
+                print
+                print "Your submission was made during the deadline's grace period. This means"
+                print "that, although your submission was technically made *after* the"
+                print "deadline, we are counting it as if it had been made before the deadline."
+                print
+                print "In the future, you should not rely on the presence of this grace period!"
+                print "Your instructor may choose not to use one in future assignments, or may"
+                print "use a shorter grace period. Your instructor is also aware of what"
+                print "submissions are made during the grace period; if you repeatedly submit"
+                print "during the grace period, your instructor may bring this to your attention."
+            
             return CHISUBMIT_SUCCESS
 
         except BadRequestException, bre:

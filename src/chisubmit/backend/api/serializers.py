@@ -264,12 +264,15 @@ class AssignmentSerializer(ChisubmitSerializer):
     assignment_id = serializers.SlugField()
     name = serializers.CharField(max_length=64)
     deadline = serializers.DateTimeField()
+    grace_period = serializers.DurationField(required=False)
     
     url = serializers.SerializerMethodField()
     rubric_url = serializers.SerializerMethodField()
     
     min_students = serializers.IntegerField(default=1, min_value=1)
     max_students = serializers.IntegerField(default=1, min_value=1)
+    
+    hidden_fields = { "grace_period": GradersAndStudents }    
     
     readonly_fields = { "assignment_id": GradersAndStudents,
                         "name": GradersAndStudents,
@@ -291,6 +294,7 @@ class AssignmentSerializer(ChisubmitSerializer):
         instance.assignment_id = validated_data.get('assignment_id', instance.assignment_id)
         instance.name = validated_data.get('name', instance.name)
         instance.deadline = validated_data.get('deadline', instance.deadline)
+        instance.grace_period = validated_data.get('grace_period', instance.grace_period)
         instance.min_students = validated_data.get('min_students', instance.min_students)
         instance.max_students = validated_data.get('max_students', instance.max_students)
         instance.save()

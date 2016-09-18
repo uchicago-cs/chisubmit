@@ -39,7 +39,7 @@ def get_assignment(course_obj, request_user, roles, assignment_id):
     
 def get_rubric_component(course_obj, request_user, roles, assignment_id, rubric_component_id):
     try:
-        return RubricComponent.objects.get(assignment=assignment_id, pk=rubric_component_id)
+        return RubricComponent.objects.get(assignment__assignment_id=assignment_id, pk=rubric_component_id)
     except RubricComponent.DoesNotExist:
         raise Http404      
     

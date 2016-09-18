@@ -326,7 +326,7 @@ class RubricDetail(APIView):
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}
                    
-        rubric_component_obj = get_rubric_component(course_obj, request.user, roles, assignment_id)   
+        rubric_component_obj = get_rubric_component(course_obj, request.user, roles, assignment_id, rubric_component_id)   
         serializer = RubricComponentSerializer(rubric_component_obj, context=serializer_context)
         return Response(serializer.data)
 

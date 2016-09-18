@@ -7,7 +7,8 @@ from chisubmit.common.utils import convert_datetime_to_local,\
 from dateutil.parser import parse
 from chisubmit.cli.common import pass_course, get_assignment_or_exit,\
     get_team_or_exit, get_assignment_registration_or_exit,\
-    catch_chisubmit_exceptions, require_local_config
+    catch_chisubmit_exceptions, require_local_config,\
+    get_team_registration_from_user
 from chisubmit.cli.shared.assignment import shared_assignment_list
 from datetime import timedelta
 from chisubmit.client.exceptions import BadRequestException,\
@@ -41,6 +42,11 @@ def student_assignment_register(ctx, course, assignment_id, partner):
         r = assignment.register(students = partner)    
     except UnknownObjectException:
         # Otherwise, we include the current user
+        if user.username in partner:
+            print "You specified your own username in --partner. You should use this"
+            print "option to specify your partners, not including yourself."
+            return CHISUBMIT_FAIL
+        
         r = assignment.register(students = partner + (user.username,))    
 
     print "Your registration for %s (%s) is complete." % (r.registration.assignment.assignment_id, r.registration.assignment.name)
@@ -72,6 +78,72 @@ def student_assignment_register(ctx, course, assignment_id, partner):
                 print "      command, and listing the same team members)."
     
     return CHISUBMIT_SUCCESS
+
+
+@click.command(name="cancel-registration")
+@click.argument('assignment_id', type=str)
+@click.option('--yes', is_flag=True)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context  
+def student_assignment_cancel_registration(ctx, course, assignment_id, yes):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    # Get registration
+    team, registration = get_team_registration_from_user(ctx, course, assignment)
+    team_members = team.get_team_members()  
+    
+    if len(team_members) == 1:
+        student = team_members[0].student        
+        individual = True
+        print "You (%s %s) currently have an INDIVIDUAL registration for %s (%s)" % (student.user.first_name, student.user.last_name, assignment.assignment_id, assignment.name)
+    else:
+        students = [tm.student for tm in team_members]
+        individual = False
+        print "You currently have a TEAM registration for %s (%s)." % (assignment.assignment_id, assignment.name)
+        print
+        print "Team %s has the following students:" % team.team_id
+        for s in students:
+            print " - %s %s" % (s.user.first_name, s.user.last_name)         
+    
+    print
+    
+    if registration.final_submission is not None:
+        if individual:
+            print "You have already made a submission for %s." % assignment_id
+        else:
+            print "Team %s has already made a submission for assignment %s." % (team.team_id, assignment_id)
+        print
+        print "Please cancel your submission first, and then try canceling your registration."
+        ctx.exit(CHISUBMIT_FAIL)
+
+    if individual:
+        print "Are you sure you want to cancel your registration for this assignment? (y/n): ",
+    else:
+        print "Are you sure you want to cancel this team's registration for the assignment? (y/n): ",
+     
+    
+    if not yes:
+        yesno = raw_input()
+    else:
+        yesno = 'y'
+        print 'y'
+    
+    if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):        
+        try:
+            registration.cancel()
+            print
+            print "Your registration has been cancelled."
+            ctx.exit(CHISUBMIT_SUCCESS)
+        except BadRequestException, bre:
+            response_data = bre.json
+            print "ERROR: Your registration cannot be cancelled. The server reported the following:"
+            print
+            bre.print_errors()
+
+            ctx.exit(CHISUBMIT_FAIL)
+
 
 @click.command(name="show-deadline")
 @click.argument('assignment_id', type=str)
@@ -144,31 +216,10 @@ def print_commit(commit):
 @pass_course
 @click.pass_context  
 def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
-    user = ctx.obj["client"].get_user()
-
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
     # Determine team for this assignment
-    teams = course.get_teams(include_students=True, include_assignments=True)
-    teams_registered_for_assignment = []
-    for t in teams:
-        if user.username not in [tm.username for tm in t.get_team_members()]:
-            continue
-        
-        registrations = t.get_assignment_registrations()
-        for r in registrations:
-            if r.assignment_id == assignment_id:
-                teams_registered_for_assignment.append((t,r))
-                
-    if len(teams_registered_for_assignment) == 0:
-        print "You are not registered for assignment %s" % assignment_id
-        ctx.exit(CHISUBMIT_FAIL)        
-    elif len(teams_registered_for_assignment) > 1:
-        print "You are registered for assignment %s in more than one team" % assignment_id
-        print "Please notify your instructor about this."
-        ctx.exit(CHISUBMIT_FAIL)        
-
-    team, registration = teams_registered_for_assignment[0]
+    team, registration = get_team_registration_from_user(ctx, course, assignment)
     team_members = team.get_team_members()    
                 
     title = "SUBMISSION FOR ASSIGNMENT %s (%s)" % (assignment.assignment_id, assignment.name)
@@ -379,20 +430,30 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
         return CHISUBMIT_FAIL
     
     
-@click.command(name="cancel-submit")
-@click.argument('team_id', type=str)    
+@click.command(name="cancel-submit")   
 @click.argument('assignment_id', type=str)
 @click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context  
-def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
-    team = get_team_or_exit(ctx, course, team_id)
-    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
+def student_assignment_cancel_submit(ctx, course, assignment_id, yes):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    # Determine team for this assignment
+    team, registration = get_team_registration_from_user(ctx, course, assignment)
+    team_members = team.get_team_members()    
+    
+    if len(team_members) == 1:
+        individual = True
+    else:
+        individual = False    
     
     if registration.final_submission is None:
-        print "Team %s has not made a submission for assignment %s," % (team_id, assignment_id)
+        if individual:
+            print "You have not made a submission for assignment %s," % assignment_id
+        else:
+            print "Team %s has not made a submission for assignment %s," % (team.team_id, assignment_id)
         print "so there is nothing to cancel."
         ctx.exit(CHISUBMIT_FAIL)
         
@@ -439,13 +500,14 @@ def student_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
         #     conn.create_submission_tag(course, team, tag_name, message, commit.sha)
         # else:
         #     conn.update_submission_tag(course, team, tag_name, message, commit.sha)
-            
+        print
         print "Your submission has been cancelled."
         
 
 student_assignment.add_command(shared_assignment_list)
 
 student_assignment.add_command(student_assignment_register)
+student_assignment.add_command(student_assignment_cancel_registration)
 student_assignment.add_command(student_assignment_show_deadline)
 student_assignment.add_command(student_assignment_submit)
 student_assignment.add_command(student_assignment_cancel_submit)

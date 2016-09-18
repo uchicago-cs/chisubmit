@@ -741,7 +741,11 @@ class RegistrationDetail(APIView):
         course_obj, roles = get_course(request, course_id)
         registration_obj = get_registration(course_obj, request.user, roles, team_id, assignment_id)
 
-        if not (CourseRoles.ADMIN in roles or CourseRoles.INSTRUCTOR in roles):
+        if len(roles) == 1 and CourseRoles.STUDENT in roles:
+            if registration_obj.final_submission is not None:
+                msg = "You cannot cancel this registration. It already has a submission."
+                return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
+        elif not (CourseRoles.ADMIN in roles or CourseRoles.INSTRUCTOR in roles):
             raise PermissionDenied
         
         registration_obj.delete()
@@ -779,7 +783,7 @@ class Submit(APIView):
 
         if extensions_override is None and registration_obj.is_ready_for_grading():
             msg = "You cannot re-submit assignment %s." % (registration_obj.assignment.assignment_id)
-            msg = " You made a submission before the deadline, and the deadline has passed."
+            msg += " You made a submission before the deadline, and the deadline has passed."
             return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
                 
         try:

@@ -249,6 +249,13 @@ class Registration(ChisubmitAPIObject):
             data = post_data
         )
         return SubmissionResponse(self._api_client, headers, data)    
+    
+    def cancel(self):
+        """
+        :calls: DELETE /courses/:course/teams/:team/assignments/:assignment/
+        :rtype: None
+        """
+        self.delete()
 
     def set_grade(self, rubric_component, points):
         if points < 0 or points > rubric_component.points:

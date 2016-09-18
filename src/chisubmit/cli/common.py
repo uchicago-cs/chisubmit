@@ -209,7 +209,43 @@ def get_student_or_exit(ctx, course, username):
         return course.get_student(username = username)
     except UnknownObjectException:
         print "Course %s does not have a student %s" % (course.course_id, username)
-        ctx.exit(CHISUBMIT_FAIL)                                
+        ctx.exit(CHISUBMIT_FAIL)             
+        
+        
+def get_team_registration_from_user(ctx, course, assignment, user = None):
+    if user is None:
+        user = ctx.obj["client"].get_user()
+        custom_user = False
+    else:
+        custom_user = True
+    
+    # Determine team for this assignment
+    teams = course.get_teams(include_students=True, include_assignments=True)
+    teams_registered_for_assignment = []
+    for t in teams:
+        if user.username not in [tm.username for tm in t.get_team_members()]:
+            continue
+        
+        registrations = t.get_assignment_registrations()
+        for r in registrations:
+            if r.assignment_id == assignment.assignment_id:
+                teams_registered_for_assignment.append((t,r))
+                
+    if len(teams_registered_for_assignment) == 0:
+        if custom_user:
+            print "%s is not registered for assignment %s" % (user.username, assignment.assignment_id)
+        else:
+            print "You are not registered for assignment %s" % assignment.assignment_id
+        ctx.exit(CHISUBMIT_FAIL)        
+    elif len(teams_registered_for_assignment) > 1:
+        if custom_user:
+            print "%s is registered for assignment %s in more than one team" % (user.username, assignment.assignment_id)
+        else:
+            print "You are registered for assignment %s in more than one team" % assignment.assignment_id
+            print "Please notify your instructor about this."
+        ctx.exit(CHISUBMIT_FAIL)        
+        
+    return teams_registered_for_assignment[0]                            
 
 
 def api_obj_set_attribute(ctx, api_obj, attr_name, attr_value):

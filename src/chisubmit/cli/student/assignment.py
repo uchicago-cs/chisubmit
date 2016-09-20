@@ -70,12 +70,12 @@ def student_assignment_register(ctx, course, assignment_id, partner):
                                          tm.student.user.username,
                                          conf)
              
-            if some_unconfirmed:
-                print
-                print "Note: Some students have not yet confirmed that they are part of"
-                print "      this team. To confirm they are part of this team, they just"
-                print "      need to register as a team themselves (using this same"
-                print "      command, and listing the same team members)."
+        if some_unconfirmed:
+            print
+            print "Note: Some students have not yet confirmed that they are part of"
+            print "      this team. To confirm they are part of this team, they just"
+            print "      need to register as a team themselves (using this same"
+            print "      command, and listing the same team members)."
     
     return CHISUBMIT_SUCCESS
 

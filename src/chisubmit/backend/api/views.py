@@ -458,7 +458,7 @@ class Register(APIView):
                     
             if perfect_match is not None:
                 team = perfect_match
-                if perfect_match.is_registered_for_assignment(assignment_obj):
+                if perfect_match.is_registered_for_assignment(assignment_obj) and is_student:
                     tm = perfect_match.teammember_set.get(student = user_student_obj)
                     tm.confirmed = True
                     tm.save()

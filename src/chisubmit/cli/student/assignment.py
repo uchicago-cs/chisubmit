@@ -246,6 +246,10 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
     
     if commit_sha is None:
         commit = conn.get_latest_commit(course, team)
+
+        if commit is None:
+            print "It seems there are no commits in your repository, so I cannot submit anything"
+            ctx.exit(CHISUBMIT_FAIL)
                 
         user_specified_commit = False
     else:    

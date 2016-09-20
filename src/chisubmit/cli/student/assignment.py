@@ -409,7 +409,7 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
                 print "Your instructor may choose not to use one in future assignments, or may"
                 print "use a shorter grace period. Your instructor is also aware of what"
                 print "submissions are made during the grace period; if you repeatedly submit"
-                print "during the grace period, your instructor may may charge you an extension"
+                print "during the grace period, your instructor may charge you an extension"
                 print "or refuse to accept your assignment if you are out of extensions."
             
             return CHISUBMIT_SUCCESS

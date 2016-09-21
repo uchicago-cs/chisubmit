@@ -70,12 +70,12 @@ def student_assignment_register(ctx, course, assignment_id, partner):
                                          tm.student.user.username,
                                          conf)
              
-            if some_unconfirmed:
-                print
-                print "Note: Some students have not yet confirmed that they are part of"
-                print "      this team. To confirm they are part of this team, they just"
-                print "      need to register as a team themselves (using this same"
-                print "      command, and listing the same team members)."
+        if some_unconfirmed:
+            print
+            print "Note: Some students have not yet confirmed that they are part of"
+            print "      this team. To confirm they are part of this team, they just"
+            print "      need to register as a team themselves (using this same"
+            print "      command, and listing the same team members)."
     
     return CHISUBMIT_SUCCESS
 
@@ -246,6 +246,10 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
     
     if commit_sha is None:
         commit = conn.get_latest_commit(course, team)
+
+        if commit is None:
+            print "It seems there are no commits in your repository, so I cannot submit anything"
+            ctx.exit(CHISUBMIT_FAIL)
                 
         user_specified_commit = False
     else:    
@@ -409,7 +413,8 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
                 print "Your instructor may choose not to use one in future assignments, or may"
                 print "use a shorter grace period. Your instructor is also aware of what"
                 print "submissions are made during the grace period; if you repeatedly submit"
-                print "during the grace period, your instructor may bring this to your attention."
+                print "during the grace period, your instructor may charge you an extension"
+                print "or refuse to accept your assignment if you are out of extensions."
             
             return CHISUBMIT_SUCCESS
 

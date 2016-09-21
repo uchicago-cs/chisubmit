@@ -326,7 +326,7 @@ class RubricDetail(APIView):
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}
                    
-        rubric_component_obj = get_rubric_component(course_obj, request.user, roles, assignment_id)   
+        rubric_component_obj = get_rubric_component(course_obj, request.user, roles, assignment_id, rubric_component_id)   
         serializer = RubricComponentSerializer(rubric_component_obj, context=serializer_context)
         return Response(serializer.data)
 
@@ -459,9 +459,15 @@ class Register(APIView):
             if perfect_match is not None:
                 team = perfect_match
                 if perfect_match.is_registered_for_assignment(assignment_obj):
-                    tm = perfect_match.teammember_set.get(student = user_student_obj)
-                    tm.confirmed = True
-                    tm.save()
+                    if is_student:
+                        tm = perfect_match.teammember_set.get(student = user_student_obj)
+                        tm.confirmed = True
+                        tm.save()
+                    else:
+                        for tm in perfect_match.teammember_set.all():
+                            if not tm.confirmed:
+                                tm.confirmed = True
+                                tm.save()
                     
                     registration = perfect_match.get_registration(assignment_obj)
                 else:

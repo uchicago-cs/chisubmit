@@ -7,7 +7,7 @@ from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
     get_assignment_or_exit, get_teams_registrations, get_team_or_exit,\
     get_assignment_registration_or_exit, get_grader_or_exit,\
-    catch_chisubmit_exceptions, require_local_config
+    catch_chisubmit_exceptions, require_local_config, validate_repo_rubric
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
 
@@ -757,6 +757,32 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
             rubric.save(rubricfilepath, include_blank_comments=True)
             print rubricfilepath
 
+@click.command(name="validate-rubrics")
+@click.argument('assignment_id', type=str)
+@click.option('--grader', type=str)
+@click.option('--only', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_validate_rubrics(ctx, course, assignment_id, grader, only):
+    if grader is not None:
+        grader = get_grader_or_exit(ctx, course, grader)
+
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only)
+    
+    for team, registration in teams_registrations.items():
+        valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
+
+        if valid:
+            print "%s: Rubric OK." % team.team_id
+        else:
+            print "%s: Rubric ERROR: %s" % (team.team_id, error_msg)
+
+    return CHISUBMIT_SUCCESS
+
 
 @click.command(name="collect-rubrics")
 @click.argument('assignment_id', type=str)
@@ -854,4 +880,5 @@ instructor_grading.add_command(instructor_grading_create_grading_repos)
 instructor_grading.add_command(instructor_grading_push_grading)
 instructor_grading.add_command(instructor_grading_pull_grading)
 instructor_grading.add_command(instructor_grading_add_rubrics)
+instructor_grading.add_command(instructor_validate_rubrics)
 instructor_grading.add_command(instructor_grading_collect_rubrics)

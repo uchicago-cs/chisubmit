@@ -291,6 +291,18 @@ Comments: >
         result = instructors[0].run("instructor grading pull-grading", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
+        result = graders[0].run("instructor grading validate-rubrics", ["pa1", "--only", teams[0]])
+        self.assertEquals(result.exit_code, 0)           
+
+        result = graders[0].run("instructor grading validate-rubrics", ["pa1", "--only", teams[1]])
+        self.assertEquals(result.exit_code, 0)           
+
+        result = graders[0].run("instructor grading validate-rubrics", ["pa1", "--grader", "grader"])
+        self.assertEquals(result.exit_code, 0)           
+
+        result = graders[0].run("instructor grading validate-rubrics", ["pa1"])
+        self.assertEquals(result.exit_code, 0)           
+        
         result = instructors[0].run("instructor grading collect-rubrics", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         

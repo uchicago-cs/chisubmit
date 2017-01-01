@@ -1,14 +1,12 @@
 import click
+import os.path
+from functools import update_wrapper
+from dateutil.parser import parse
+import operator
 
 from chisubmit.repos.grading import GradingGitRepo
 from chisubmit.common import CHISUBMIT_FAIL, CHISUBMIT_SUCCESS,\
     ChisubmitException, handle_unexpected_exception
-from chisubmit.client.course import Course
-
-from functools import update_wrapper
-
-from dateutil.parser import parse
-import operator
 from chisubmit.client.exceptions import UnknownObjectException,\
     UnauthorizedException, BadRequestException, ChisubmitRequestException
 from chisubmit.client.types import AttributeType
@@ -18,6 +16,7 @@ from click.globals import get_current_context
 from chisubmit.config import Config, ConfigDirectoryNotFoundException
 from chisubmit.client import Chisubmit
 from chisubmit.common.utils import parse_timedelta
+from chisubmit.rubric import RubricFile, ChisubmitRubricException
 
 
 def __load_config_and_client(require_local):
@@ -386,3 +385,20 @@ def gradingrepo_pull_grading_branch(config, course, team, registration, from_stu
 
     return CHISUBMIT_SUCCESS
 
+def validate_repo_rubric(ctx, course, assignment, team, registration):
+    repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
+    if not repo:
+        print "Repository for %s does not exist" % (team.team_id)
+        ctx.exit(CHISUBMIT_FAIL)
+
+    rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
+
+    if not os.path.exists(rubricfile):
+        print "Repository for %s does not exist have a rubric for assignment %s" % (team.team_id, assignment.assignment_id)
+        ctx.exit(CHISUBMIT_FAIL)
+
+    try:
+        RubricFile.from_file(open(rubricfile), assignment)
+        return (True, None)
+    except ChisubmitRubricException, cre:
+        return (False, cre.message)

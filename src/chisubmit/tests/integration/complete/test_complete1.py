@@ -198,47 +198,19 @@ class CLICompleteWorkflowExtensionsPerTeam(ChisubmitCLITestCase):
         result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
         self.assertEquals(result.exit_code, 0)
                 
-        result = instructors[0].run("instructor grading create-grading-repos", ["pa1"])
+        result = instructors[0].run("instructor grading create-grading-repos", ["--master", "pa1"])
         self.assertEquals(result.exit_code, 0)        
-        
-        result = instructors[0].run("instructor grading create-grading-branches", ["pa1"])
-        self.assertEquals(result.exit_code, 0)        
-                
-        result = instructors[0].run("instructor grading set-grade", 
-                                [teams[0], "pa1", "The PA1 Tests", "100"])
-        self.assertEquals(result.exit_code, 1)
-
-        result = instructors[0].run("instructor grading set-grade", 
-                                [teams[0], "pa1", "The PA1 Tests", "40"])
-        self.assertEquals(result.exit_code, 0)
-
-        result = instructors[0].run("instructor grading set-grade", 
-                                [teams[1], "pa1", "The PA1 Tests", "45"])
-        self.assertEquals(result.exit_code, 0)
-
-        result = instructors[0].run("instructor grading list-grades")
-        self.assertEquals(result.exit_code, 0)
-
-        result = instructors[0].run("instructor grading set-grade", 
-                                [teams[0], "pa1", "The PA1 Tests", "50"])
-        self.assertEquals(result.exit_code, 0)
-
-        result = instructors[0].run("instructor grading list-grades")
-        self.assertEquals(result.exit_code, 0)
-
-        result = instructors[0].run("instructor grading add-rubrics", ["pa1", "--commit"])
-        self.assertEquals(result.exit_code, 0)
-
+                        
         result = instructors[0].run("instructor grading assign-graders", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
         result = instructors[0].run("instructor grading list-grader-assignments", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
-        result = instructors[0].run("instructor grading push-grading-branches", ["--to-staging", "pa1"])
+        result = instructors[0].run("instructor grading push-grading", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
-        result = graders[0].run("grader create-local-grading-repos", ["pa1"])
+        result = graders[0].run("grader pull-grading", ["pa1"])
         self.assertEquals(result.exit_code, 0)        
                 
         team1_grading_repo_path = "chisubmit-test/repositories/%s/%s/%s" % (course_id, "pa1", teams[0])
@@ -313,10 +285,10 @@ Comments: >
         result = graders[0].run("grader validate-rubrics", ["pa1"])
         self.assertEquals(result.exit_code, 0)                
 
-        result = graders[0].run("grader push-grading-branches", ["pa1"])
+        result = graders[0].run("grader push-grading", ["pa1"])
         self.assertEquals(result.exit_code, 0)                
 
-        result = instructors[0].run("instructor grading pull-grading-branches", ["--from-staging", "pa1"])
+        result = instructors[0].run("instructor grading pull-grading", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
         result = instructors[0].run("instructor grading collect-rubrics", ["pa1"])
@@ -325,7 +297,7 @@ Comments: >
         result = instructors[0].run("instructor grading list-grades")
         self.assertEquals(result.exit_code, 0)
                 
-        result = instructors[0].run("instructor grading push-grading-branches", ["--to-students", "pa1"])
+        result = instructors[0].run("instructor grading push-grading", ["--to-students", "--yes", "pa1"])
         self.assertEquals(result.exit_code, 0)
         
     

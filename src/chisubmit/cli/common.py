@@ -318,7 +318,7 @@ def get_teams_registrations(course, assignment, only_ready_for_grading=False, gr
     return rv
 
 
-def create_grading_repos(config, course, assignment, teams_registrations):
+def create_grading_repos(config, course, assignment, teams_registrations, staging_only):
     repos = []
 
     teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
@@ -329,7 +329,7 @@ def create_grading_repos(config, course, assignment, teams_registrations):
 
         if repo is None:
             print ("Creating grading repo for %s... " % team.team_id),
-            repo = GradingGitRepo.create_grading_repo(config, course, team, registration)
+            repo = GradingGitRepo.create_grading_repo(config, course, team, registration, staging_only)
             repo.sync()
 
             repos.append(repo)
@@ -341,7 +341,7 @@ def create_grading_repos(config, course, assignment, teams_registrations):
     return repos
 
 
-def gradingrepo_push_grading_branch(config, course, team, registration, to_students=False, to_staging=False):
+def gradingrepo_push_grading_branch(config, course, team, registration, to_students=False):
     repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
@@ -357,14 +357,12 @@ def gradingrepo_push_grading_branch(config, course, team, registration, to_stude
 
     if to_students:
         repo.push_grading_branch_to_students()
-
-    if to_staging:
+    else:
         repo.push_grading_branch_to_staging()
 
     return CHISUBMIT_SUCCESS
 
-def gradingrepo_pull_grading_branch(config, course, team, registration, from_students=False, from_staging=False):
-    assert(not (from_students and from_staging))
+def gradingrepo_pull_grading_branch(config, course, team, registration, from_students=False):
     repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
@@ -380,8 +378,7 @@ def gradingrepo_pull_grading_branch(config, course, team, registration, from_stu
             print "%s does not have a grading branch on students' repository" % team.team_id
         else:
             repo.pull_grading_branch_from_students()
-
-    if from_staging:
+    else:
         if not repo.has_grading_branch_staging():
             print "%s does not have a grading branch in staging" % team.team_id
         else:

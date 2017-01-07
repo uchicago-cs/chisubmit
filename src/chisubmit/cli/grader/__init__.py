@@ -125,6 +125,7 @@ def grader_validate_rubrics(ctx, course, assignment_id, grader, only):
 
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only)
     
+    all_valid = True
     for team, registration in teams_registrations.items():
         valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
 
@@ -132,8 +133,12 @@ def grader_validate_rubrics(ctx, course, assignment_id, grader, only):
             print "%s: Rubric OK." % team.team_id
         else:
             print "%s: Rubric ERROR: %s" % (team.team_id, error_msg)
-
-    return CHISUBMIT_SUCCESS
+            all_valid = False
+            
+    if not all_valid:
+        ctx.exit(CHISUBMIT_FAIL)
+    else:
+        return CHISUBMIT_SUCCESS
 
 
 grader.add_command(grader_pull_grading)

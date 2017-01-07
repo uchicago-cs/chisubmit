@@ -22,5 +22,5 @@ class CLIInstructorGrades(ChisubmitCLITestCase):
         
         instructor1 = instructors[0]
         
-        result = instructor1.run("instructor grading show-grading-status --by-grader", ["pa1"])
+        result = instructor1.run("instructor grading show-grading-status --use-stored-grades --by-grader", ["pa1"])
         self.assertEquals(result.exit_code, 0)

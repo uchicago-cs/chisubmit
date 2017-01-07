@@ -225,6 +225,21 @@ def instructor_grading_list_grades(ctx, course, detailed):
 
         print ",".join(fields)
 
+@click.command(name="assign-grader")
+@click.argument('assignment_id', type=str)
+@click.argument('team_id', type=str)
+@click.argument('grader_id', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_grading_assign_grader(ctx, course, assignment_id, team_id, grader_id):
+    team = get_team_or_exit(ctx, course, team_id)
+    grader = get_grader_or_exit(ctx, course, grader_id)
+
+    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
+
+    registration.grader_username = grader.username
 
 @click.command(name="assign-graders")
 @click.argument('assignment_id', type=str)
@@ -484,11 +499,12 @@ def print_grades_stats(grades):
 @click.argument('assignment_id', type=str)
 @click.option('--by-grader', is_flag=True)
 @click.option('--include-diff-urls', is_flag=True)
+@click.option('--use-stored-grades', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader, include_diff_urls):
+def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader, include_diff_urls, use_stored_grades):
     assignment = get_assignment_or_exit(ctx, course, assignment_id, include_rubric = True)
     rubric_components = assignment.get_rubric_components()
 
@@ -500,33 +516,67 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
     
     for team in teams:
         registration = teams_registrations[team]
-        grades = registration.get_grades()
-        
-        grade_rc_ids = [g.rubric_component_id for g in grades]
 
         if registration.grader is None:
             grader_str = "<no grader assigned>"
         else:
             grader_str = registration.grader.user.username
-            
         graders.add(grader_str)
-
-        has_some = False
-        has_all = True
-        for rc in rubric_components:
-            if rc.id in grade_rc_ids:
-                has_some = True
-            else:
-                has_all = False
-                        
-        if not has_some:
-            grading_status = "NOT GRADED"
-        elif has_all:
-            grading_status = "GRADED"
+        
+        grading_status = None
+        
+        if use_stored_grades:
+            grades = registration.get_grades()
+            total_grade = registration.get_total_grade()
+            
+            graded_rc_ids = [g.rubric_component_id for g in grades]            
         else:
-            grading_status = "PARTIALLY GRADED"
+            total_grade = 0.0
+            repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
+            if repo is None:
+                grading_status = "NO GRADING REPO"
+            else:
+                rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
+        
+                if not os.path.exists(rubricfile):
+                    grading_status = "NOT GRADED - No rubric"
+                else:        
+                    try:
+                        rubric = RubricFile.from_file(open(rubricfile), assignment)
+            
+                        graded_rc_ids = [rc.id for rc in rubric_components if rubric.points[rc.description] is not None]  
+                
+                        for rc in rubric_components:
+                            grade = rubric.points[rc.description]
+                            if grade is not None:
+                                total_grade += grade
+                
+                        if rubric.penalties is not None:
+                            for p in rubric.penalties.values():
+                                total_grade += p
+                
+                        if rubric.bonuses is not None:
+                            for p in rubric.bonuses.values():
+                                total_grade += p  
+                    except ChisubmitRubricException, cre:
+                        grading_status = "ERROR: Rubric does not validate (%s)" % (cre.message)
+                        
+        if grading_status is None:
+            has_some = False
+            has_all = True
+            for rc in rubric_components:
+                if rc.id in graded_rc_ids:
+                    has_some = True
+                else:
+                    has_all = False
+                            
+            if not has_some:
+                grading_status = "NOT GRADED"
+            elif has_all:
+                grading_status = "GRADED"
+            else:
+                grading_status = "PARTIALLY GRADED"
 
-        total_grade = registration.get_total_grade()
             
         if include_diff_urls and has_some:
             commit_sha = registration.final_submission.commit_sha[:8]
@@ -872,6 +922,7 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, only
 instructor_grading.add_command(instructor_grading_set_grade)
 instructor_grading.add_command(instructor_grading_load_grades)
 instructor_grading.add_command(instructor_grading_list_grades)
+instructor_grading.add_command(instructor_grading_assign_grader)
 instructor_grading.add_command(instructor_grading_assign_graders)
 instructor_grading.add_command(instructor_grading_list_grader_assignments)
 instructor_grading.add_command(instructor_grading_list_submissions)

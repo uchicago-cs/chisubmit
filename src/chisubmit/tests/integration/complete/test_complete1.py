@@ -301,11 +301,17 @@ Comments: >
         self.assertEquals(result.exit_code, 0)           
 
         result = graders[0].run("instructor grading validate-rubrics", ["pa1"])
-        self.assertEquals(result.exit_code, 0)           
+        self.assertEquals(result.exit_code, 0)         
+        
+        result = instructors[0].run("instructor grading show-grading-status", ["--by-grader", "pa1"])
+        self.assertEquals(result.exit_code, 0)             
         
         result = instructors[0].run("instructor grading collect-rubrics", ["pa1"])
         self.assertEquals(result.exit_code, 0)
         
+        result = instructors[0].run("instructor grading show-grading-status", ["--use-stored-grades", "--by-grader", "pa1"])
+        self.assertEquals(result.exit_code, 0)  
+                
         result = instructors[0].run("instructor grading list-grades")
         self.assertEquals(result.exit_code, 0)
                 

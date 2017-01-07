@@ -21,6 +21,7 @@ from chisubmit.tests.integration.complete.test_complete3 import CLICompleteWorkf
 from chisubmit.tests.integration.complete.test_complete4 import CLICompleteWorkflowGracePeriods
 from chisubmit.tests.integration.complete.test_complete5 import CLICompleteWorkflowCancelRegistration
 from chisubmit.tests.integration.complete.test_complete5 import CLICompleteWorkflowCancelRegistration
+from chisubmit.tests.integration.complete.test_complete6 import CLICompleteWorkflowMultipleInstructorsMultipleGraders
 
 
 test_suites = {"api": "chisubmit.tests.unit.api",
@@ -31,14 +32,15 @@ test_suites = {"api": "chisubmit.tests.unit.api",
                "complete2": CLICompleteWorkflowExtensionsPerStudent,
                "complete3": CLICompleteWorkflowCancelSubmission,
                "complete4": CLICompleteWorkflowGracePeriods,
-               "complete5": CLICompleteWorkflowCancelRegistration}
+               "complete5": CLICompleteWorkflowCancelRegistration,
+               "complete6": CLICompleteWorkflowMultipleInstructorsMultipleGraders}
 
          
 unit_tests = ["api"]
 
 integration_tests = ["clientlibs", "cli"]
 
-complete_tests = ["complete1", "complete2", "complete3", "complete4", "complete5"]
+complete_tests = ["complete1", "complete2", "complete3", "complete4", "complete5", "complete6"]
  
 all_except_complete = unit_tests + integration_tests
 

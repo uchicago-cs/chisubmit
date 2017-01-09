@@ -7,7 +7,7 @@ from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
     get_assignment_or_exit, get_teams_registrations, get_team_or_exit,\
     get_assignment_registration_or_exit, get_grader_or_exit,\
-    catch_chisubmit_exceptions, require_local_config
+    catch_chisubmit_exceptions, require_local_config, validate_repo_rubric
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
 
@@ -225,6 +225,21 @@ def instructor_grading_list_grades(ctx, course, detailed):
 
         print ",".join(fields)
 
+@click.command(name="assign-grader")
+@click.argument('assignment_id', type=str)
+@click.argument('team_id', type=str)
+@click.argument('grader_id', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_grading_assign_grader(ctx, course, assignment_id, team_id, grader_id):
+    team = get_team_or_exit(ctx, course, team_id)
+    grader = get_grader_or_exit(ctx, course, grader_id)
+
+    registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
+
+    registration.grader_username = grader.username
 
 @click.command(name="assign-graders")
 @click.argument('assignment_id', type=str)
@@ -484,11 +499,12 @@ def print_grades_stats(grades):
 @click.argument('assignment_id', type=str)
 @click.option('--by-grader', is_flag=True)
 @click.option('--include-diff-urls', is_flag=True)
+@click.option('--use-stored-grades', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader, include_diff_urls):
+def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader, include_diff_urls, use_stored_grades):
     assignment = get_assignment_or_exit(ctx, course, assignment_id, include_rubric = True)
     rubric_components = assignment.get_rubric_components()
 
@@ -500,33 +516,67 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
     
     for team in teams:
         registration = teams_registrations[team]
-        grades = registration.get_grades()
-        
-        grade_rc_ids = [g.rubric_component_id for g in grades]
 
         if registration.grader is None:
             grader_str = "<no grader assigned>"
         else:
             grader_str = registration.grader.user.username
-            
         graders.add(grader_str)
-
-        has_some = False
-        has_all = True
-        for rc in rubric_components:
-            if rc.id in grade_rc_ids:
-                has_some = True
-            else:
-                has_all = False
-                        
-        if not has_some:
-            grading_status = "NOT GRADED"
-        elif has_all:
-            grading_status = "GRADED"
+        
+        grading_status = None
+        
+        if use_stored_grades:
+            grades = registration.get_grades()
+            total_grade = registration.get_total_grade()
+            
+            graded_rc_ids = [g.rubric_component_id for g in grades]            
         else:
-            grading_status = "PARTIALLY GRADED"
+            total_grade = 0.0
+            repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
+            if repo is None:
+                grading_status = "NO GRADING REPO"
+            else:
+                rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
+        
+                if not os.path.exists(rubricfile):
+                    grading_status = "NOT GRADED - No rubric"
+                else:        
+                    try:
+                        rubric = RubricFile.from_file(open(rubricfile), assignment)
+            
+                        graded_rc_ids = [rc.id for rc in rubric_components if rubric.points[rc.description] is not None]  
+                
+                        for rc in rubric_components:
+                            grade = rubric.points[rc.description]
+                            if grade is not None:
+                                total_grade += grade
+                
+                        if rubric.penalties is not None:
+                            for p in rubric.penalties.values():
+                                total_grade += p
+                
+                        if rubric.bonuses is not None:
+                            for p in rubric.bonuses.values():
+                                total_grade += p  
+                    except ChisubmitRubricException, cre:
+                        grading_status = "ERROR: Rubric does not validate (%s)" % (cre.message)
+                        
+        if grading_status is None:
+            has_some = False
+            has_all = True
+            for rc in rubric_components:
+                if rc.id in graded_rc_ids:
+                    has_some = True
+                else:
+                    has_all = False
+                            
+            if not has_some:
+                grading_status = "NOT GRADED"
+            elif has_all:
+                grading_status = "GRADED"
+            else:
+                grading_status = "PARTIALLY GRADED"
 
-        total_grade = registration.get_total_grade()
             
         if include_diff_urls and has_some:
             commit_sha = registration.final_submission.commit_sha[:8]
@@ -572,76 +622,91 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
 @click.command(name="create-grading-repos")
 @click.argument('assignment_id', type=str)
 @click.option('--all-teams', is_flag=True)
+@click.option('--only', type=str)
+@click.option('--master', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_teams):
+def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_teams, only, master):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
     
-    teams_registrations = get_teams_registrations(course, assignment, only_ready_for_grading=not all_teams)
-
-    repos = create_grading_repos(ctx.obj['config'], course, assignment, teams_registrations)
-
-    if repos == None:
-        ctx.exit(CHISUBMIT_FAIL)
-
-    return CHISUBMIT_SUCCESS
-
-
-@click.command(name="create-grading-branches")
-@click.argument('assignment_id', type=str)
-@click.option('--all-teams', is_flag=True)
-@click.option('--only', type=str)
-@catch_chisubmit_exceptions
-@require_local_config
-@pass_course
-@click.pass_context
-def instructor_grading_create_grading_branches(ctx, course, assignment_id, all_teams, only):
-    assignment = get_assignment_or_exit(ctx, course, assignment_id)
-
     teams_registrations = get_teams_registrations(course, assignment, only = only, only_ready_for_grading=not all_teams)
-    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
 
     if len(teams_registrations) == 0:
         ctx.exit(CHISUBMIT_FAIL)
+        
+    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
 
     for team in teams:
         registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
-            print "%s does not have a grading repository" % team.team_id
-            continue
-        
-        if registration.final_submission is None:
-            submitted_at = None
-        else:
-            submitted_at = registration.final_submission.submitted_at
+            print ("%20s -- Creating grading repo... " % team.team_id),
+                
+            repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = not master)
+            repo.sync()
             
-        if submitted_at is None:
-            print "Skipping grading branch. %s has not submitted." % team.team_id
-        elif repo.has_grading_branch():
-            print "Skipping grading branch. %s already has a grading branch." % team.team_id
+            if registration.final_submission is not None:
+                if repo.has_grading_branch_staging():
+                    gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
+                    print "done"
+                else:
+                    if master:
+                        repo.create_grading_branch()
+                        print "done (and created grading branch)"
+                    else:
+                        print "done (warning: could not pull grading branch; it does not exist)"
+            else:
+                print "done (note: has not submitted yet)"
         else:
-            repo.create_grading_branch()
-            print "Created grading branch for %s" % team.team_id
+            print "%20s -- Updating grading repo... " % team.team_id
+            if repo.has_grading_branch_staging():
+                gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
+                print "done (pulled latest grading branch)"
+            elif registration.final_submission is not None and master:
+                repo.create_grading_branch()
+                print "done (created missing grading branch)"
+            else:
+                print "nothing to update (there is no grading branch)"
 
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="push-grading-branches")
+@click.command(name="push-grading")
 @click.argument('assignment_id', type=str)
-@click.option('--to-staging', is_flag=True)
 @click.option('--to-students', is_flag=True)
 @click.option('--all-teams', is_flag=True)
 @click.option('--only', type=str)
+@click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_staging, to_students, all_teams, only):
+def instructor_grading_push_grading(ctx, course, assignment_id, to_students, all_teams, only, yes):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    if to_students:
+        print "You are going to push the grading branches to the student repositories."
+        print "If you do so, students will be able to see their grading!"
+        print 
+        print "Are you sure you want to continue? (y/n): ", 
+        
+        if not yes:
+            yesno = raw_input()
+        else:
+            yesno = 'y'
+            print 'y'
+            
+        if yesno not in ('y', 'Y', 'yes', 'Yes', 'YES'):
+            ctx.exit(CHISUBMIT_FAIL)
+        print
+    else:
+        print "Pushing grading to staging repositories. Only instructors and graders will"
+        print "be able to access this grading. If you want to push the grading to the"
+        print "student repositories, use the --to-students option"
+        print         
     
     teams_registrations = get_teams_registrations(course, assignment, only = only, only_ready_for_grading=not all_teams)
     teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
@@ -649,24 +714,43 @@ def instructor_grading_push_grading_branches(ctx, course, assignment_id, to_stag
     for team in teams:
         registration = teams_registrations[team]
         print ("Pushing grading branch for team %s... " % team.team_id),
-        gradingrepo_push_grading_branch(ctx.obj['config'], course, team, registration, to_staging = to_staging, to_students = to_students)
+        gradingrepo_push_grading_branch(ctx.obj['config'], course, team, registration, to_students = to_students)
         print "done."
 
     return CHISUBMIT_SUCCESS
 
 
 
-@click.command(name="pull-grading-branches")
+@click.command(name="pull-grading")
 @click.argument('assignment_id', type=str)
-@click.option('--from-staging', is_flag=True)
 @click.option('--from-students', is_flag=True)
 @click.option('--only', type=str)
+@click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_staging, from_students, only):
+def instructor_grading_pull_grading(ctx, course, assignment_id, from_students, only, yes):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    
+    if from_students:
+        print "Pulling grading from the student repositories is an uncommon operation."
+        print "Instead, you should only ever make changes to the grading in the staging"
+        print "repositories, and push those changes to the student repositories (which"
+        print "should always mirror what is in the staging repositories). So, there should"
+        print "never be a need to pull grading from a student repository."
+        print 
+        print "Are you sure you want to continue and pull the grading from"
+        print "the student repositories? (y/n): ", 
+        
+        if not yes:
+            yesno = raw_input()
+        else:
+            yesno = 'y'
+            print 'y'
+            
+        if yesno not in ('y', 'Y', 'yes', 'Yes', 'YES'):
+            ctx.exit(CHISUBMIT_FAIL)    
     
     teams_registrations = get_teams_registrations(course, assignment, only = only)
     teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
@@ -674,7 +758,7 @@ def instructor_grading_pull_grading_branches(ctx, course, assignment_id, from_st
     for team in teams:
         registration = teams_registrations[team]
         print "Pulling grading branch for team %s... " % team.team_id
-        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration, from_staging = from_staging, from_students = from_students)
+        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration, from_students = from_students)
 
     return CHISUBMIT_SUCCESS
 
@@ -722,6 +806,32 @@ def instructor_grading_add_rubrics(ctx, course, assignment_id, commit, all_teams
         else:
             rubric.save(rubricfilepath, include_blank_comments=True)
             print rubricfilepath
+
+@click.command(name="validate-rubrics")
+@click.argument('assignment_id', type=str)
+@click.option('--grader', type=str)
+@click.option('--only', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_validate_rubrics(ctx, course, assignment_id, grader, only):
+    if grader is not None:
+        grader = get_grader_or_exit(ctx, course, grader)
+
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only)
+    
+    for team, registration in teams_registrations.items():
+        valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
+
+        if valid:
+            print "%s: Rubric OK." % team.team_id
+        else:
+            print "%s: Rubric ERROR: %s" % (team.team_id, error_msg)
+
+    return CHISUBMIT_SUCCESS
 
 
 @click.command(name="collect-rubrics")
@@ -812,13 +922,14 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, only
 instructor_grading.add_command(instructor_grading_set_grade)
 instructor_grading.add_command(instructor_grading_load_grades)
 instructor_grading.add_command(instructor_grading_list_grades)
+instructor_grading.add_command(instructor_grading_assign_grader)
 instructor_grading.add_command(instructor_grading_assign_graders)
 instructor_grading.add_command(instructor_grading_list_grader_assignments)
 instructor_grading.add_command(instructor_grading_list_submissions)
 instructor_grading.add_command(instructor_grading_show_grading_status)
 instructor_grading.add_command(instructor_grading_create_grading_repos)
-instructor_grading.add_command(instructor_grading_create_grading_branches)
-instructor_grading.add_command(instructor_grading_push_grading_branches)
-instructor_grading.add_command(instructor_grading_pull_grading_branches)
+instructor_grading.add_command(instructor_grading_push_grading)
+instructor_grading.add_command(instructor_grading_pull_grading)
 instructor_grading.add_command(instructor_grading_add_rubrics)
+instructor_grading.add_command(instructor_validate_rubrics)
 instructor_grading.add_command(instructor_grading_collect_rubrics)

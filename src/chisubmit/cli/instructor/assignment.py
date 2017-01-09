@@ -144,7 +144,7 @@ def instructor_assignment_submit(ctx, course, team_id, assignment_id, commit_sha
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
         try:
-            submit_response = registration.submit(commit_sha, extensions, ignore_deadline=True, dry_run=False)
+            submit_response = registration.submit(commit_sha, extensions_override = extensions, dry_run=False)
                         
             print "The submission has been completed."
             return CHISUBMIT_SUCCESS
@@ -179,9 +179,16 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     nstudents_submitted = 0
     unsubmitted = []
     
-    for team in course.get_teams():
+    teams = course.get_teams(include_students=True, include_assignments=True)
+
+    for team in teams:
         try:
-            registration = team.get_assignment_registration(assignment.assignment_id)
+            registrations = team.get_assignment_registrations()
+            registrations = [r for r in registrations if r.assignment_id == assignment_id]
+            if len(registrations) == 1:
+                registration = registrations[0]
+            else:
+                continue
         except UnknownObjectException:
             continue
         

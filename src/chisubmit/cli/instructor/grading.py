@@ -643,7 +643,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
-            print ("%20s -- Creating grading repo... " % team.team_id),
+            print ("%40s -- Creating grading repo... " % team.team_id),
                 
             repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = not master)
             repo.sync()
@@ -661,7 +661,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
             else:
                 print "done (note: has not submitted yet)"
         else:
-            print "%20s -- Updating grading repo... " % team.team_id
+            print ("%40s -- Updating grading repo... " % team.team_id),
             if repo.has_grading_branch_staging():
                 gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
                 print "done (pulled latest grading branch)"

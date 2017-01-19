@@ -41,6 +41,8 @@ import datetime
 def json_serial(obj):
     if isinstance(obj, datetime.timedelta):
         return str(obj)
+    elif isinstance(obj, datetime.datetime):
+        return obj.isoformat()
     
     raise TypeError("Type not serializable")
 

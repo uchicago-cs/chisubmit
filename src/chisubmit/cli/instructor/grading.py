@@ -524,6 +524,7 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
         graders.add(grader_str)
         
         grading_status = None
+        diff_url = ""
         
         if use_stored_grades:
             grades = registration.get_grades()
@@ -578,11 +579,9 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
                 grading_status = "PARTIALLY GRADED"
 
             
-        if include_diff_urls and has_some:
-            commit_sha = registration.final_submission.commit_sha[:8]
-            diff_url = "https://mit.cs.uchicago.edu/%s-staging/%s/compare/%s...%s-grading" % (course.course_id, team.team_id, commit_sha, assignment.assignment_id)
-        else:
-            diff_url = ""
+            if include_diff_urls and has_some:
+                commit_sha = registration.final_submission.commit_sha[:8]
+                diff_url = "https://mit.cs.uchicago.edu/%s-staging/%s/compare/%s...%s-grading" % (course.course_id, team.team_id, commit_sha, assignment.assignment_id)
             
         team_status.append((team.team_id, grader_str, total_grade, diff_url, grading_status))
 
@@ -665,6 +664,8 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
             if repo.has_grading_branch_staging():
                 gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
                 print "done (pulled latest grading branch)"
+            elif repo.has_grading_branch():
+                print "nothing to update (grading branch is not in staging)"
             elif registration.final_submission is not None and master:
                 repo.create_grading_branch()
                 print "done (created missing grading branch)"

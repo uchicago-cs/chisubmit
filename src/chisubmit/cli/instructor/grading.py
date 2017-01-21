@@ -524,6 +524,7 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
         graders.add(grader_str)
         
         grading_status = None
+        diff_url = ""
         
         if use_stored_grades:
             grades = registration.get_grades()
@@ -578,11 +579,9 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
                 grading_status = "PARTIALLY GRADED"
 
             
-        if include_diff_urls and has_some:
-            commit_sha = registration.final_submission.commit_sha[:8]
-            diff_url = "https://mit.cs.uchicago.edu/%s-staging/%s/compare/%s...%s-grading" % (course.course_id, team.team_id, commit_sha, assignment.assignment_id)
-        else:
-            diff_url = ""
+            if include_diff_urls and has_some:
+                commit_sha = registration.final_submission.commit_sha[:8]
+                diff_url = "https://mit.cs.uchicago.edu/%s-staging/%s/compare/%s...%s-grading" % (course.course_id, team.team_id, commit_sha, assignment.assignment_id)
             
         team_status.append((team.team_id, grader_str, total_grade, diff_url, grading_status))
 
@@ -643,7 +642,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
-            print ("%20s -- Creating grading repo... " % team.team_id),
+            print ("%40s -- Creating grading repo... " % team.team_id),
                 
             repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = not master)
             repo.sync()
@@ -661,10 +660,12 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
             else:
                 print "done (note: has not submitted yet)"
         else:
-            print "%20s -- Updating grading repo... " % team.team_id
+            print ("%40s -- Updating grading repo... " % team.team_id),
             if repo.has_grading_branch_staging():
                 gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
                 print "done (pulled latest grading branch)"
+            elif repo.has_grading_branch():
+                print "nothing to update (grading branch is not in staging)"
             elif registration.final_submission is not None and master:
                 repo.create_grading_branch()
                 print "done (created missing grading branch)"
@@ -762,7 +763,17 @@ def instructor_grading_pull_grading(ctx, course, assignment_id, from_students, o
 
     return CHISUBMIT_SUCCESS
 
+@click.command(name="show-rubric")
+@click.argument('assignment_id', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_grading_show_rubric(ctx, course, assignment_id):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
 
+    rubric = RubricFile.from_assignment(assignment)
+    print(rubric.to_yaml())
 
 @click.command(name="add-rubrics")
 @click.argument('assignment_id', type=str)
@@ -930,6 +941,7 @@ instructor_grading.add_command(instructor_grading_show_grading_status)
 instructor_grading.add_command(instructor_grading_create_grading_repos)
 instructor_grading.add_command(instructor_grading_push_grading)
 instructor_grading.add_command(instructor_grading_pull_grading)
+instructor_grading.add_command(instructor_grading_show_rubric)
 instructor_grading.add_command(instructor_grading_add_rubrics)
 instructor_grading.add_command(instructor_validate_rubrics)
 instructor_grading.add_command(instructor_grading_collect_rubrics)

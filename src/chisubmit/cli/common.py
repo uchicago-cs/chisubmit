@@ -15,7 +15,7 @@ from requests.packages.urllib3.exceptions import SSLError as SSLError_urllib3
 from click.globals import get_current_context
 from chisubmit.config import Config, ConfigDirectoryNotFoundException
 from chisubmit.client import Chisubmit
-from chisubmit.common.utils import parse_timedelta
+from chisubmit.common.utils import parse_timedelta, convert_datetime_to_utc
 from chisubmit.rubric import RubricFile, ChisubmitRubricException
 
 
@@ -266,6 +266,10 @@ def api_obj_set_attribute(ctx, api_obj, attr_name, attr_value):
         v = (attr_value in ("true", "True"))
     elif attr.type.attrtype == AttributeType.TIMEDELTA:
         v = parse_timedelta(attr_value)
+    elif attr.type.attrtype == AttributeType.DATETIME:
+        v = parse(attr_value)
+        if v.tzinfo is None:
+            v = convert_datetime_to_utc(v)
     else:
         print "ERROR: Editing attribute '%s' from the command-line is not currently supported." % attr_name
         ctx.exit(CHISUBMIT_FAIL)

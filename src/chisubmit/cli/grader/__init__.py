@@ -47,7 +47,7 @@ def grader_pull_grading(ctx, course, grader, assignment_id):
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
-            print ("%20s -- Creating grading repo... " % team.team_id),
+            print ("%40s -- Creating grading repo... " % team.team_id),
             repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = True)
             repo.sync()
             gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
@@ -55,7 +55,7 @@ def grader_pull_grading(ctx, course, grader, assignment_id):
             
             print "done"
         else:
-            print ("%20s -- Pulling grading branch..." % team.team_id),
+            print ("%40s -- Pulling grading branch..." % team.team_id),
             gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
             print "done"
             

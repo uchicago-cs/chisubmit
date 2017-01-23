@@ -5,7 +5,7 @@ from chisubmit.cli.common import pass_course, DATETIME, get_assignment_or_exit,\
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import convert_datetime_to_utc, create_connection,\
-    convert_datetime_to_local
+    convert_datetime_to_local, is_submission_ready_for_grading
 import operator
 from chisubmit.cli.shared.assignment import shared_assignment_list,\
     shared_assignment_set_attribute
@@ -155,6 +155,79 @@ def instructor_assignment_submit(ctx, course, team_id, assignment_id, commit_sha
             return CHISUBMIT_FAIL        
 
 
+@click.command(name="cancel-submit")   
+@click.argument('team_id', type=str)    
+@click.argument('assignment_id', type=str)
+@click.option('--yes', is_flag=True)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context  
+def instructor_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+    team = get_team_or_exit(ctx, course, team_id)
+    registration = get_assignment_registration_or_exit(ctx, team, assignment.assignment_id)
+        
+    if registration.final_submission is None:
+        print "Team %s has not made a submission for assignment %s," % (team.team_id, assignment_id)
+        print "so there is nothing to cancel."
+        ctx.exit(CHISUBMIT_FAIL)
+        
+    if registration.grader_username is not None:
+        print "This submission has already been assigned a grader (%s)" % registration.grader_username
+        print "Make sure the grader has been notified to discard this submission."
+        print "You must also remove the existing grading branch from the staging server."
+        
+        print "Are you sure you want to proceed? (y/n): ", 
+        
+        if not yes:
+            yesno = raw_input()
+        else:
+            yesno = 'y'
+            print 'y'
+        
+        if yesno not in ('y', 'Y', 'yes', 'Yes', 'YES'):
+            ctx.exit(CHISUBMIT_FAIL)
+        else:
+            print
+        
+    if is_submission_ready_for_grading(assignment_deadline=registration.assignment.deadline, 
+                                       submission_date=registration.final_submission.submitted_at,
+                                       extensions_used=registration.final_submission.extensions_used):
+        print "WARNING: You are canceling a submission that is ready for grading!"
+            
+    conn = create_connection(course, ctx.obj['config'])
+    
+    if conn is None:
+        print "Could not connect to git server."
+        ctx.exit(CHISUBMIT_FAIL)
+        
+    submission_commit = conn.get_commit(course, team, registration.final_submission.commit_sha)
+        
+    print
+    print "This is the existing submission for assignment %s:" % assignment_id
+    print
+    if submission_commit is None:
+        print "WARNING: Previously submitted commit '%s' is not in the repository!" % registration.final_submission.commit_sha
+    else:
+        print_commit(submission_commit)
+    print    
+
+    print "Are you sure you want to cancel this submission? (y/n): ", 
+    
+    if not yes:
+        yesno = raw_input()
+    else:
+        yesno = 'y'
+        print 'y'
+    
+    if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
+        registration.final_submission_id = None
+        registration.grader_username = None
+        
+        print
+        print "The submission has been cancelled."
+
 
 @click.command(name="stats")
 @click.argument('assignment_id', type=str)
@@ -257,5 +330,6 @@ instructor_assignment.add_command(instructor_assignment_add)
 instructor_assignment.add_command(instructor_assignment_add_rubric_component)
 instructor_assignment.add_command(instructor_assignment_register)
 instructor_assignment.add_command(instructor_assignment_submit)
+instructor_assignment.add_command(instructor_assignment_cancel_submit)
 instructor_assignment.add_command(instructor_assignment_stats)
 

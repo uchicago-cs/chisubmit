@@ -32,10 +32,10 @@ from chisubmit.client.requester import Requester
 
 class Chisubmit(object):
     
-    def __init__(self, login_or_token, base_url, password = None, deferred_save = False):
+    def __init__(self, login_or_token, base_url, password = None, deferred_save = False, ssl_verify=True):
         # TODO: Validate URL 
         
-        self._requester = Requester(login_or_token, password, base_url.rstrip("/"))
+        self._requester = Requester(login_or_token, password, base_url.rstrip("/"), ssl_verify)
         self._deferred_save = deferred_save
     
     def get_courses(self):

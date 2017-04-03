@@ -48,7 +48,7 @@ def json_serial(obj):
 
 class Requester(object):
     
-    def __init__(self, login_or_token, password, base_url):
+    def __init__(self, login_or_token, password, base_url, ssl_verify=True):
         
         self.__base_url = base_url
         
@@ -59,6 +59,7 @@ class Requester(object):
         elif login_or_token is not None:
             self.__headers["Authorization"] = "Token %s" % login_or_token
         
+        self.__ssl_verify = ssl_verify
         self.__session = Session()
 
     def request(self, method, resource, data=None, headers=None, params=None):
@@ -81,7 +82,8 @@ class Requester(object):
                                   method = method,
                                   params = params,
                                   data = data,
-                                  headers = all_headers)
+                                  headers = all_headers,
+                                  verify = self.__ssl_verify)
         
         if response.status_code == 400:
             raise BadRequestException(method, url, params, data, all_headers, response)        

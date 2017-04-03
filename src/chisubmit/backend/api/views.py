@@ -405,7 +405,7 @@ class Register(APIView):
         if len(students_errors) > 0:
             return Response({"students": students_errors}, status=status.HTTP_400_BAD_REQUEST)
                     
-        if len(students_usernames) < assignment_obj.min_students or len(students_usernames) > assignment_obj.max_students:
+        if is_student and len(students_usernames) < assignment_obj.min_students or len(students_usernames) > assignment_obj.max_students:
             if assignment_obj.min_students == assignment_obj.max_students:
                 if assignment_obj.min_students == 1:
                     msg = "You specified %i students, but this assignment only accepts individual registrations." % (len(students_usernames))                                    

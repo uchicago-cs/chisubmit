@@ -54,14 +54,31 @@ def instructor_assignment_add_rubric_component(ctx, course, assignment_id, descr
 @click.command(name="register")
 @click.argument('assignment_id', type=str)
 @click.option('--student', type=str, multiple=True)
+@click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_assignment_register(ctx, course, assignment_id, student):
+def instructor_assignment_register(ctx, course, assignment_id, student, yes):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
     
+    if len(student) < assignment.min_students or len(student) > assignment.max_students:
+        print "You specified %i students, but this assignment requires teams with at least %i students and at most %i students" % (len(student), assignment.min_students, assignment.max_students)
+        print
+        print "Are you sure you want to proceed? (y/n): ", 
+        
+        if not yes:
+            yesno = raw_input()
+        else:
+            yesno = 'y'
+            print 'y'
+    
+        if yesno not in ('y', 'Y', 'yes', 'Yes', 'YES'):
+            ctx.exit(CHISUBMIT_FAIL)
+
     assignment.register(students = student)
+    
+    print "Registration successful."
     
     return CHISUBMIT_SUCCESS
 

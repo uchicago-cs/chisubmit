@@ -53,8 +53,9 @@ class Config(object):
     OPTION_API_KEY = "api-key"
     OPTION_COURSE = "course"
     OPTION_GIT_CREDENTIALS = "git-credentials"
+    OPTION_SSL_VERIFY = "ssl-verify"
     
-    VALID_OPTIONS = [OPTION_API_URL, OPTION_API_KEY, OPTION_COURSE, OPTION_GIT_CREDENTIALS]
+    VALID_OPTIONS = [OPTION_API_URL, OPTION_API_KEY, OPTION_COURSE, OPTION_GIT_CREDENTIALS, OPTION_SSL_VERIFY]
 
     @staticmethod
     def get_config_file_values(config_file):
@@ -229,3 +230,21 @@ class Config(object):
         config_file_values[Config.OPTION_GIT_CREDENTIALS][server_type] = credentials
         
         Config.save_config_file_values(config_file, config_file_values)
+        
+    
+    def get_ssl_verify(self):
+        verify = self.config_values[Config.OPTION_SSL_VERIFY]
+        
+        if verify in ("True", "true", "Yes", "yes"):
+            return True
+        elif verify  in ("False", "false", "No", "no"):
+            return False
+        else:
+            return self.config_values[Config.OPTION_SSL_VERIFY]
+    
+    def set_ssl_verify(self, verify, where = None):
+        if where is None: where = Config.LOCAL
+                
+        config_file = self.__get_config_file(where)
+        Config.set_config_value_in_file(config_file, Config.OPTION_SSL_VERIFY, verify)        
+        

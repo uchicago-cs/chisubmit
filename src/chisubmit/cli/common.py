@@ -32,14 +32,15 @@ def __load_config_and_client(require_local):
 
     api_url = ctx.obj["config"].get_api_url()
     api_key = ctx.obj["config"].get_api_key()
-    
+    ssl_verify = ctx.obj["config"].get_ssl_verify()
+
     if api_url is None:
         raise ChisubmitException("Configuration value 'api-url' not found")
 
     if api_key is None:
         raise ChisubmitException("No chisubmit credentials were found!")
 
-    ctx.obj["client"] = Chisubmit(api_key, base_url=api_url)    
+    ctx.obj["client"] = Chisubmit(api_key, base_url=api_url, ssl_verify = ssl_verify)    
     
 
 def require_config(f):

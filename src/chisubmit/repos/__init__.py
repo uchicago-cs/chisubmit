@@ -25,7 +25,7 @@ class ConnectionString(object):
 
 class RemoteRepositoryConnectionBase(object):
 
-    def __init__(self, connection_string, staging):
+    def __init__(self, connection_string, staging, ssl_verify=True):
         if connection_string.server_type != self.get_server_type_name():
             raise ChisubmitException("Expected server_type in connection string to be '%s', got '%s'" %
                                      (self.get_server_type_name(), connection_string.server_type))
@@ -49,6 +49,7 @@ class RemoteRepositoryConnectionBase(object):
 
         self.staging = staging
         self.is_connected = False
+        self.ssl_verify = ssl_verify
 
     @staticmethod
     @abc.abstractmethod

@@ -40,7 +40,7 @@ def shared_course_get_git_credentials(ctx, course, username, password, no_save, 
         print "Course '%s' doesn't seem to be configured to use a Git server." % course.id
         ctx.exit(CHISUBMIT_FAIL)
         
-    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = staging)
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = staging, ssl_verify=ctx.obj['config'].get_ssl_verify())
     server_type = conn.get_server_type_name()
 
     token, existing = conn.get_credentials(username, password, delete_repo = delete_permissions)

@@ -107,7 +107,9 @@ def create_connection(course, config, staging = False):
         print "Please contact the course instructor or the chisubmit administrator."
         return None        
 
-    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging)
+    ssl_verify = config.get_ssl_verify()
+
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging, ssl_verify)
     server_type = conn.get_server_type_name()
     
     git_credentials = config.get_git_credentials(server_type)

@@ -12,8 +12,8 @@ import string
 
 class GitLabConnection(RemoteRepositoryConnectionBase):
 
-    def __init__(self, connection_string, staging):
-        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging)
+    def __init__(self, connection_string, staging, ssl_verify=True):
+        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging, ssl_verify)
         
         self.gitlab = None
         
@@ -56,7 +56,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
     def connect(self, credentials):
         # Credentials are a GitLab private token
-        self.gitlab = Gitlab(self.gitlab_hostname, token=credentials)    
+        self.gitlab = Gitlab(self.gitlab_hostname, token=credentials, verify_ssl=self.ssl_verify)    
         try:
             # Test connection by grabbing current user
             user = self.gitlab.currentuser()

@@ -11,8 +11,8 @@ class TestingConnection(RemoteRepositoryConnectionBase):
 
     VALID_CREDENTIALS = "testing-credentials"
 
-    def __init__(self, connection_string, staging):
-        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging)
+    def __init__(self, connection_string, staging, ssl_verify=True):
+        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging, ssl_verify)        
         
     @staticmethod
     def get_server_type_name():

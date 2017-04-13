@@ -13,8 +13,8 @@ import sys
 
 class GitHubConnection(RemoteRepositoryConnectionBase):
 
-    def __init__(self, connection_string, staging):
-        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging)
+    def __init__(self, connection_string, staging, ssl_verify=True):
+        RemoteRepositoryConnectionBase.__init__(self, connection_string, staging, ssl_verify)
 
         self.organization = None
         self.gh = None

@@ -155,6 +155,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
     
     api_url = global_config.get_api_url()
     api_key = global_config.get_api_key()
+    ssl_verify = global_config.get_ssl_verify()
     
     if api_url is None:
         print "The 'api-url' configuration option is not set. I need this to connect to"
@@ -181,7 +182,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
         if password is None:
             password = getpass.getpass(password_prompt)
         
-        client = Chisubmit(username, password=password, base_url=api_url)
+        client = Chisubmit(username, password=password, base_url=api_url, ssl_verify=ssl_verify)
         
         try:
             api_key, _ = client.get_user_token()
@@ -189,7 +190,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
             print "ERROR: Incorrect username/password"
             ctx.exit(CHISUBMIT_FAIL)
     
-    client = Chisubmit(api_key, base_url=api_url)
+    client = Chisubmit(api_key, base_url=api_url, ssl_verify=ssl_verify)
     
     if course_id is not None:
         try:
@@ -235,7 +236,7 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
         print "Error: Course '{}' doesn't seem to be configured to use a Git server." % course.id
         ctx.exit(CHISUBMIT_FAIL)
         
-    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = False)
+    conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = False, ssl_verify=ssl_verify)
     server_type = conn.get_server_type_name()
 
     # If there are global credentials defined, see if they work

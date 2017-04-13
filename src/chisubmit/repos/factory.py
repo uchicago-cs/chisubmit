@@ -14,7 +14,7 @@ class RemoteRepositoryConnectionFactory(object):
         RemoteRepositoryConnectionFactory.server_types[name] = conn_cls
 
     @staticmethod
-    def create_connection(connection_string, staging):
+    def create_connection(connection_string, staging, ssl_verify=True):
         cs = ConnectionString(connection_string)
 
         if not RemoteRepositoryConnectionFactory.server_types.has_key(cs.server_type):
@@ -23,7 +23,7 @@ class RemoteRepositoryConnectionFactory(object):
 
         conn_cls = RemoteRepositoryConnectionFactory.server_types[cs.server_type]
 
-        return conn_cls(cs, staging)
+        return conn_cls(cs, staging, ssl_verify)
 
 RemoteRepositoryConnectionFactory.register_server_type("GitHub", GitHubConnection)
 RemoteRepositoryConnectionFactory.register_server_type("GitLab", GitLabConnection)

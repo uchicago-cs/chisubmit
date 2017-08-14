@@ -69,6 +69,8 @@ class GradingGitRepo(object):
 
     def sync(self):
         self.repo.fetch("origin")
+        if not self.repo.has_branch("master"):
+            self.repo.fetch("origin", "master")
         if not self.staging_only:
             self.repo.fetch("staging")
         self.repo.reset_branch("origin", "master")

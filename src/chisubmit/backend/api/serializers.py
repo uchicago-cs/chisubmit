@@ -419,11 +419,17 @@ class SubmissionSerializer(ChisubmitSerializer):
     extensions_used = serializers.IntegerField(default=0, min_value=0) 
     commit_sha = serializers.CharField(max_length=40)
     submitted_at = serializers.DateTimeField(required=False)
-    
+    submitted_by = serializers.SlugRelatedField(
+        queryset=User.objects.all(),
+        slug_field='username',
+        required=False
+    )
+        
     readonly_fields = { 
                       "extensions_used": GradersAndStudents,
                       "commit_sha": GradersAndStudents,
-                      "submitted_at": GradersAndStudents
+                      "submitted_at": GradersAndStudents,
+                      "submitted_by": GradersAndStudents
                       }   
 
     def get_url(self, obj):
@@ -441,6 +447,7 @@ class SubmissionSerializer(ChisubmitSerializer):
         instance.extensions_used = validated_data.get('extensions_used', instance.extensions_used)
         instance.commit_sha = validated_data.get('commit_sha', instance.commit_sha)
         instance.submitted_at = validated_data.get('submitted_at', instance.submitted_at)
+        instance.submitted_by = validated_data.get('submitted_by', instance.submitted_by)
         instance.save()        
         return instance    
     

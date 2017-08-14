@@ -73,6 +73,10 @@ class Submission(ChisubmitAPIObject):
                                                  attrtype=APIDateTimeType, 
                                                  editable=True) ,
 
+                       "submitted_by": Attribute(name="submitted_by", 
+                                                 attrtype=APIStringType, 
+                                                 editable=True),  
+                       
                        "in_grace_period": Attribute(name="in_grace_period", 
                                                     attrtype=APIBooleanType, 
                                                     editable=True)                    

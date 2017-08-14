@@ -800,6 +800,7 @@ class Submit(APIView):
             submission, extensions = Submission.create(registration = registration_obj,
                                                        commit_sha = commit_sha,
                                                        submitted_at = now,
+                                                       submitted_by = request.user,
                                                        extensions_override = extensions_override)
         except SubmissionValidationException, sve:
             return sve.error_response
@@ -849,7 +850,7 @@ class SubmissionList(APIView):
         serializer = SubmissionSerializer(data=request.data, context=serializer_context)
         if serializer.is_valid():
             try:
-                serializer.save(registration = registration_obj)
+                serializer.save(submitted_by = request.user, registration = registration_obj)
             except Error, e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -89,6 +89,7 @@ class UserSerializer(serializers.Serializer):
 class CourseSerializer(ChisubmitSerializer):
     course_id = serializers.SlugField()
     name = serializers.CharField(max_length=64)
+    archived = serializers.BooleanField(default=False)    
     
     url = serializers.SerializerMethodField()    
     instructors_url = serializers.SerializerMethodField()
@@ -114,6 +115,7 @@ class CourseSerializer(ChisubmitSerializer):
     
     readonly_fields = { "course_id": AllExceptAdmin,
                         "name": AllExceptAdmin,
+                        "archived": AllExceptAdmin,
                         "git_server_connstr": AllExceptAdmin,
                         "git_staging_connstr": AllExceptAdmin,                        
                         "git_usernames": AllExceptAdmin,
@@ -146,6 +148,7 @@ class CourseSerializer(ChisubmitSerializer):
     def update(self, instance, validated_data):
         instance.course_id = validated_data.get('course_id', instance.course_id)
         instance.name = validated_data.get('name', instance.name)
+        instance.archived = validated_data.get('archived', instance.archived)
         instance.git_server_connstr = validated_data.get('git_server_connstr', instance.git_server_connstr)
         instance.git_staging_connstr = validated_data.get('git_staging_connstr', instance.git_staging_connstr)
         instance.git_usernames = validated_data.get('git_usernames', instance.git_usernames)

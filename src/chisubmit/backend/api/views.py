@@ -24,7 +24,11 @@ from chisubmit.backend.api.helpers import get_course_person, get_assignment,\
 
 class CourseList(APIView):
     def get(self, request, format=None):
-        courses = Course.objects.all()
+        include_archived = request.query_params.get("include_archived", "false") in ("true","True")
+        if include_archived:
+            courses = Course.objects.all()
+        else:
+            courses = Course.objects.filter(archived=False)
         if not (request.user.is_staff or request.user.is_superuser):
             courses = [c for c in courses if c.has_user(request.user)]
         response_courses = []

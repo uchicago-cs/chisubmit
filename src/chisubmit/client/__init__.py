@@ -38,15 +38,21 @@ class Chisubmit(object):
         self._requester = Requester(login_or_token, password, base_url.rstrip("/"), ssl_verify)
         self._deferred_save = deferred_save
     
-    def get_courses(self):
+    def get_courses(self, include_archived=False):
         """
         :calls: GET /courses/
         :rtype: List of :class:`chisubmit.client.course.Course`
         """
         
+        if include_archived:
+            params = {"include_archived": "true"}
+        else:
+            params = None
+        
         headers, data = self._requester.request(
             "GET",
-            "/courses/"
+            "/courses/",
+            params = params
         )
         return [chisubmit.client.course.Course(self, headers, elem) for elem in data]    
     

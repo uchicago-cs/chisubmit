@@ -3,6 +3,7 @@
     fields:
         name: Advanced Software Testing
         course_id: cmsc40110 
+        archived: false
         default_extensions: 0
         extension_policy: per-student
         git_staging_usernames: user-id

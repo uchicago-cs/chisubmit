@@ -3,6 +3,7 @@
     fields:
         name: Introduction to Software Testing
         course_id: cmsc40100 
+        archived: false
         default_extensions: 0
         extension_policy: per-team
         git_staging_usernames: user-id

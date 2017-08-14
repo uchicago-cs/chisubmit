@@ -31,7 +31,7 @@ import chisubmit.client.users
 import chisubmit.client.assignment
 import chisubmit.client.team
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, AttributeType,\
-    APIStringType, APIIntegerType, Relationship, APIObjectType
+    APIStringType, APIIntegerType, Relationship, APIObjectType, APIBooleanType
 from chisubmit.client.users import User
 import datetime
 
@@ -45,6 +45,10 @@ class Course(ChisubmitAPIObject):
                        "name": Attribute(name="name", 
                                          attrtype=APIStringType, 
                                          editable=True),    
+                       
+                       "archived": Attribute(name="archived", 
+                                             attrtype=APIBooleanType, 
+                                             editable=True),                          
 
                        "git_server_connstr": Attribute(name="git_server_connstr", 
                                                   attrtype=APIStringType, 

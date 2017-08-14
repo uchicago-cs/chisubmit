@@ -184,3 +184,60 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
         self.assertItemsEqual(bre.errors.keys(), ["course_id"])
         self.assertEqual(len(bre.errors["course_id"]), 1)
         
+class CourseArchivingTests(ChisubmitClientLibsTestCase):
+    
+    fixtures = ['users', 'course1', 'course2']
+    
+    def test_get_courses(self):
+        c = self.get_api_client("admintoken")
+        
+        courses = c.get_courses()
+        self.assertEquals(len(courses), 2)
+        
+        for c in courses:
+            self.assertFalse(c.archived)
+            
+    def test_archive_course(self):
+        c = self.get_api_client("admintoken")
+        
+        course = c.get_course("cmsc40110")
+        course.archived = True
+        
+        try:
+            course_obj = Course.objects.get(course_id="cmsc40110")
+        except Course.DoesNotExist:
+            self.fail("Course not found in database")  
+            
+        self.assertEquals(course_obj.archived, True)
+        
+        # Check that get_courses only returns the non-archived course
+        courses = c.get_courses()
+        self.assertEquals(len(courses), 1)
+        
+        course = courses[0]
+        self.assertEqual(course.course_id, "cmsc40100")
+        self.assertFalse(course.archived)
+        
+        # Check that we can still directly access the archived course
+        course = c.get_course("cmsc40110")
+        self.assertTrue(course.archived)
+        
+    def test_include_archived(self):     
+        c = self.get_api_client("admintoken")
+        
+        courses = c.get_courses()   
+        self.assertEquals(len(courses), 2)
+        
+        courses = c.get_courses(include_archived=True)   
+        self.assertEquals(len(courses), 2)
+
+        course = c.get_course("cmsc40110")
+        course.archived = True
+        
+        courses = c.get_courses()   
+        self.assertEquals(len(courses), 1)
+        self.assertEqual(courses[0].course_id, "cmsc40100")
+        
+        courses = c.get_courses(include_archived=True)   
+        self.assertEquals(len(courses), 2)
+        

@@ -37,6 +37,7 @@ def get_user_by_username(username):
 class Course(models.Model):
     course_id = models.SlugField(unique = True)
     name = models.CharField(max_length=64)
+    archived = models.BooleanField(default = False)    
     
     instructors = models.ManyToManyField(User, through='Instructor', related_name="instructor_in")
     graders = models.ManyToManyField(User, through='Grader', related_name="grader_in")

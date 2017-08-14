@@ -332,10 +332,11 @@ class Submission(models.Model):
     extensions_used = models.IntegerField(validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
+    submitted_by = models.ForeignKey(User, null=True)
     in_grace_period = models.BooleanField(default=False)
     
     @classmethod
-    def create(cls, registration, commit_sha, submitted_at, extensions_override):
+    def create(cls, registration, commit_sha, submitted_at, submitted_by, extensions_override):
         deadline = registration.assignment.deadline
         grace_period = registration.assignment.grace_period
         effective_deadline = deadline + grace_period
@@ -403,6 +404,7 @@ class Submission(models.Model):
                              extensions_used = extensions_used,
                              commit_sha = commit_sha,
                              submitted_at = submitted_at,
+                             submitted_by = submitted_by,
                              in_grace_period = in_grace_period)
             
             return submission, extensions                    

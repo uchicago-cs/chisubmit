@@ -544,21 +544,10 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
                 else:        
                     try:
                         rubric = RubricFile.from_file(open(rubricfile), assignment)
-            
-                        graded_rc_ids = [rc.id for rc in rubric_components if rubric.points[rc.description] is not None]  
+
+                        graded_rc_ids = [rc.id for rc in rubric_components if rubric.points_obtained[rc.description] is not None]  
                 
-                        for rc in rubric_components:
-                            grade = rubric.points[rc.description]
-                            if grade is not None:
-                                total_grade += grade
-                
-                        if rubric.penalties is not None:
-                            for p in rubric.penalties.values():
-                                total_grade += p
-                
-                        if rubric.bonuses is not None:
-                            for p in rubric.bonuses.values():
-                                total_grade += p  
+                        total_grade = rubric.get_total_points_obtained()
                     except ChisubmitRubricException, cre:
                         grading_status = "ERROR: Rubric does not validate (%s)" % (cre.message)
                         
@@ -888,7 +877,7 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, only
 
         points = []
         for rc in rcs:
-            grade = rubric.points[rc.description]
+            grade = rubric.points_obtained[rc.description]
             if grade is None:
                 points.append(0.0)
             else:

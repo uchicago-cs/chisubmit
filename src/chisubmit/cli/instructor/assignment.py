@@ -76,6 +76,100 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
 
     return CHISUBMIT_SUCCESS
 
+@click.command(name="update-rubric")
+@click.argument('assignment_id', type=str)
+@click.argument('rubric_component', type=str)
+@click.option('--description', type=str)
+@click.option('--points', type=float)
+@click.option('--add', is_flag=True)
+@click.option('--edit', is_flag=True)
+@click.option('--remove', is_flag=True)
+@click.option('--up', is_flag=True)
+@click.option('--down', is_flag=True)
+@click.option('--yes', is_flag=True)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_component, description, points, add, edit, remove, up, down, yes):
+    if add and points is None:
+        print "The --add option requires the --points option"
+        return CHISUBMIT_FAIL
+    if edit and not (description or points):
+        print "The --edit option requires the --description option or the --points option (or both)"
+        return CHISUBMIT_FAIL
+    if (remove or up or down) and points is not None:
+        print "The --points option cannot be used with --remove/--up/--down"        
+        return CHISUBMIT_FAIL
+    if (remove or up or down) and points is not None:
+        print "The --points option cannot be used with --remove/--up/--down"        
+        return CHISUBMIT_FAIL
+    
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+  
+    rubric_components = assignment.get_rubric_components()
+    
+    rcs = [(i, rc) for i, rc in enumerate(rubric_components) if rc.description == rubric_component]
+    if len(rcs) == 0:
+        if not add:
+            print "No such rubric component: %s" % rubric_component
+            return CHISUBMIT_FAIL
+        else:
+            i, rc = None, None
+    elif len(rcs) > 1:
+        print "Multiple rubric components with this name: %s" % rubric_component
+        print "(this should not happen)"
+        return CHISUBMIT_FAIL            
+    else:
+        i, rc = rcs[0]
+    
+    if add:
+        if rc is not None:
+            print "There is already a rubric component with this name: %s" % rubric_component
+            return CHISUBMIT_FAIL
+        
+        if len(rubric_components) == 0:
+            last_order = 0
+        else:
+            last_order = rubric_components[-1].order
+            
+        assignment.create_rubric_component(rc, points, last_order + 10)
+    elif edit:
+        if description is not None:
+            print "If grading of this assignment has begun, changing the"
+            print "description of a rubric component may break existing"
+            print "rubric files completed by the graders."
+            print
+            if not ask_yesno(yes=yes):
+                return CHISUBMIT_FAIL
+            print            
+            rc.description = description
+        if points is not None:
+            rc.points = points
+    elif remove:
+        print "If grading of this assignment has begun, removing"
+        print "a rubric component may break existing rubric files"
+        print "completed by the graders."
+        print
+        if not ask_yesno(yes=yes):
+            return CHISUBMIT_FAIL
+        print            
+        rc.delete()   
+    elif up:
+        if i-1 >= 0:
+            other_rc = rubric_components[i-1]
+            other_rc_order = rubric_components[i-1].order
+            
+            other_rc.order = rc.order
+            rc.order = other_rc_order
+    elif down:
+        if i+1 < len(rubric_components):
+            other_rc = rubric_components[i+1]
+            other_rc_order = rubric_components[i+1].order
+            
+            other_rc.order = rc.order
+            rc.order = other_rc_order       
+
 
 @click.command(name="show-rubric")
 @click.argument('assignment_id', type=str)
@@ -384,6 +478,7 @@ instructor_assignment.add_command(shared_assignment_set_attribute)
 
 instructor_assignment.add_command(instructor_assignment_add)
 instructor_assignment.add_command(instructor_assignment_add_rubric)
+instructor_assignment.add_command(instructor_assignment_update_rubric)
 instructor_assignment.add_command(instructor_assignment_show_rubric)
 instructor_assignment.add_command(instructor_assignment_register)
 instructor_assignment.add_command(instructor_assignment_submit)

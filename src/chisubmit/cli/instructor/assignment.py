@@ -92,6 +92,13 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
 @pass_course
 @click.pass_context
 def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_component, description, points, add, edit, remove, up, down, yes):
+    num_cmds = len([x for x in [add,edit,remove,up,down] if x is True])
+    if num_cmds > 1:
+        print "You can only specify one of the following: --add / --edit / --remove / --up / --down"
+        return CHISUBMIT_FAIL
+    if num_cmds == 0:
+        print "You must specify one of the following: --add / --edit / --remove / --up / --down"
+        return CHISUBMIT_FAIL
     if add and points is None:
         print "The --add option requires the --points option"
         return CHISUBMIT_FAIL
@@ -132,8 +139,8 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
             last_order = 0
         else:
             last_order = rubric_components[-1].order
-            
-        assignment.create_rubric_component(rc, points, last_order + 10)
+
+        assignment.create_rubric_component(rubric_component, points, last_order + 10)
     elif edit:
         if description is not None:
             print "If grading of this assignment has begun, changing the"

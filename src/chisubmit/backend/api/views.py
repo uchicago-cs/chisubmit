@@ -300,8 +300,8 @@ class RubricList(APIView):
                    
         assignment_obj = get_assignment(course_obj, request.user, roles, assignment_id)        
         rubric_components = assignment_obj.get_rubric_components()
-        
         serializer = RubricComponentSerializer(rubric_components, many=True, context=serializer_context)
+        
         return Response(serializer.data)
 
     def post(self, request, course_id, assignment_id, format=None):

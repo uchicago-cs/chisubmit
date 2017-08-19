@@ -39,14 +39,25 @@ class CLICompleteWorkflowMultipleInstructorsMultipleGraders(ChisubmitCLITestCase
                                     ["pa1", "Programming Assignment 1", deadline])
         self.assertEquals(result.exit_code, 0)        
 
-        result = instructors[0].run("instructor assignment add-rubric-component", 
-                                    ["pa1", "The PA1 Tests", "50"])
+        pa1_rubric = """Points:
+    - The PA1 Tests:
+        Points Possible: 50
+        Points Obtained: 
+
+    - The PA1 Design:
+        Points Possible: 50
+        Points Obtained: 
+        
+Total Points: 0 / 100
+"""
+
+        with open("pa1.rubric.txt", "w") as f:
+            f.write(pa1_rubric)
+            
+        result = instructors[0].run("instructor assignment add-rubric", 
+                                    ["pa1", "pa1.rubric.txt"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor assignment add-rubric-component", 
-                                    ["pa1", "The PA1 Design", "50"])
-        self.assertEquals(result.exit_code, 0)
-        
         
         result = admin.run("admin course show", ["--include-users", "--include-assignments", course_id])
         self.assertEquals(result.exit_code, 0)

@@ -752,18 +752,6 @@ def instructor_grading_pull_grading(ctx, course, assignment_id, from_students, o
 
     return CHISUBMIT_SUCCESS
 
-@click.command(name="show-rubric")
-@click.argument('assignment_id', type=str)
-@catch_chisubmit_exceptions
-@require_local_config
-@pass_course
-@click.pass_context
-def instructor_grading_show_rubric(ctx, course, assignment_id):
-    assignment = get_assignment_or_exit(ctx, course, assignment_id)
-
-    rubric = RubricFile.from_assignment(assignment)
-    print(rubric.to_yaml())
-
 @click.command(name="add-rubrics")
 @click.argument('assignment_id', type=str)
 @click.option('--commit', is_flag=True)
@@ -930,7 +918,6 @@ instructor_grading.add_command(instructor_grading_show_grading_status)
 instructor_grading.add_command(instructor_grading_create_grading_repos)
 instructor_grading.add_command(instructor_grading_push_grading)
 instructor_grading.add_command(instructor_grading_pull_grading)
-instructor_grading.add_command(instructor_grading_show_rubric)
 instructor_grading.add_command(instructor_grading_add_rubrics)
 instructor_grading.add_command(instructor_validate_rubrics)
 instructor_grading.add_command(instructor_grading_collect_rubrics)

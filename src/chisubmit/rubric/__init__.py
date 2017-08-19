@@ -31,6 +31,7 @@
 import yaml
 import textwrap
 from yaml.scanner import ScannerError
+import warnings
 
 def feq(a, b, eps=0.01):
     return abs(a - b) <= eps
@@ -157,6 +158,7 @@ class RubricFile(object):
         if not rubric.has_key(RubricFile.FIELD_TOTAL_POINTS):
             raise ChisubmitRubricException("Rubric file doesn't have a '%s' field." % RubricFile.FIELD_TOTAL_POINTS)
 
+        rubric_components = []
         points_obtained = {}
         points_possible = {}
         total_points_obtained = 0
@@ -164,13 +166,19 @@ class RubricFile(object):
         
         # Backwards compatibility. rubric[RubricFile.FIELD_POINTS] was originally a dictionary
         if isinstance(rubric[RubricFile.FIELD_POINTS], dict):
-            rubric_components = rubric[RubricFile.FIELD_POINTS]
+            rcs = rubric[RubricFile.FIELD_POINTS].items()
+            warnings.warn("You are using a deprecated rubric file format. Please consult the chisubmit documentation.", DeprecationWarning)
         elif isinstance(rubric[RubricFile.FIELD_POINTS], list):
-            rubric_components = {}
+            rcs = []
             for rc in rubric[RubricFile.FIELD_POINTS]:
-                rubric_components.update(rc)
+                if len(rc) != 1:
+                    raise ChisubmitRubricException("Incorrect formatting. Every category under '%s' should be indented and start with a hyphen." % RubricFile.FIELD_POINTS)
+                for k,v in rc.items():
+                    rcs.append((k,v))
 
-        for rc_description, rc in rubric_components.items():
+        for rc_description, rc in rcs:
+                        
+            rubric_components.append(rc_description)
                         
             if not rc.has_key(RubricFile.FIELD_POINTS_POSSIBLE):
                 raise ChisubmitRubricException("Grade component '%s' is missing '%s' field." % (rc_description, RubricFile.FIELD_POINTS_POSSIBLE))

@@ -208,7 +208,7 @@ class Assignment(models.Model):
         return u"Assignment %s of %s" % (self.assignment_id, self.course.course_id)     
 
     def get_rubric_components(self):
-        return list(RubricComponent.objects.filter(assignment=self))
+        return list(RubricComponent.objects.filter(assignment=self).order_by("order"))
     
     def get_rubric_component_by_id(self, rc_id):
         try:

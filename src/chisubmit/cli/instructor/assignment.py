@@ -1,7 +1,7 @@
 import click
 from chisubmit.cli.common import pass_course, DATETIME, get_assignment_or_exit,\
     catch_chisubmit_exceptions, require_local_config, get_team_or_exit,\
-    get_assignment_registration_or_exit
+    get_assignment_registration_or_exit, ask_yesno
 from chisubmit.client.assignment import Assignment
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.common.utils import convert_datetime_to_utc, create_connection,\
@@ -12,6 +12,7 @@ from chisubmit.cli.shared.assignment import shared_assignment_list,\
 from chisubmit.client.exceptions import UnknownObjectException,\
     BadRequestException
 from chisubmit.cli.student.assignment import print_commit
+from chisubmit.rubric import RubricFile, ChisubmitRubricException
 
 
 @click.group(name="assignment")
@@ -36,19 +37,57 @@ def instructor_assignment_add(ctx, course, assignment_id, name, deadline):
     return CHISUBMIT_SUCCESS
 
 
-@click.command(name="add-rubric-component")
+@click.command(name="add-rubric")
 @click.argument('assignment_id', type=str)
-@click.argument('description', type=str)
-@click.argument('points', type=float)
+@click.argument('rubric_file', type=click.File('r'))
+@click.option('--yes', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_assignment_add_rubric_component(ctx, course, assignment_id, description, points):
+def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, yes):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
-    assignment.create_rubric_component(description, points)
+
+    try:
+        rubric = RubricFile.from_file(rubric_file) 
+    except ChisubmitRubricException, cre:
+        print "ERROR: Rubric does not validate (%s)" % (cre.message)
+        return CHISUBMIT_FAIL    
+    
+    rubric_components = assignment.get_rubric_components()
+
+    if len(rubric_components) > 0:
+        print "This assignment already has a rubric. If you load this"
+        print "new rubric, the old one will be REMOVED. If grading of"
+        print "this assignment has already begun, doing this may break"
+        print "existing rubric files completed by the graders."
+        print
+        if not ask_yesno(yes=yes):
+            return CHISUBMIT_FAIL
+        print
+        for rc in rubric_components:
+            rc.delete()
+    
+    order = 10
+    for rc in rubric.rubric_components:
+        points = rubric.points_possible[rc]
+        assignment.create_rubric_component(rc, points, order)
+        order += 10
 
     return CHISUBMIT_SUCCESS
+
+
+@click.command(name="show-rubric")
+@click.argument('assignment_id', type=str)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_assignment_show_rubric(ctx, course, assignment_id):
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    rubric = RubricFile.from_assignment(assignment)
+    print(rubric.to_yaml())
 
 
 @click.command(name="register")
@@ -344,7 +383,8 @@ instructor_assignment.add_command(shared_assignment_list)
 instructor_assignment.add_command(shared_assignment_set_attribute)
 
 instructor_assignment.add_command(instructor_assignment_add)
-instructor_assignment.add_command(instructor_assignment_add_rubric_component)
+instructor_assignment.add_command(instructor_assignment_add_rubric)
+instructor_assignment.add_command(instructor_assignment_show_rubric)
 instructor_assignment.add_command(instructor_assignment_register)
 instructor_assignment.add_command(instructor_assignment_submit)
 instructor_assignment.add_command(instructor_assignment_cancel_submit)

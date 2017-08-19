@@ -28,7 +28,7 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType, APIObjectType,\
-    APIIntegerType, APIBooleanType
+    APIIntegerType, APIBooleanType, APIListType
 
 
 class User(ChisubmitAPIObject):
@@ -75,35 +75,7 @@ class Instructor(ChisubmitAPIObject):
     
     _api_relationships = { }
     
-    
-class Grader(ChisubmitAPIObject):
 
-    _api_attributes = {"url": Attribute(name="url", 
-                                       attrtype=APIStringType, 
-                                       editable=False),  
-    
-                       "username": Attribute(name="username", 
-                                            attrtype=APIStringType, 
-                                            editable=False),  
-    
-                       "user": Attribute(name="user", 
-                                        attrtype=APIObjectType(User), 
-                                        editable=False),  
-    
-                       "git_username": Attribute(name="git_username", 
-                                                attrtype=APIStringType, 
-                                                editable=True),  
-     
-                       "git_staging_username": Attribute(name="git_staging_username", 
-                                                        attrtype=APIStringType, 
-                                                        editable=True)
-                      }
-    
-    _api_relationships = { }
-    
-    # TODO
-    def get_conflicts(self):
-        return []
     
 class Student(ChisubmitAPIObject):
 
@@ -131,3 +103,37 @@ class Student(ChisubmitAPIObject):
     
     _api_relationships = { }
     
+    
+class Grader(ChisubmitAPIObject):
+
+    _api_attributes = {"url": Attribute(name="url", 
+                                       attrtype=APIStringType, 
+                                       editable=False),  
+    
+                       "username": Attribute(name="username", 
+                                            attrtype=APIStringType, 
+                                            editable=False),  
+    
+                       "user": Attribute(name="user", 
+                                        attrtype=APIObjectType(User), 
+                                        editable=False),  
+
+                       "conflicts_usernames": Attribute(name="conflicts_usernames", 
+                                                    attrtype=APIListType(APIStringType), 
+                                                    editable=True),  
+    
+                       "conflicts": Attribute(name="conflicts", 
+                                        attrtype=APIListType(APIObjectType(Student)), 
+                                        editable=False),                         
+    
+                       "git_username": Attribute(name="git_username", 
+                                                attrtype=APIStringType, 
+                                                editable=True),  
+     
+                       "git_staging_username": Attribute(name="git_staging_username", 
+                                                        attrtype=APIStringType, 
+                                                        editable=True)
+                      }
+    
+    _api_relationships = { }
+        

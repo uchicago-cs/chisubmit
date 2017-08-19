@@ -158,6 +158,26 @@ class CourseSerializer(ChisubmitSerializer):
         instance.save()
         return instance
     
+class PersonRelatedField(RelatedField):
+    default_error_messages = {
+        'does_not_exist': ugettext_lazy('Object with username={value} does not exist.'),
+        'invalid': ugettext_lazy('Invalid value.'),
+    }
+    
+    def __init__(self, **kwargs):    
+        super(PersonRelatedField, self).__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        try:
+            return self.get_queryset().get(user__username = data)
+        except ObjectDoesNotExist:
+            self.fail('does_not_exist', value=smart_text(data))
+        except (TypeError, ValueError):
+            self.fail('invalid')
+
+    def to_representation(self, obj):
+        return obj.user.username    
+    
     
 class InstructorSerializer(ChisubmitSerializer):
     url = serializers.SerializerMethodField()
@@ -189,39 +209,7 @@ class InstructorSerializer(ChisubmitSerializer):
         instance.git_staging_username = validated_data.get('git_staging_username', instance.git_staging_username)
         instance.save()
         return instance    
-    
-
-class GraderSerializer(ChisubmitSerializer):
-    url = serializers.SerializerMethodField()
-    username = serializers.SlugRelatedField(
-        source="user",
-        queryset=User.objects.all(),
-        slug_field='username'
-    )
-    user = UserSerializer(read_only=True)
-    git_username = serializers.CharField(max_length=64, required=False)
-    git_staging_username = serializers.CharField(max_length=64, required=False)
-    
-    hidden_fields = { "git_username": GradersAndStudents,
-                      "git_staging_username": GradersAndStudents }
-    
-    readonly_fields = { }     
-    
-    owner_override = {"git_username": ReadWrite,
-                      "git_staging_username": ReadWrite }    
-    
-    def get_url(self, obj):
-        return reverse('grader-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
-    
-    def create(self, validated_data):
-        return Grader.objects.create(**validated_data)
-    
-    def update(self, instance, validated_data):
-        instance.git_username = validated_data.get('git_username', instance.git_username)
-        instance.git_staging_username = validated_data.get('git_staging_username', instance.git_staging_username)
-        instance.save()
-        return instance       
-    
+            
     
 class StudentSerializer(ChisubmitSerializer):
     url = serializers.SerializerMethodField()
@@ -260,8 +248,46 @@ class StudentSerializer(ChisubmitSerializer):
         instance.dropped = validated_data.get('dropped', instance.dropped)
         instance.save()
         return instance    
+
+
+class GraderSerializer(ChisubmitSerializer):
+    url = serializers.SerializerMethodField()
+    username = serializers.SlugRelatedField(
+        source="user",
+        queryset=User.objects.all(),
+        slug_field='username'
+    )
+    user = UserSerializer(read_only=True)
+    git_username = serializers.CharField(max_length=64, required=False)
+    git_staging_username = serializers.CharField(max_length=64, required=False)
+    conflicts_usernames = PersonRelatedField(source="conflicts",
+                                             queryset=Student.objects.all(),
+                                             many=True,
+                                             required=False)
+    conflicts = StudentSerializer(read_only=True, many=True, required=False)
     
+    hidden_fields = { "conflicts": GradersAndStudents,
+                      "git_username": GradersAndStudents,
+                      "git_staging_username": GradersAndStudents }
     
+    readonly_fields = { }     
+    
+    owner_override = {"git_username": ReadWrite,
+                      "git_staging_username": ReadWrite }    
+    
+    def get_url(self, obj):
+        return reverse('grader-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
+    
+    def create(self, validated_data):
+        return Grader.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.git_username = validated_data.get('git_username', instance.git_username)
+        instance.git_staging_username = validated_data.get('git_staging_username', instance.git_staging_username)
+        instance.conflicts = validated_data.get('conflicts', instance.conflicts.all())
+        instance.save()
+        return instance       
+
     
 class AssignmentSerializer(ChisubmitSerializer):
     assignment_id = serializers.SlugField()
@@ -364,25 +390,7 @@ class TeamSerializer(ChisubmitSerializer):
         instance.save()
         return instance         
     
-class PersonRelatedField(RelatedField):
-    default_error_messages = {
-        'does_not_exist': ugettext_lazy('Object with username={value} does not exist.'),
-        'invalid': ugettext_lazy('Invalid value.'),
-    }
-    
-    def __init__(self, **kwargs):    
-        super(PersonRelatedField, self).__init__(**kwargs)
 
-    def to_internal_value(self, data):
-        try:
-            return self.get_queryset().get(user__username = data)
-        except ObjectDoesNotExist:
-            self.fail('does_not_exist', value=smart_text(data))
-        except (TypeError, ValueError):
-            self.fail('invalid')
-
-    def to_representation(self, obj):
-        return obj.user.username
 
     
 class TeamMemberSerializer(ChisubmitSerializer):    

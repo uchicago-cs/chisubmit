@@ -7,7 +7,8 @@ from chisubmit.cli.common import create_grading_repos,\
     gradingrepo_push_grading_branch, gradingrepo_pull_grading_branch,\
     get_assignment_or_exit, get_teams_registrations, get_team_or_exit,\
     get_assignment_registration_or_exit, get_grader_or_exit,\
-    catch_chisubmit_exceptions, require_local_config, validate_repo_rubric
+    catch_chisubmit_exceptions, require_local_config, validate_repo_rubric,\
+    get_student_or_exit
 from chisubmit.cli.common import pass_course
 from chisubmit.common.utils import create_connection
 
@@ -135,20 +136,16 @@ def instructor_grading_load_grades(ctx, course, assignment_id, grade_component_i
 @pass_course
 @click.pass_context
 def instructor_grading_add_conflict(ctx, course, grader_id, student_id):
-    grader = course.get_grader(grader_id)
-    if not grader:
-        print "Grader %s does not exist" % grader_id
+    grader = get_grader_or_exit(ctx, course, grader_id)
+    student = get_student_or_exit(ctx, course, student_id)
+
+    if student.username in grader.conflicts_usernames:
+        print "Student %s is already listed as a conflict for grader %s" % (student.username, grader.username)
         ctx.exit(CHISUBMIT_FAIL)
 
-    student = course.get_student(student_id)
-    if not student:
-        print "Student %s does not exist" % student_id
-        ctx.exit(CHISUBMIT_FAIL)
-
-    if student in grader.conflicts:
-        print "Student %s is already listed as a conflict for grader %s" % (student.id, grader.id)
-
-    grader.conflicts.append(student)
+    conflicts_usernames = grader.conflicts_usernames[:]
+    conflicts_usernames.append(student.username)
+    grader.conflicts_usernames = conflicts_usernames
 
     return CHISUBMIT_SUCCESS
 
@@ -374,7 +371,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
                 
                 valid = True
                 for tm in team.get_team_members():
-                    conflicts = g.get_conflicts()
+                    conflicts = g.conflicts
                     if tm.username in conflicts:
                         valid = False
                         break
@@ -912,6 +909,7 @@ instructor_grading.add_command(instructor_grading_load_grades)
 instructor_grading.add_command(instructor_grading_list_grades)
 instructor_grading.add_command(instructor_grading_assign_grader)
 instructor_grading.add_command(instructor_grading_assign_graders)
+instructor_grading.add_command(instructor_grading_add_conflict)
 instructor_grading.add_command(instructor_grading_list_grader_assignments)
 instructor_grading.add_command(instructor_grading_list_submissions)
 instructor_grading.add_command(instructor_grading_show_grading_status)

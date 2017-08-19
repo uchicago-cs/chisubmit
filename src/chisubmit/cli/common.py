@@ -407,3 +407,14 @@ def validate_repo_rubric(ctx, course, assignment, team, registration):
         return (True, None)
     except ChisubmitRubricException, cre:
         return (False, cre.message)
+
+def ask_yesno(prompt="Are you sure you want to continue? (y/n): ", yes=False):
+        print prompt, 
+        
+        if not yes:
+            yesno = raw_input()
+        else:
+            yesno = 'y'
+            print 'y'
+            
+        return yesno in ('y', 'Y', 'yes', 'Yes', 'YES')    

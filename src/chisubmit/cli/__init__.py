@@ -28,32 +28,37 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+import warnings
+import getpass
+from functools import update_wrapper
+from pprint import pprint
+
+from requests.exceptions import HTTPError, ConnectionError
 import click
+
 from chisubmit.common import ChisubmitException, CHISUBMIT_FAIL,\
     handle_unexpected_exception, CHISUBMIT_SUCCESS
-import sys
-from pprint import pprint
-from requests.exceptions import HTTPError, ConnectionError
 from chisubmit.cli.admin import admin
 from chisubmit.cli.instructor import instructor
 from chisubmit.cli.student import student
 from chisubmit.cli.grader import grader
-import getpass
 from docutils.utils.math.math2html import URL
 from chisubmit.client.requester import BadRequestException
 from chisubmit.client.exceptions import UnknownObjectException,\
     ChisubmitRequestException, UnauthorizedException
-from functools import update_wrapper
 from chisubmit.cli.common import catch_chisubmit_exceptions
 import os
 from chisubmit.repos.factory import RemoteRepositoryConnectionFactory
+import chisubmit.common.log as log
+
 config = None
 
-import chisubmit.common.log as log
 from chisubmit.config import Config, ConfigDirectoryNotFoundException
 from chisubmit import RELEASE
 from chisubmit.client import Chisubmit
 
+warnings.simplefilter('always', DeprecationWarning)
 
 VERBOSE = False
 DEBUG = False 

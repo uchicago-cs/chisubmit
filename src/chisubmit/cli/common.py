@@ -140,7 +140,7 @@ def catch_chisubmit_exceptions(f):
             if ctx.obj["debug"]:
                 print "Reason:", ce.message
         except ChisubmitException, ce:
-            print "ERROR: %s" % ce.message
+            print "ERROR: %s" % ce
             if ctx.obj["debug"]:
                 ce.print_exception()
         except click.UsageError:

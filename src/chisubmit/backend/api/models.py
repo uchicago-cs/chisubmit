@@ -307,7 +307,8 @@ class Registration(models.Model):
 
     grader = models.ForeignKey(Grader, null=True)
     grade_adjustments = jsonfield.JSONField(blank=True, null=True)
-    final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True) 
+    final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True)
+    grading_started = models.BooleanField(default=False)
 
     def is_ready_for_grading(self):
         if self.final_submission is None:

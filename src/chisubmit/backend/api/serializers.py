@@ -483,12 +483,14 @@ class RegistrationSerializer(ChisubmitSerializer):
         allow_null=True
         )
     final_submission = SubmissionSerializer(read_only=True, required=False) 
+    grading_started = serializers.BooleanField(required=False)
 
     grades_url = serializers.SerializerMethodField()
     grade_adjustments = serializers.DictField(required=False,
                                               child=serializers.DecimalField(max_digits=5, decimal_places=2))
 
-    readonly_fields = { "grade_adjustments": GradersAndStudents }
+    readonly_fields = { "grade_adjustments": GradersAndStudents,
+                        "grading_started": GradersAndStudents }
 
     hidden_fields = { 
                       "grader_username": Students,
@@ -518,6 +520,7 @@ class RegistrationSerializer(ChisubmitSerializer):
         instance.grader = validated_data.get('grader', instance.grader)
         instance.grade_adjustments = validated_data.get('grade_adjustments', instance.grade_adjustments)
         instance.final_submission = validated_data.get('final_submission', instance.final_submission)
+        instance.grading_started = validated_data.get('grading_started', instance.grading_started)
         instance.save()
         return instance            
     

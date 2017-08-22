@@ -619,6 +619,7 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
     teams_registrations = get_teams_registrations(course, assignment, only = only, only_ready_for_grading=not all_teams)
 
     if len(teams_registrations) == 0:
+        print "There are no grading repos to create."
         ctx.exit(CHISUBMIT_FAIL)
         
     teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
@@ -626,34 +627,46 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
     for team in teams:
         registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
-
+        
         if repo is None:
             print ("%40s -- Creating grading repo... " % team.team_id),
                 
             repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = not master)
             repo.sync()
             
-            if registration.final_submission is not None:
+            if registration.final_submission is not None:        
                 if repo.has_grading_branch_staging():
-                    gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
-                    print "done"
+                    if not registration.grading_started:
+                        print "ERROR: This repo has a grading branch, but is not marked as ready for grading."
+                    else:
+                        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
+                        print "done"
                 else:
                     if master:
                         repo.create_grading_branch()
+                        registration.grading_started = True
                         print "done (and created grading branch)"
                     else:
                         print "done (warning: could not pull grading branch; it does not exist)"
             else:
-                print "done (note: has not submitted yet)"
+                if registration.grading_started:
+                    print "ERROR: This team has not submitted this assignment, but the repo is marked as ready for grading."
+                else:
+                    print "done (note: has not submitted yet)"
         else:
             print ("%40s -- Updating grading repo... " % team.team_id),
             if repo.has_grading_branch_staging():
-                gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
-                print "done (pulled latest grading branch)"
+                if not registration.grading_started:
+                    print "ERROR: This repo has a grading branch, but is not marked as ready for grading."
+                else:                
+                    gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
+                    print "done (pulled latest grading branch)"
             elif repo.has_grading_branch():
                 print "nothing to update (grading branch is not in staging)"
             elif registration.final_submission is not None and master:
                 repo.create_grading_branch()
+                if not registration.grading_started:
+                    registration.grading_started = True
                 print "done (created missing grading branch)"
             else:
                 print "nothing to update (there is no grading branch)"

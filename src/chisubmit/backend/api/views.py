@@ -708,7 +708,7 @@ class RegistrationList(APIView):
     def post(self, request, course_id, team_id, format=None):
         course_obj, roles = get_course(request, course_id)
         serializer_context = {'request': request, 'course': course_obj, 'roles': roles}
-        
+
         team_obj = get_team(course_obj, request.user, roles, team_id)
         
         if not (CourseRoles.ADMIN in roles or CourseRoles.INSTRUCTOR in roles):
@@ -791,9 +791,10 @@ class Submit(APIView):
                 return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
 
 
-        if extensions_override is None and registration_obj.is_ready_for_grading():
+        if extensions_override is None and registration_obj.grading_started:
             msg = "You cannot re-submit assignment %s." % (registration_obj.assignment.assignment_id)
-            msg += " You made a submission before the deadline, and the deadline has passed."
+            msg += " You made a submission and it has already been sent to the graders for grading."
+            msg += " Please contact an instructor if you wish to amend your submission."
             return Response({"errors": [msg]}, status=status.HTTP_400_BAD_REQUEST)
                 
         try:

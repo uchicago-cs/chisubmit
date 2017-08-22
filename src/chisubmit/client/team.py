@@ -145,7 +145,11 @@ class Registration(ChisubmitAPIObject):
 
                        "grade_adjustments": Attribute(name="grade_adjustments", 
                                                       attrtype=APIDictType(APIDecimalType), 
-                                                      editable=True),                                     
+                                                      editable=True),
+
+                       "grading_started": Attribute(name="grading_started", 
+                                                    attrtype=APIBooleanType, 
+                                                    editable=True),                                                                
                       }
     
     _api_relationships = {

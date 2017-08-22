@@ -462,11 +462,10 @@ def student_assignment_cancel_submit(ctx, course, assignment_id, yes):
         print "so there is nothing to cancel."
         ctx.exit(CHISUBMIT_FAIL)
         
-    if is_submission_ready_for_grading(assignment_deadline=registration.assignment.deadline, 
-                                       submission_date=registration.final_submission.submitted_at,
-                                       extensions_used=registration.final_submission.extensions_used):
+    if registration.grading_started:
         print "You cannot cancel this submission."
-        print "You made a submission before the deadline, and the deadline has passed."
+        print "You made a submission and it has already been sent to the graders for grading."
+        print "Please contact an instructor if you wish to amend your submission."
 
         ctx.exit(CHISUBMIT_FAIL)        
             

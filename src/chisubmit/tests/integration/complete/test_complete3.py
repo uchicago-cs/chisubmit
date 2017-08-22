@@ -102,6 +102,32 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         print "~~~ Time has moved 'forward' by two hours ~~~"
         print
         
+      
+        # Team 1 cancels their submission and submits again. While the deadline
+        # has passed, the instructor has not yet created the grading repos,
+        # so the students can still cancel their submission.
+        result = students_team[1][0].run("student assignment cancel-submit", 
+                                         ["pa1", "--yes"])
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)           
+
+        result = students_team[1][0].run("student assignment submit", 
+                                         ["pa1", "--yes"])        
+        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        
+        
+        # The instructor waits 24 hours to create the grading repos
+        # (this allows Team 1's repo to be ready for grading)
+        new_now = get_datetime_now_utc() + timedelta(hours=24)
+        set_testing_now(new_now)        
+        
+        print
+        print "~~~ Time has moved 'forward' by 24 hours ~~~"
+        print           
+        
+        # Instructor creates master grading repos. This flags the repo for Team 1 as sent to the graders. 
+        result = instructors[0].run("instructor grading create-grading-repos", ["--master", "pa1"])
+        self.assertEquals(result.exit_code, 0)                
+        
         # Team 0 submits and is successful because they cancelled their previous submission
         result = students_team[0][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        

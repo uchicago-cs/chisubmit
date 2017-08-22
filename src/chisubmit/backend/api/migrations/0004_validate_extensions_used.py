@@ -13,11 +13,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='course',
-            name='archived',
-            field=models.BooleanField(default=False),
-        ),
         migrations.AlterField(
             model_name='submission',
             name='extensions_used',

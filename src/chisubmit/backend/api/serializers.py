@@ -499,6 +499,9 @@ class RegistrationSerializer(ChisubmitSerializer):
 
     def __init__(self, *args, **kwargs):
         if kwargs.has_key("context"):   
+            assignment_id_f = self.fields['assignment_id']
+            assignment_id_f.queryset = assignment_id_f.queryset.filter(course = kwargs['context']['course'])
+
             grader_username_f = self.fields['grader_username']
             grader_username_f.queryset = grader_username_f.queryset.filter(course = kwargs['context']['course'])
 

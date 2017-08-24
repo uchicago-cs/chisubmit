@@ -254,8 +254,9 @@ def chisubmit_init(ctx, course_id, username, password, git_username, git_passwor
 
     # If the existing credentials didn't work, get new ones
     if git_credentials is None:
-        # Try the chisubmit username/password
-        git_credentials, _ = conn.get_credentials(username, password)
+        if username is not None and password is not None:
+            # Try the chisubmit username/password
+            git_credentials, _ = conn.get_credentials(username, password)
         
         if git_credentials is None:
             user_prompt = "Enter your {} username: ".format(server_type)

@@ -47,7 +47,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             if not rv:
                 return None, False
             else:
-                return g.currentuser()["private_token"], True
+                return g.headers["PRIVATE-TOKEN"], True
         except gitlab.exceptions.HttpError, he:
             if he.message == "401 Unauthorized":
                 return None, False

@@ -41,6 +41,8 @@ from chisubmit.cli.common import get_course_or_exit, get_user_or_exit,\
     api_obj_set_attribute, get_team_or_exit, catch_chisubmit_exceptions,\
     require_config, get_student_or_exit
 import csv
+import yaml
+import os.path
 
 
 @click.group(name="course")
@@ -164,7 +166,7 @@ VALID_USER_TYPES = ['student', 'grader', 'instructor']
     
 @click.command(name="load-users")
 @click.argument('course_id', type=str)
-@click.argument('csv_file', type=click.File('rb'))
+@click.argument('csv_file', type=click.File('r'))
 @click.argument('csv_username_column', type=str)
 @click.argument('csv_fname_column', type=str)
 @click.argument('csv_lname_column', type=str)
@@ -183,9 +185,8 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
     if user_type == "column" and user_type_column is None:
         print "You must specify a column with --user-type-column when using '--user-type column'"
         ctx.exit(CHISUBMIT_FAIL)
-                
+        
     csvf = csv.DictReader(csv_file)
-            
     columns = [csv_username_column, csv_fname_column, csv_lname_column, csv_email_column]
     
     if user_type == "column":
@@ -555,6 +556,8 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
     return CHISUBMIT_SUCCESS
 
 
+
+
 @click.command(name="team-repo-remove")
 @click.argument('course_id', type=str)
 @click.argument('team_id', type=str)
@@ -582,12 +585,187 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, ignore_non_existing, 
     return CHISUBMIT_SUCCESS
 
 
+
+@click.command(name="setup")
+@click.argument('config_file', type=click.Path(exists=True))
+@click.option('--skip-user-creation', is_flag=True)
+@click.option('--skip-repo-creation', is_flag=True)
+@catch_chisubmit_exceptions
+@require_config
+@click.pass_context
+def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation):
+    with open(config_file, "r") as f:
+        conf = yaml.load(f)
+
+    config_dir = os.path.dirname(os.path.realpath(config_file))
+    
+    for field in ("course_id", "course_name", "upstream_repo", "individual_repos",
+                  "staging_repos", "git_connstr"):
+        if field not in conf:
+            print "ERROR: Configuration file is missing '%s' field" % field
+            return CHISUBMIT_FAIL
+    
+    staff_file = config_dir + "/" + conf.get("staff_file", "staff.csv")
+    students_file = config_dir + "/" + conf.get("students_file", "students.csv")
+    
+    course_id = conf["course_id"]
+    course_name = conf["course_name"]
+
+    # Create the course    
+    try:
+        course = ctx.obj["client"].get_course(course_id = course_id)
+        print "- Course with course_id = %s already exists." % course_id
+    except UnknownObjectException, uoe:
+        course = ctx.obj["client"].create_course(course_id = course_id,
+                                                 name = course_name)
+        print "- Created new course %s" % course_id
+        
+    # Set the Git connection string
+    api_obj_set_attribute(ctx, course, "git_server_connstr", conf["git_connstr"])
+    
+    # Setup the Git server
+    conn = create_connection(course, ctx.obj['config'], False)
+    
+    if conn is None:
+        print "Could not connect to git server."
+        ctx.exit(CHISUBMIT_FAIL)
+
+    rv = conn.init_course(course, fail_if_exists=False)
+    if rv:    
+        print "- Git server setup complete"
+    else:
+        print "- Git server is already setup"
+    
+    print "- Creating/updating staff users"
+    print "==============================="
+    print
+    with open(staff_file, "r") as f:
+        ctx.invoke(admin_course_load_users, 
+                   course_id = course_id,
+                   csv_file = f,
+                   csv_username_column = "username",
+                   csv_fname_column = "fname",
+                   csv_lname_column = "lname",
+                   csv_email_column = "email",
+                   user_type = "column",
+                   user_type_column = "type"
+                   )
+    print
+    print "==============================="
+    print "- Staff user creation/update complete."
+
+    print "- Creating instructor git users"
+    print "==============================="
+    print
+    ctx.invoke(admin_course_create_git_users, 
+               course_id = course_id,
+               only_type = "instructor")
+    print
+    print "==============================="
+
+    print "- Creating grader git users"
+    print "==========================="
+    print
+    ctx.invoke(admin_course_create_git_users, 
+               course_id = course_id,
+               only_type = "grader")
+    print
+    print "==========================="
+    
+    conn.update_instructors(course)
+    conn.update_graders(course)
+    print "- Updated instructor/grader access privileges on Git server"
+    
+    # Setup staging Git server
+    if conf["staging_repos"] == True:
+        staging_conn = create_connection(course, ctx.obj['config'], True)
+    
+        if staging_conn is None:
+            print "Could not connect to staging git server."
+            ctx.exit(CHISUBMIT_FAIL)
+
+        rv = staging_conn.init_course(course, fail_if_exists=False)        
+        
+        if rv:    
+            print "- Staging Git server setup complete"
+        else:
+            print "- Staging Git server is already setup"
+        
+        conn.update_instructors(course)
+        conn.update_graders(course)
+        print "- Updated instructor/grader access privileges on staging Git server"
+    else:
+        print "- This course does not need staging repos"
+
+    print "- Creating/updating student users"
+    print "================================="    
+    print
+    with open(students_file, "r") as f:
+        ctx.invoke(admin_course_load_users, 
+                   course_id = course_id,
+                   csv_file = f,
+                   csv_username_column = "username",
+                   csv_fname_column = "fname",
+                   csv_lname_column = "lname",
+                   csv_email_column = "email",
+                   user_type = "student",
+                   sync = True
+                   )
+    print
+    print "==============================="
+    print "- Student user creation/update complete."
+    print "- Creating student git users"
+    print "==========================="
+    print
+    ctx.invoke(admin_course_create_git_users, 
+               course_id = course_id,
+               only_type = "student")
+    print
+    print "==========================="
+
+    if conf["individual_repos"] == True:
+        print "- Creating individual teams"
+        print "==========================="
+        print
+        ctx.invoke(admin_course_create_individual_teams, 
+                   course_id = course_id
+                   )
+        print
+        print "==========================="
+        print "- Individual team creation complete."
+
+    print "- Creating repos"
+    print "================"
+    print
+    ctx.invoke(admin_course_create_repos, 
+               course_id = course_id
+               )
+    print
+    print "================"
+    print "- Repo creation complete."
+
+    if conf["staging_repos"] == True:
+        print "- Creating staging repos"
+        print "========================"
+        print
+        ctx.invoke(admin_course_create_repos, 
+                   course_id = course_id,
+                   staging = True
+                   )
+        print
+        print "========================"
+        print "- Repo creation complete."     
+    
+    return CHISUBMIT_SUCCESS
+
+
 admin_course.add_command(shared_course_list)
 admin_course.add_command(shared_course_set_user_attribute)
 
 admin_course.add_command(admin_course_add)
 admin_course.add_command(admin_course_remove)
 admin_course.add_command(admin_course_show)
+admin_course.add_command(admin_course_setup)
 admin_course.add_command(admin_course_add_instructor)
 admin_course.add_command(admin_course_add_grader)
 admin_course.add_command(admin_course_add_student)

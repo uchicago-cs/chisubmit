@@ -114,7 +114,7 @@ class PersonList(APIView):
         serializer = self.person_serializer(data=request.data, context=serializer_context)
         if serializer.is_valid():
             user = serializer.validated_data["user"]
-            if self.person_class.objects.filter(course=course_obj, user=request.user).exists():
+            if self.person_class.objects.filter(course=course_obj, user=user).exists():
                 return Response({"username": ["%s is already a %s in %s" % (user.username, self.person_str, course_obj.course_id)]}, status=status.HTTP_400_BAD_REQUEST)
 
             try:

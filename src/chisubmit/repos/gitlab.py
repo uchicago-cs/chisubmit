@@ -90,6 +90,9 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             new_group = self.gitlab.creategroup(course_name, group_name)
             if isinstance(new_group, gitlab.exceptions.HttpError):
                 raise ChisubmitException("Could not create group '%s' (%s)" % (self.__get_group_name(course), str(new_group)), new_group)
+            return True
+        else:
+            return False
                 
     def deinit_course(self, course):
         group = self.__get_group(course)

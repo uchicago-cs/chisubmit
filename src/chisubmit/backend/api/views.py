@@ -374,6 +374,10 @@ class Register(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)              
 
         students_usernames = serializer.validated_data["students"]
+        
+        if len(students_usernames) == 0:
+                msg = "No students specified."
+                return Response({"students": [msg]}, status=status.HTTP_400_BAD_REQUEST)
 
         if len(roles) == 1 and CourseRoles.STUDENT in roles:
             is_student = True

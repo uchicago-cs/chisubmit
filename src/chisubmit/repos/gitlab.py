@@ -17,9 +17,6 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         
         self.gitlab = None
         
-        # Map course id's to GitLab group IDs
-        self.gitlab_group_id = {}
-        
         # Map student id's to GitLab user IDs
         self.gitlab_user_id = {}
 
@@ -77,6 +74,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     def init_course(self, course, fail_if_exists=True):
         group = self.__get_group(course)
         group_name = self.__get_group_name(course)
+        
         if fail_if_exists and group is not None:
             raise ChisubmitException("Course '%s' already has a GitLab group" % group_name)
         
@@ -97,7 +95,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     def deinit_course(self, course):
         group = self.__get_group(course)
         if group is not None:
-            rv = self.gitlab.deletegroup(self.__get_group_id(course))
+            rv = self.gitlab.deletegroup(group["id"])
             
     def exists_user(self, course, course_user):
         gitlab_username = self._get_user_git_username(course, course_user)
@@ -308,26 +306,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         if self.staging:
             return course.course_id + "-staging"
         else:
-            return course.course_id    
-    
-    def __get_group_id(self, course):
-        group_name = self.__get_group_name(course)
-        if self.gitlab_group_id.has_key(group_name):
-            return self.gitlab_group_id[group_name]
-        else:
-            # TODO: Paginations
-            groups = self.gitlab.getgroups()
-            
-            if groups == False:
-                raise ChisubmitException("Unable to fetch Gitlab groups %s (id: %s)" % (self.gitlab_group, self.gitlab_group_id))
-    
-            for group in groups:
-                self.gitlab_group_id[group["path"]] = group["id"]
-
-            if self.gitlab_group_id.has_key(group_name):
-                return self.gitlab_group_id[group_name]
-            else:
-                return None
+            return course.course_id
 
     def __get_user_by_username(self, username):
         # TODO: Paginations
@@ -365,13 +344,8 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
 
     def __get_group(self, course):
-        group_id = self.__get_group_id(course)
-        
-        if group_id == None:
-            return None
-        
-        group = self.gitlab.getgroups(group_id = group_id)
-        
+        group = self.gitlab.getgroups(group_id = course.course_id)
+
         if group == False:
             return None
         else:
@@ -402,12 +376,12 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
         if user is None:
             raise ChisubmitException("Couldn't add user '%s' to group '%s'. User does not exist" % (username, group_name))
         
-        group_id = self.__get_group_id(course)
+        group = self.__get_group(course)
 
-        if group_id is None:
+        if group is None:
             raise ChisubmitException("Couldn't add user '%s' to group '%s'. Course group does not exist" % (username, group_name))
                 
-        self.gitlab.addgroupmember(group_id, user["id"], access_level)
+        self.gitlab.addgroupmember(group["id"], user["id"], access_level)
         
         # If the return code is False, we can't distinguish between
         # "failed because the user is already in the group" or

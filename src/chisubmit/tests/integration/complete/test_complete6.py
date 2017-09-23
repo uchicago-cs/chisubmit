@@ -151,11 +151,11 @@ Total Points: 0 / 100
         # Grader 1 grades student1 and pushes the grading.
         
         student1_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 45
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 30
         
@@ -194,11 +194,11 @@ Comments: >
         # Grader 1 grades student2 and pushes the grading.
         
         student2_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 50
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 45
 
@@ -267,11 +267,11 @@ Comments: >
         # Grader 2 grades student3 but does only a partial grading of student4
             
         student3_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 20
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 15
 
@@ -284,11 +284,11 @@ Comments: >
             f.write(student3_rubric)
 
         student4_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 35
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 
 
@@ -323,11 +323,11 @@ Comments: >
         # Grader 2 finishes grading
         
         student4_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 35
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 25
 

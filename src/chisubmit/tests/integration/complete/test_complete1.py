@@ -260,11 +260,11 @@ Total Points: 0 / 100
         team2_rubric_path = "%s/pa1.rubric.txt" % team_git_paths[1] 
 
         team1_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 45
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 30
         
@@ -295,11 +295,11 @@ Comments: >
             f.write("Great job!\n") 
             
         team2_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 50
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 45
 

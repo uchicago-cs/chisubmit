@@ -344,7 +344,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
     
 
     def __get_group(self, course):
-        group = self.gitlab.getgroups(group_id = course.course_id)
+        group = self.gitlab.getgroups(group_id = self.__get_group_name(course))
 
         if group == False:
             return None

@@ -603,7 +603,7 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
                   "staging_repos", "git_connstr"):
         if field not in conf:
             print "ERROR: Configuration file is missing '%s' field" % field
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
     
     staff_file = config_dir + "/" + conf.get("staff_file", "staff.csv")
     students_file = config_dir + "/" + conf.get("students_file", "students.csv")
@@ -678,6 +678,9 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
     
     # Setup staging Git server
     if conf["staging_repos"] == True:
+        git_staging_connstr = conf.get("git_staging_connstr", conf["git_connstr"])
+        api_obj_set_attribute(ctx, course, "git_staging_connstr", conf["git_connstr"])
+
         staging_conn = create_connection(course, ctx.obj['config'], True)
     
         if staging_conn is None:

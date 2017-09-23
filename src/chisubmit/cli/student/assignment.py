@@ -45,7 +45,7 @@ def student_assignment_register(ctx, course, assignment_id, partner):
         if user.username in partner:
             print "You specified your own username in --partner. You should use this"
             print "option to specify your partners, not including yourself."
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
         
         r = assignment.register(students = partner + (user.username,))    
 
@@ -422,7 +422,7 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
             print        
             print "ERROR: Your submission was not completed. The server reported the following errors:"
             bre.print_errors()
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
     else:
         print "Your submission has not been completed."
         print
@@ -432,7 +432,7 @@ def student_assignment_submit(ctx, course, assignment_id, commit_sha, yes):
         print
         print "If you want to submit a different commit from your latest commit (e.g., an earlier"
         print "commit), you can use the --commit-sha option to specify a different commit."
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     
 @click.command(name="cancel-submit")   

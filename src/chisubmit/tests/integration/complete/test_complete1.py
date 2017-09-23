@@ -205,10 +205,13 @@ Total Points: 0 / 100
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/all/"])
+        result = instructors[0].run("instructor team pull-repos", ["repos/all/"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/pa1/"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/ready/", "--only-ready-for-grading"])
         self.assertEquals(result.exit_code, 0)
 
         # Let the deadline "pass"
@@ -222,10 +225,13 @@ Total Points: 0 / 100
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/all/"])
+        result = instructors[0].run("instructor team pull-repos", ["repos/all/"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/pa1/"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/ready/", "--only-ready-for-grading"])
         self.assertEquals(result.exit_code, 0)
                 
         result = instructors[0].run("instructor grading create-grading-repos", ["--master", "pa1"])
@@ -254,11 +260,11 @@ Total Points: 0 / 100
         team2_rubric_path = "%s/pa1.rubric.txt" % team_git_paths[1] 
 
         team1_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 45
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 30
         
@@ -289,11 +295,11 @@ Comments: >
             f.write("Great job!\n") 
             
         team2_rubric = """Points:
-    The PA1 Tests:
+    - The PA1 Tests:
         Points Possible: 50
         Points Obtained: 50
 
-    The PA1 Design:
+    - The PA1 Design:
         Points Possible: 50
         Points Obtained: 45
 

@@ -205,10 +205,13 @@ Total Points: 0 / 100
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/all/"])
+        result = instructors[0].run("instructor team pull-repos", ["repos/all/"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/pa1/"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/ready/", "--only-ready-for-grading"])
         self.assertEquals(result.exit_code, 0)
 
         # Let the deadline "pass"
@@ -222,10 +225,13 @@ Total Points: 0 / 100
         result = instructors[0].run("instructor grading list-submissions", ["pa1"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/all/"])
+        result = instructors[0].run("instructor team pull-repos", ["repos/all/"])
         self.assertEquals(result.exit_code, 0)
 
-        result = instructors[0].run("instructor team pull-repos", ["pa1", "repos/ready/", "--only-ready-for-grading"])
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/pa1/"])
+        self.assertEquals(result.exit_code, 0)
+
+        result = instructors[0].run("instructor team pull-repos", ["--assignment", "pa1", "repos/ready/", "--only-ready-for-grading"])
         self.assertEquals(result.exit_code, 0)
                 
         result = instructors[0].run("instructor grading create-grading-repos", ["--master", "pa1"])

@@ -19,38 +19,46 @@ def instructor_team(ctx):
 
 
 @click.command(name="pull-repos")
-@click.argument('assignment_id', type=str)
 @click.argument('directory', type=str)
+@click.option('--assignment',type=str)
 @click.option('--only-ready-for-grading', is_flag=True)
 @click.option('--reset', is_flag=True)
 @click.option('--only', type=str)
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready_for_grading, reset, only):
-    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_for_grading, reset, only):
+    if only_ready_for_grading and assignment is None:
+        print "--only-ready-for-grading can only be used with --assignment option"
+        ctx.exit(CHISUBMIT_FAIL)
+    
+    if assignment is not None:
+        assignment = get_assignment_or_exit(ctx, course, assignment)
 
     conn = create_connection(course, ctx.obj['config'])
-    
-    teams_registrations = get_teams_registrations(course, assignment, only = only)
 
     directory = os.path.expanduser(directory)
-    
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-    teams = sorted([t for t in teams_registrations.keys() if t.active], key = operator.attrgetter("team_id"))
+    
+    if assignment is None:
+        teams = sorted(course.get_teams(), key = operator.attrgetter("team_id"))
+    else:
+        teams_registrations = get_teams_registrations(course, assignment, only = only)
+        teams = sorted([t for t in teams_registrations.keys() if t.active], key = operator.attrgetter("team_id"))
 
     max_len = max([len(t.team_id) for t in teams])
 
     for team in teams:
-        registration = teams_registrations[team]
         team_dir = "%s/%s" % (directory, team.team_id)
         team_git_url = conn.get_repository_git_url(course, team) 
 
-        if not registration.is_ready_for_grading() and only_ready_for_grading:
-            print "%-*s  SKIPPING (not ready for grading)" % (max_len, team.team_id)
-            continue
+        if only_ready_for_grading:
+            registration = teams_registrations[team]
+    
+            if not registration.is_ready_for_grading() and only_ready_for_grading:
+                print "%-*s  SKIPPING (not ready for grading)" % (max_len, team.team_id)
+                continue
         
         try:
             msg = ""
@@ -85,8 +93,6 @@ def instructor_team_pull_repos(ctx, course, assignment_id, directory, only_ready
             print "%-*s  ERROR: Unexpected exception when trying to checkout/pull" % (max_len, team.team_id)
             raise
     
-        
-
     return CHISUBMIT_SUCCESS
 
 

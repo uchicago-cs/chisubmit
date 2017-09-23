@@ -52,7 +52,7 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
         rubric = RubricFile.from_file(rubric_file) 
     except ChisubmitRubricException, cre:
         print "ERROR: Rubric does not validate (%s)" % (cre.message)
-        return CHISUBMIT_FAIL    
+        ctx.exit(CHISUBMIT_FAIL)
     
     rubric_components = assignment.get_rubric_components()
 
@@ -63,7 +63,7 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
         print "existing rubric files completed by the graders."
         print
         if not ask_yesno(yes=yes):
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
         print
         for rc in rubric_components:
             rc.delete()
@@ -95,22 +95,22 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
     num_cmds = len([x for x in [add,edit,remove,up,down] if x is True])
     if num_cmds > 1:
         print "You can only specify one of the following: --add / --edit / --remove / --up / --down"
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     if num_cmds == 0:
         print "You must specify one of the following: --add / --edit / --remove / --up / --down"
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     if add and points is None:
         print "The --add option requires the --points option"
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     if edit and not (description or points):
         print "The --edit option requires the --description option or the --points option (or both)"
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     if (remove or up or down) and points is not None:
         print "The --points option cannot be used with --remove/--up/--down"        
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     if (remove or up or down) and points is not None:
         print "The --points option cannot be used with --remove/--up/--down"        
-        return CHISUBMIT_FAIL
+        ctx.exit(CHISUBMIT_FAIL)
     
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
   
@@ -120,20 +120,20 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
     if len(rcs) == 0:
         if not add:
             print "No such rubric component: %s" % rubric_component
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
         else:
             i, rc = None, None
     elif len(rcs) > 1:
         print "Multiple rubric components with this name: %s" % rubric_component
         print "(this should not happen)"
-        return CHISUBMIT_FAIL            
+        ctx.exit(CHISUBMIT_FAIL)
     else:
         i, rc = rcs[0]
     
     if add:
         if rc is not None:
             print "There is already a rubric component with this name: %s" % rubric_component
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
         
         if len(rubric_components) == 0:
             last_order = 0
@@ -148,7 +148,7 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
             print "rubric files completed by the graders."
             print
             if not ask_yesno(yes=yes):
-                return CHISUBMIT_FAIL
+                ctx.exit(CHISUBMIT_FAIL)
             print            
             rc.description = description
         if points is not None:
@@ -159,7 +159,7 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
         print "completed by the graders."
         print
         if not ask_yesno(yes=yes):
-            return CHISUBMIT_FAIL
+            ctx.exit(CHISUBMIT_FAIL)
         print            
         rc.delete()   
     elif up:
@@ -309,7 +309,7 @@ def instructor_assignment_submit(ctx, course, team_id, assignment_id, commit_sha
         except BadRequestException, bre:        
             print "ERROR: The submission was not completed. The server reported the following errors:"
             bre.print_errors()
-            return CHISUBMIT_FAIL        
+            ctx.exit(CHISUBMIT_FAIL)
 
 
 @click.command(name="cancel-submit")   

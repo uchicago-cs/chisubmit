@@ -371,8 +371,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
                 
                 valid = True
                 for tm in team.get_team_members():
-                    conflicts = g.conflicts
-                    if tm.username in conflicts:
+                    if tm.username in g.conflicts_usernames:
                         valid = False
                         break
 

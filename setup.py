@@ -67,8 +67,9 @@ setup(name='chisubmit',
                          ],
       extras_require = {
                          "server" : ["django-auth-ldap >= 1.2.8",
-                                     "djangorestframework >= 3.3.3", 
-                                     "jsonfield >= 1.0.3",
+                                     "djangorestframework >= 3.7.0", 
+                                     "Django >= 1.11.6",
+                                     "jsonfield >= 2.0.2",
                                      "python-ldap >= 2.4.25" 
                                      ] 
                         },

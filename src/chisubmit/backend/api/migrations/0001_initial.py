@@ -60,8 +60,8 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('git_username', models.CharField(max_length=64, null=True)),
                 ('git_staging_username', models.CharField(max_length=64, null=True)),
-                ('course', models.ForeignKey(to='api.Course')),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('course', models.ForeignKey(to='api.Course', on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('grade_adjustments', jsonfield.fields.JSONField(null=True, blank=True)),
-                ('assignment', models.ForeignKey(to='api.Assignment')),
+                ('assignment', models.ForeignKey(to='api.Assignment', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
                 ('order', models.IntegerField(default=0, validators=[django.core.validators.MinValueValidator(0)])),
                 ('description', models.CharField(max_length=64)),
                 ('points', models.DecimalField(max_digits=5, decimal_places=2)),
-                ('assignment', models.ForeignKey(to='api.Assignment')),
+                ('assignment', models.ForeignKey(to='api.Assignment', on_delete=models.CASCADE)),
             ],
             options={
                 'ordering': ('assignment', 'order'),
@@ -92,8 +92,8 @@ class Migration(migrations.Migration):
                 ('git_username', models.CharField(max_length=64)),
                 ('extensions', models.IntegerField(default=0, validators=[django.core.validators.MinValueValidator(0)])),
                 ('dropped', models.BooleanField(default=False)),
-                ('course', models.ForeignKey(to='api.Course')),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('course', models.ForeignKey(to='api.Course', on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -103,7 +103,7 @@ class Migration(migrations.Migration):
                 ('extensions_used', models.IntegerField(default=0, validators=[django.core.validators.MinValueValidator(0)])),
                 ('commit_sha', models.CharField(max_length=40)),
                 ('submitted_at', models.DateTimeField(auto_now_add=True)),
-                ('registration', models.ForeignKey(to='api.Registration')),
+                ('registration', models.ForeignKey(to='api.Registration', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
                 ('team_id', models.SlugField(max_length=128)),
                 ('extensions', models.IntegerField(default=0, validators=[django.core.validators.MinValueValidator(0)])),
                 ('active', models.BooleanField(default=True)),
-                ('course', models.ForeignKey(to='api.Course')),
+                ('course', models.ForeignKey(to='api.Course', on_delete=models.CASCADE)),
                 ('registrations', models.ManyToManyField(to='api.Assignment', through='api.Registration')),
             ],
         ),
@@ -122,8 +122,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('confirmed', models.BooleanField(default=False)),
-                ('student', models.ForeignKey(to='api.Student')),
-                ('team', models.ForeignKey(to='api.Team')),
+                ('student', models.ForeignKey(to='api.Student', on_delete=models.CASCADE)),
+                ('team', models.ForeignKey(to='api.Team', on_delete=models.CASCADE)),
             ],
         ),
         migrations.AddField(
@@ -134,17 +134,17 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='registration',
             name='final_submission',
-            field=models.ForeignKey(related_name='final_submission_of', to='api.Submission', null=True),
+            field=models.ForeignKey(related_name='final_submission_of', to='api.Submission', null=True, on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='registration',
             name='grader',
-            field=models.ForeignKey(to='api.Grader', null=True),
+            field=models.ForeignKey(to='api.Grader', null=True, on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='registration',
             name='team',
-            field=models.ForeignKey(to='api.Team'),
+            field=models.ForeignKey(to='api.Team', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='grader',
@@ -154,22 +154,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='grader',
             name='course',
-            field=models.ForeignKey(to='api.Course'),
+            field=models.ForeignKey(to='api.Course', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='grader',
             name='user',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='grade',
             name='registration',
-            field=models.ForeignKey(to='api.Registration'),
+            field=models.ForeignKey(to='api.Registration', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='grade',
             name='rubric_component',
-            field=models.ForeignKey(to='api.RubricComponent'),
+            field=models.ForeignKey(to='api.RubricComponent', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='course',
@@ -189,7 +189,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='assignment',
             name='course',
-            field=models.ForeignKey(to='api.Course'),
+            field=models.ForeignKey(to='api.Course', on_delete=models.CASCADE),
         ),
         migrations.AlterUniqueTogether(
             name='teammember',

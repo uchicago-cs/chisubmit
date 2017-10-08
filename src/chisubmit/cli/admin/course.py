@@ -431,7 +431,8 @@ def admin_course_update_repo_access(ctx, course_id, staging):
         ctx.exit(CHISUBMIT_FAIL)
     
     conn.update_instructors(course)
-    conn.update_graders(course)
+    if staging:
+        conn.update_graders(course)
 
 
 @click.command(name="create-repos")
@@ -673,13 +674,12 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
     print "==========================="
     
     conn.update_instructors(course)
-    conn.update_graders(course)
-    print "- Updated instructor/grader access privileges on Git server"
+    print "- Updated instructor access privileges on Git server"
     
     # Setup staging Git server
     if conf["staging_repos"] == True:
         git_staging_connstr = conf.get("git_staging_connstr", conf["git_connstr"])
-        api_obj_set_attribute(ctx, course, "git_staging_connstr", conf["git_connstr"])
+        api_obj_set_attribute(ctx, course, "git_staging_connstr", git_staging_connstr)
 
         staging_conn = create_connection(course, ctx.obj['config'], True)
     
@@ -694,8 +694,8 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
         else:
             print "- Staging Git server is already setup"
         
-        conn.update_instructors(course)
-        conn.update_graders(course)
+        staging_conn.update_instructors(course)
+        staging_conn.update_graders(course)
         print "- Updated instructor/grader access privileges on staging Git server"
     else:
         print "- This course does not need staging repos"

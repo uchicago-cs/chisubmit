@@ -360,7 +360,15 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
             not_ready_for_grading.append(team.team_id)
             continue
 
+        graders_left = len(graders)
         for g in graders_cycle:
+            # Make sure we don't fall into an infinite loop
+            if graders_left == 0:
+                print "Cannot find a grader for %s!" % team.team_id
+                break
+            else:
+                graders_left -= 1
+                
             if teams_per_grader[g.user.username] == 0:
                 continue
             else:
@@ -371,8 +379,7 @@ def instructor_grading_assign_graders(ctx, course, assignment_id, from_assignmen
                 
                 valid = True
                 for tm in team.get_team_members():
-                    conflicts = g.conflicts
-                    if tm.username in conflicts:
+                    if tm.username in g.conflicts_usernames:
                         valid = False
                         break
 

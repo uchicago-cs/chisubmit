@@ -20,7 +20,6 @@ import os.path
 import yaml
 from chisubmit.client.exceptions import UnknownObjectException
 import math
-from gtk.keysyms import Gcedilla
 from git.exc import GitCommandError
 
 @click.group(name="grading")

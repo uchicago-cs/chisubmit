@@ -20,6 +20,8 @@ import os.path
 import yaml
 from chisubmit.client.exceptions import UnknownObjectException
 import math
+from gtk.keysyms import Gcedilla
+from git.exc import GitCommandError
 
 @click.group(name="grading")
 @click.pass_context
@@ -638,8 +640,11 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
         if repo is None:
             print ("%40s -- Creating grading repo... " % team.team_id),
                 
-            repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = not master)
-            repo.sync()
+            try:
+                repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = not master)
+                repo.sync()
+            except GitCommandError, gce:
+                print gce                 
             
             if registration.final_submission is not None:        
                 if repo.has_grading_branch_staging():
@@ -666,15 +671,21 @@ def instructor_grading_create_grading_repos(ctx, course, assignment_id, all_team
                 if not registration.grading_started:
                     print "ERROR: This repo has a grading branch, but is not marked as ready for grading."
                 else:                
-                    gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
-                    print "done (pulled latest grading branch)"
+                    try:
+                        gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
+                        print "done (pulled latest grading branch)"
+                    except GitCommandError, gce:
+                        print gce         
             elif repo.has_grading_branch():
                 print "nothing to update (grading branch is not in staging)"
             elif registration.final_submission is not None and master:
-                repo.create_grading_branch()
-                if not registration.grading_started:
-                    registration.grading_started = True
-                print "done (created missing grading branch)"
+                try:
+                    repo.create_grading_branch()
+                    if not registration.grading_started:
+                        registration.grading_started = True
+                    print "done (created missing grading branch)"
+                except GitCommandError, gce:
+                    print gce
             else:
                 print "nothing to update (there is no grading branch)"
 

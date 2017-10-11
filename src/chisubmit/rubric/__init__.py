@@ -205,11 +205,11 @@ class RubricFile(object):
             if rc_points_obtained is not None:
                 if rc_points_obtained < 0:
                     raise ChisubmitRubricException("Grade component '%s' in rubric has negative points (%i)" %
-                                                    (rc_description.description, rc_points_obtained))
+                                                    (rc_description, rc_points_obtained))
     
                 if rc_points_obtained > rc_points_possible:
                     raise ChisubmitRubricException("Grade component '%s' in rubric has more than allowed points (%i > %i)" %
-                                                    (rc_description.description, rc_points_obtained, rc_points_possible))
+                                                    (rc_description, rc_points_obtained, rc_points_possible))
 
                 total_points_obtained += rc_points_obtained
 

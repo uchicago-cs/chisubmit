@@ -513,7 +513,7 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
     assignment = get_assignment_or_exit(ctx, course, assignment_id, include_rubric = True)
     rubric_components = assignment.get_rubric_components()
 
-    teams_registrations = get_teams_registrations(course, assignment, include_grades = True)
+    teams_registrations = get_teams_registrations(course, assignment, include_grades = use_stored_grades)
     teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
     
     team_status = []

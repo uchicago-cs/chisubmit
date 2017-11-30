@@ -383,6 +383,7 @@ def instructor_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
         registration.final_submission_id = None
         registration.grader_username = None
+        registration.grading_started = False
         
         print()
         print("The submission has been cancelled.")

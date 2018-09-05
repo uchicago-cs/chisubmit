@@ -1,3 +1,4 @@
+from __future__ import print_function
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
 #
@@ -49,10 +50,10 @@ def admin_user(ctx):
 def admin_user_add(ctx, username, first_name, last_name, email):
     try:
         user = ctx.obj["client"].get_user(username = username)
-        print "ERROR: Cannot create user."
-        print "       Username with user_id = %s already exists." % username
+        print("ERROR: Cannot create user.")
+        print("       Username with user_id = %s already exists." % username)
         ctx.exit(CHISUBMIT_FAIL)
-    except UnknownObjectException, uoe:
+    except UnknownObjectException as uoe:
         user = ctx.obj["client"].create_user(username = username,
                                              first_name = first_name,
                                              last_name = last_name,
@@ -67,7 +68,7 @@ def admin_user_add(ctx, username, first_name, last_name, email):
 @click.pass_context
 def admin_user_remove(ctx, user_id):
     # TODO
-    print "NOT IMPLEMENTED"
+    print("NOT IMPLEMENTED")
     
     return CHISUBMIT_SUCCESS
 

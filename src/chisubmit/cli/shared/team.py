@@ -1,3 +1,4 @@
+from __future__ import print_function
 import click
 from chisubmit.cli.common import pass_course, get_team_or_exit,\
     get_assignment_or_exit, catch_chisubmit_exceptions, require_local_config
@@ -35,7 +36,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
             continue
         
         if ids:
-            print team.team_id
+            print(team.team_id)
         else:
             team_members = team.get_team_members()
             
@@ -49,7 +50,7 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
                 assignments = "Assignments: " + ",".join([r.assignment.assignment_id for r in registrations])
             fields = [team.team_id, students, assignments]
 
-            print "  ".join(fields)
+            print("  ".join(fields))
 
     return CHISUBMIT_SUCCESS
 
@@ -62,19 +63,19 @@ def shared_team_list(ctx, course, ids, assignment, include_inactive):
 def shared_team_show(ctx, course, team_id):
     team = get_team_or_exit(ctx, course, team_id)
         
-    print "Team name: %s" % team.team_id
-    print
+    print("Team name: %s" % team.team_id)
+    print()
     if course.extension_policy == "per-team":
-        print "Extensions available: %i" % team.extensions 
-        print
+        print("Extensions available: %i" % team.extensions) 
+        print()
     
     team_members = team.get_team_members()
     
     if len(team_members) == 0:
-        print "No students in this team"
+        print("No students in this team")
     else:
-        print "STUDENTS"
-        print "--------"
+        print("STUDENTS")
+        print("--------")
         for team_member in team_members:
             if team_member.confirmed:
                 status = "CONFIRMED"
@@ -83,26 +84,26 @@ def shared_team_show(ctx, course, team_id):
 
             user = team_member.student.user
 
-            print "%s: %s, %s  (%s)" % (user.username, user.last_name, user.first_name, status)
+            print("%s: %s, %s  (%s)" % (user.username, user.last_name, user.first_name, status))
 
-    print
+    print()
 
     registrations = team.get_assignment_registrations()
 
     if len(registrations) == 0:
-        print "This team is not registered for any assignments."
+        print("This team is not registered for any assignments.")
     else:
-        print "ASSIGNMENTS"
-        print "-----------"
+        print("ASSIGNMENTS")
+        print("-----------")
         for r in registrations:
             assignment = r.assignment
-            print "ID: %s" % assignment.assignment_id
-            print "Name: %s" % assignment.name
-            print "Deadline: %s" % convert_datetime_to_local(assignment.deadline).isoformat(" ")        
+            print("ID: %s" % assignment.assignment_id)
+            print("Name: %s" % assignment.name)
+            print("Deadline: %s" % convert_datetime_to_local(assignment.deadline).isoformat(" "))        
             if r.final_submission is not None:
-                print "Last submitted at: %s" % convert_datetime_to_local(r.final_submission.submitted_at).isoformat(" ")
-                print "Commit SHA: %s" % r.final_submission.commit_sha
-                print "Extensions used: %i" % r.final_submission.extensions_used
+                print("Last submitted at: %s" % convert_datetime_to_local(r.final_submission.submitted_at).isoformat(" "))
+                print("Commit SHA: %s" % r.final_submission.commit_sha)
+                print("Extensions used: %i" % r.final_submission.extensions_used)
             else:
-                print "NOT SUBMITTED"    
-            print    
+                print("NOT SUBMITTED")    
+            print()    

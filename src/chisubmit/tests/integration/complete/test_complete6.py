@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, convert_datetime_to_local,\
     set_testing_now
@@ -95,9 +97,9 @@ Total Points: 0 / 100
         new_now = get_datetime_now_utc() + timedelta(hours=2)
         set_testing_now(new_now)
 
-        print
-        print "~~~ Time has moved 'forward' by two hours ~~~"
-        print
+        print()
+        print("~~~ Time has moved 'forward' by two hours ~~~")
+        print()
 
         # The "master instructor" creates the grading repos
 

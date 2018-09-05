@@ -1,11 +1,14 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 import click
 import unittest
 import sys
 import os
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 from django.test.runner import DiscoverRunner
 
@@ -110,8 +113,8 @@ def runtests(failfast, quiet, verbose, buffer,
     
 def configure_complete_test(test, config, git_server, git_staging):
     if config is None and (git_server is not None or git_staging is not None):
-        print "ERROR: You have specified a Git server or staging server, but have"
-        print "       not provided a configuration file."
+        print("ERROR: You have specified a Git server or staging server, but have")
+        print("       not provided a configuration file.")
         sys.exit(1)
         
     if config is None:
@@ -119,8 +122,8 @@ def configure_complete_test(test, config, git_server, git_staging):
     
     if git_server is not None:
         if not config.has_section(git_server):
-            print "ERROR: You specified a %s server, but the configuration file" % git_server
-            print "       doesn't have a [%s] section" % git_server
+            print("ERROR: You specified a %s server, but the configuration file" % git_server)
+            print("       doesn't have a [%s] section" % git_server)
         
         connstr = config.get(git_server, "server-connstr")
         apikey = config.get(git_server, "api-key")
@@ -132,8 +135,8 @@ def configure_complete_test(test, config, git_server, git_staging):
         
     if git_staging is not None:
         if not config.has_section(git_staging):
-            print "ERROR: You specified a %s server, but the configuration file" % gitgit_staging_server
-            print "       doesn't have a [%s] section" % git_staging
+            print("ERROR: You specified a %s server, but the configuration file" % gitgit_staging_server)
+            print("       doesn't have a [%s] section" % git_staging)
         
         connstr = config.get(git_staging, "staging-connstr")
         apikey = config.get(git_staging, "api-key")

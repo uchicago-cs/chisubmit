@@ -51,7 +51,7 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
     
     def gen_csv(self, students, filename):
         header = "username,first,last,email\n"
-        rows = ["%s,%s,%s,%s" % (username, u[0], u[1], u[2]) for username, u in students.items()]
+        rows = ["%s,%s,%s,%s" % (username, u[0], u[1], u[2]) for username, u in list(students.items())]
         rows.sort()
         rows = "\n".join(rows)
         

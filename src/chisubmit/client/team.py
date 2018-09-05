@@ -27,6 +27,7 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+from builtins import str
 from chisubmit.client.types import ChisubmitAPIObject, Attribute, APIStringType,\
     APIIntegerType, APIBooleanType, APIObjectType, APIDateTimeType, APIDictType,\
     APIDecimalType, Relationship
@@ -286,19 +287,19 @@ class Registration(ChisubmitAPIObject):
         if self.grade_adjustments is None:
             return 0.0
         else:
-            return sum([v for v in self.grade_adjustments.values() if v < 0.0])
+            return sum([v for v in list(self.grade_adjustments.values()) if v < 0.0])
 
     def get_total_bonuses(self):
         if self.grade_adjustments is None:
             return 0.0
         else:
-            return sum([v for v in self.grade_adjustments.values() if v >= 0.0])
+            return sum([v for v in list(self.grade_adjustments.values()) if v >= 0.0])
         
     def get_total_adjustments(self):
         if self.grade_adjustments is None:
             return 0.0
         else:
-            return sum([v for v in self.grade_adjustments.values()])
+            return sum([v for v in list(self.grade_adjustments.values())])
     
     def get_total_grade(self):
         grades = self.get_grades()
@@ -376,7 +377,7 @@ class Team(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.team.TeamMember`
         """
         
-        assert isinstance(username, (str, unicode)), username
+        assert isinstance(username, (str, str)), username
         
         headers, data = self._api_client._requester.request(
             "GET",
@@ -390,9 +391,9 @@ class Team(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.team.TeamMember`
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) 
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -425,7 +426,7 @@ class Team(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.team.Registration`
         """
         
-        assert isinstance(assignment_id, (str, unicode)), assignment_id
+        assert isinstance(assignment_id, (str, str)), assignment_id
         
         headers, data = self._api_client._requester.request(
             "GET",
@@ -439,10 +440,10 @@ class Team(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.team.Registration`
         """
         
-        assert isinstance(assignment_or_assignment_id, (str, unicode)) or isinstance(assignment_or_assignment_id, Assignment) 
-        assert grader_or_grader_username is None or isinstance(grader_or_grader_username, (str, unicode)) or isinstance(grader_or_grader_username, Grader) 
+        assert isinstance(assignment_or_assignment_id, (str, str)) or isinstance(assignment_or_assignment_id, Assignment) 
+        assert grader_or_grader_username is None or isinstance(grader_or_grader_username, (str, str)) or isinstance(grader_or_grader_username, Grader) 
         
-        if isinstance(assignment_or_assignment_id, (str, unicode)):
+        if isinstance(assignment_or_assignment_id, (str, str)):
             assignment_id = assignment_or_assignment_id
         elif isinstance(assignment_or_assignment_id, User):
             assignment_id = assignment_or_assignment_id.assignment_id
@@ -450,7 +451,7 @@ class Team(ChisubmitAPIObject):
         post_data = {"assignment_id": assignment_id}
         
         if grader_or_grader_username is not None:
-            if isinstance(grader_or_grader_username, (str, unicode)):
+            if isinstance(grader_or_grader_username, (str, str)):
                 grader_username = grader_or_grader_username
             elif isinstance(grader_or_grader_username, User):
                 grader_username = grader_or_grader_username.user.username

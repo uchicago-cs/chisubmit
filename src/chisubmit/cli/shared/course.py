@@ -1,3 +1,4 @@
+from __future__ import print_function
 import click
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.client.course import Course
@@ -16,7 +17,7 @@ def shared_course_list(ctx):
     courses = ctx.obj["client"].get_courses()
     
     for course in courses:
-        print course.course_id, course.name
+        print(course.course_id, course.name)
 
     return CHISUBMIT_SUCCESS
 
@@ -37,7 +38,7 @@ def shared_course_get_git_credentials(ctx, course, username, password, no_save, 
         connstr = course.git_staging_connstr
     
     if connstr is None or connstr == "":
-        print "Course '%s' doesn't seem to be configured to use a Git server." % course.id
+        print("Course '%s' doesn't seem to be configured to use a Git server." % course.id)
         ctx.exit(CHISUBMIT_FAIL)
         
     conn = RemoteRepositoryConnectionFactory.create_connection(connstr, staging = staging, ssl_verify=ctx.obj['config'].get_ssl_verify())
@@ -46,7 +47,7 @@ def shared_course_get_git_credentials(ctx, course, username, password, no_save, 
     token, existing = conn.get_credentials(username, password, delete_repo = delete_permissions)
 
     if token is None:
-        print "Unable to create token. Incorrect username/password."
+        print("Unable to create token. Incorrect username/password.")
     else:
         if not no_save:
             if ctx.obj['config']['git-credentials'] is None:
@@ -55,12 +56,12 @@ def shared_course_get_git_credentials(ctx, course, username, password, no_save, 
             ctx.obj['config'].save()
         
         if existing:
-            print "Your existing %s access token is: %s" % (server_type, token)
+            print("Your existing %s access token is: %s" % (server_type, token))
         else:
-            print "The following %s access token has been created: %s" % (server_type, token)
+            print("The following %s access token has been created: %s" % (server_type, token))
 
         if not no_save:
-            print "chisubmit has been configured to use this token from now on."
+            print("chisubmit has been configured to use this token from now on.")
 
     return CHISUBMIT_SUCCESS
 

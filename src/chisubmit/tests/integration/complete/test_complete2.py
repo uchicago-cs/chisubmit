@@ -1,3 +1,4 @@
+from builtins import zip
 from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL

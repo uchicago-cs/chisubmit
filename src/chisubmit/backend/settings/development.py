@@ -1,4 +1,5 @@
-from defaults import *
+from __future__ import absolute_import
+from .defaults import *
 
 SECRET_KEY = '0jd7t0(05@5d#-7$#w2#zagfruos0r!&t37%9m)_9^#ymg7dq+'
 

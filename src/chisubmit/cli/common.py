@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import input
 import click
 import os.path
 from functools import update_wrapper
@@ -90,62 +92,62 @@ def catch_chisubmit_exceptions(f):
         ctx = get_current_context()
         try:
             return f(*args, **kwargs)
-        except UnknownObjectException, uoe:
-            print
-            print "ERROR: There was an error processing this request"
-            print
-            print "URL: %s" % uoe.url
-            print "HTTP method: %s" % uoe.method
-            print "Error: Not found (404)"
+        except UnknownObjectException as uoe:
+            print()
+            print("ERROR: There was an error processing this request")
+            print()
+            print("URL: %s" % uoe.url)
+            print("HTTP method: %s" % uoe.method)
+            print("Error: Not found (404)")
             if ctx.obj["debug"]:
-                print
+                print()
                 uoe.print_debug_info()
-        except UnauthorizedException, ue:
-            print
-            print "ERROR: Your chisubmit credentials are invalid"
-            print
-            print "URL: %s" % ue.url
-            print "HTTP method: %s" % ue.method
-            print "Error: Unauthorized (401)"
+        except UnauthorizedException as ue:
+            print()
+            print("ERROR: Your chisubmit credentials are invalid")
+            print()
+            print("URL: %s" % ue.url)
+            print("HTTP method: %s" % ue.method)
+            print("Error: Unauthorized (401)")
             if ctx.obj["debug"]:
-                print
+                print()
                 ue.print_debug_info()            
-        except BadRequestException, bre:
-            print
-            print "ERROR: There was an error processing this request"
-            print
-            print "URL: %s" % bre.url
-            print "HTTP method: %s" % bre.method
-            print "Error(s):"
+        except BadRequestException as bre:
+            print()
+            print("ERROR: There was an error processing this request")
+            print()
+            print("URL: %s" % bre.url)
+            print("HTTP method: %s" % bre.method)
+            print("Error(s):")
             bre.print_errors()
             if ctx.obj["debug"]:
-                print
+                print()
                 bre.print_debug_info()
-        except ChisubmitRequestException, cre:
-            print "ERROR: chisubmit server returned an HTTP error"
-            print
-            print "URL: %s" % cre.url
-            print "HTTP method: %s" % cre.method
-            print "Status code: %i" % cre.status
-            print "Message: %s" % cre.reason
+        except ChisubmitRequestException as cre:
+            print("ERROR: chisubmit server returned an HTTP error")
+            print()
+            print("URL: %s" % cre.url)
+            print("HTTP method: %s" % cre.method)
+            print("Status code: %i" % cre.status)
+            print("Message: %s" % cre.reason)
             if ctx.obj["debug"]:
-                print
+                print()
                 cre.print_debug_info()        
-        except ConnectionError, ce:
+        except ConnectionError as ce:
             if isinstance(ce.message, (SSLError, SSLError_urllib3)):
-                print "ERROR: SSL certificate error when connecting to server"                
+                print("ERROR: SSL certificate error when connecting to server")                
             else:
-                print "ERROR: Could not connect to server"
-            print "URL: %s" % ce.request.url
+                print("ERROR: Could not connect to server")
+            print("URL: %s" % ce.request.url)
             if ctx.obj["debug"]:
-                print "Reason:", ce.message
-        except ChisubmitException, ce:
-            print "ERROR: %s" % ce
+                print("Reason:", ce.message)
+        except ChisubmitException as ce:
+            print("ERROR: %s" % ce)
             if ctx.obj["debug"]:
                 ce.print_exception()
         except click.UsageError:
             raise
-        except Exception, e:
+        except Exception as e:
             handle_unexpected_exception()
             
         ctx.exit(CHISUBMIT_FAIL)
@@ -158,7 +160,7 @@ def get_course_or_exit(ctx, course_id):
         course = ctx.obj["client"].get_course(course_id = course_id)
         return course
     except UnknownObjectException:
-        print "Course %s does not exist" % course_id
+        print("Course %s does not exist" % course_id)
         ctx.exit(CHISUBMIT_FAIL)    
 
 def get_user_or_exit(ctx, username):
@@ -166,49 +168,49 @@ def get_user_or_exit(ctx, username):
         user = ctx.obj["client"].get_user(username = username)
         return user
     except UnknownObjectException:
-        print "User %s does not exist" % username
+        print("User %s does not exist" % username)
         ctx.exit(CHISUBMIT_FAIL)    
 
 def get_assignment_or_exit(ctx, course, assignment_id, include_rubric = False):
     try:
         return course.get_assignment(assignment_id = assignment_id, include_rubric = include_rubric)
     except UnknownObjectException:
-        print "Assignment %s does not exist" % assignment_id
+        print("Assignment %s does not exist" % assignment_id)
         ctx.exit(CHISUBMIT_FAIL)
         
 def get_team_or_exit(ctx, course, team_id):
     try:
         return course.get_team(team_id = team_id)
     except UnknownObjectException:
-        print "Team %s does not exist" % team_id
+        print("Team %s does not exist" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
 
 def get_assignment_registration_or_exit(ctx, team, assignment_id):
     try:
         return team.get_assignment_registration(assignment_id = assignment_id)
     except UnknownObjectException:
-        print "Team %s is not registered for assignment %s" % (team.team_id, assignment_id)
+        print("Team %s is not registered for assignment %s" % (team.team_id, assignment_id))
         ctx.exit(CHISUBMIT_FAIL)        
         
 def get_instructor_or_exit(ctx, course, username):
     try:
         return course.get_instructor(username = username)
     except UnknownObjectException:
-        print "Course %s does not have an instructor %s" % (course.course_id, username)
+        print("Course %s does not have an instructor %s" % (course.course_id, username))
         ctx.exit(CHISUBMIT_FAIL)  
         
 def get_grader_or_exit(ctx, course, username):
     try:
         return course.get_grader(username = username)
     except UnknownObjectException:
-        print "Course %s does not have a grader %s" % (course.course_id, username)
+        print("Course %s does not have a grader %s" % (course.course_id, username))
         ctx.exit(CHISUBMIT_FAIL)  
         
 def get_student_or_exit(ctx, course, username):
     try:
         return course.get_student(username = username)
     except UnknownObjectException:
-        print "Course %s does not have a student %s" % (course.course_id, username)
+        print("Course %s does not have a student %s" % (course.course_id, username))
         ctx.exit(CHISUBMIT_FAIL)             
         
         
@@ -233,28 +235,28 @@ def get_team_registration_from_user(ctx, course, assignment, user = None):
                 
     if len(teams_registered_for_assignment) == 0:
         if custom_user:
-            print "%s is not registered for assignment %s" % (user.username, assignment.assignment_id)
+            print("%s is not registered for assignment %s" % (user.username, assignment.assignment_id))
         else:
-            print "You are not registered for assignment %s" % assignment.assignment_id
+            print("You are not registered for assignment %s" % assignment.assignment_id)
         ctx.exit(CHISUBMIT_FAIL)        
     elif len(teams_registered_for_assignment) > 1:
         if custom_user:
-            print "%s is registered for assignment %s in more than one team" % (user.username, assignment.assignment_id)
+            print("%s is registered for assignment %s in more than one team" % (user.username, assignment.assignment_id))
         else:
-            print "You are registered for assignment %s in more than one team" % assignment.assignment_id
-            print "Please notify your instructor about this."
+            print("You are registered for assignment %s in more than one team" % assignment.assignment_id)
+            print("Please notify your instructor about this.")
         ctx.exit(CHISUBMIT_FAIL)        
         
     return teams_registered_for_assignment[0]                            
 
 
 def api_obj_set_attribute(ctx, api_obj, attr_name, attr_value):
-    valid_attrs = [attr for attr in api_obj._api_attributes.values() if attr.editable]
+    valid_attrs = [attr for attr in list(api_obj._api_attributes.values()) if attr.editable]
     valid_attrs_names = [attr.name for attr in valid_attrs]
     
     if attr_name not in valid_attrs_names:
-        print "ERROR: '%s' is not a valid attribute." % attr_name
-        print "Valid attributes are: %s" % (", ".join(valid_attrs_names))
+        print("ERROR: '%s' is not a valid attribute." % attr_name)
+        print("Valid attributes are: %s" % (", ".join(valid_attrs_names)))
         ctx.exit(CHISUBMIT_FAIL)
         
     attr = api_obj._api_attributes[attr_name]
@@ -272,7 +274,7 @@ def api_obj_set_attribute(ctx, api_obj, attr_name, attr_value):
         if v.tzinfo is None:
             v = convert_datetime_to_utc(v)
     else:
-        print "ERROR: Editing attribute '%s' from the command-line is not currently supported." % attr_name
+        print("ERROR: Editing attribute '%s' from the command-line is not currently supported." % attr_name)
         ctx.exit(CHISUBMIT_FAIL)
         
     api_obj.edit(**{attr_name: v}) 
@@ -325,22 +327,22 @@ def get_teams_registrations(course, assignment, only_ready_for_grading=False, gr
 def create_grading_repos(config, course, assignment, teams_registrations, staging_only):
     repos = []
 
-    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
+    teams = sorted(list(teams_registrations.keys()), key=operator.attrgetter("team_id"))
 
     for team in teams:
         registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
         if repo is None:
-            print ("Creating grading repo for %s... " % team.team_id),
+            print(("Creating grading repo for %s... " % team.team_id), end=' ')
             repo = GradingGitRepo.create_grading_repo(config, course, team, registration, staging_only)
             repo.sync()
 
             repos.append(repo)
 
-            print "done"
+            print("done")
         else:
-            print "Grading repo for %s already exists" % team.team_id
+            print("Grading repo for %s already exists" % team.team_id)
 
     return repos
 
@@ -349,15 +351,15 @@ def gradingrepo_push_grading_branch(config, course, team, registration, to_stude
     repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
-        print "%s does not have a grading repository" % team.team_id
+        print("%s does not have a grading repository" % team.team_id)
         return CHISUBMIT_FAIL
     
     if not repo.has_grading_branch():
-        print "%s does not have a grading branch" % team.team_id
+        print("%s does not have a grading branch" % team.team_id)
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "Warning: %s grading repo has uncommitted changes." % team.team_id
+        print("Warning: %s grading repo has uncommitted changes." % team.team_id)
 
     if to_students:
         repo.push_grading_branch_to_students()
@@ -370,21 +372,21 @@ def gradingrepo_pull_grading_branch(config, course, team, registration, from_stu
     repo = GradingGitRepo.get_grading_repo(config, course, team, registration)
 
     if repo is None:
-        print "%s does not have a grading repository" % team.team_id
+        print("%s does not have a grading repository" % team.team_id)
         return CHISUBMIT_FAIL
 
     if repo.is_dirty():
-        print "%s grading repo has uncommited changes. Cannot pull." % team.team_id
+        print("%s grading repo has uncommited changes. Cannot pull." % team.team_id)
         return CHISUBMIT_FAIL
 
     if from_students:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch on students' repository" % team.team_id
+            print("%s does not have a grading branch on students' repository" % team.team_id)
         else:
             repo.pull_grading_branch_from_students()
     else:
         if not repo.has_grading_branch_staging():
-            print "%s does not have a grading branch in staging" % team.team_id
+            print("%s does not have a grading branch in staging" % team.team_id)
         else:
             repo.pull_grading_branch_from_staging()
 
@@ -393,28 +395,28 @@ def gradingrepo_pull_grading_branch(config, course, team, registration, from_stu
 def validate_repo_rubric(ctx, course, assignment, team, registration):
     repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
     if not repo:
-        print "Repository for %s does not exist" % (team.team_id)
+        print("Repository for %s does not exist" % (team.team_id))
         ctx.exit(CHISUBMIT_FAIL)
 
     rubricfile = repo.repo_path + "/%s.rubric.txt" % assignment.assignment_id
 
     if not os.path.exists(rubricfile):
-        print "Repository for %s does not exist have a rubric for assignment %s" % (team.team_id, assignment.assignment_id)
+        print("Repository for %s does not exist have a rubric for assignment %s" % (team.team_id, assignment.assignment_id))
         ctx.exit(CHISUBMIT_FAIL)
 
     try:
         RubricFile.from_file(open(rubricfile), assignment)
         return (True, None)
-    except ChisubmitRubricException, cre:
+    except ChisubmitRubricException as cre:
         return (False, cre.message)
 
 def ask_yesno(prompt="Are you sure you want to continue? (y/n): ", yes=False):
-        print prompt, 
+        print(prompt, end=' ') 
         
         if not yes:
-            yesno = raw_input()
+            yesno = input()
         else:
             yesno = 'y'
-            print 'y'
+            print('y')
             
         return yesno in ('y', 'Y', 'yes', 'Yes', 'YES')    

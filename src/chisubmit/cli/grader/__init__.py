@@ -1,3 +1,4 @@
+from __future__ import print_function
 import click
 import operator
 import os.path
@@ -37,27 +38,27 @@ def grader_pull_grading(ctx, course, grader, assignment_id):
     teams_registrations = get_teams_registrations(course, assignment, grader = grader)
     
     if len(teams_registrations) == 0:
-        print "No teams found"
+        print("No teams found")
         ctx.exit(CHISUBMIT_FAIL)
 
-    teams = sorted(teams_registrations.keys(), key=operator.attrgetter("team_id"))
+    teams = sorted(list(teams_registrations.keys()), key=operator.attrgetter("team_id"))
 
     for team in teams:
         registration = teams_registrations[team]
         repo = GradingGitRepo.get_grading_repo(ctx.obj['config'], course, team, registration)
 
         if repo is None:
-            print ("%40s -- Creating grading repo... " % team.team_id),
+            print(("%40s -- Creating grading repo... " % team.team_id), end=' ')
             repo = GradingGitRepo.create_grading_repo(ctx.obj['config'], course, team, registration, staging_only = True)
             repo.sync()
             gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
             repo.set_grader_author()
             
-            print "done"
+            print("done")
         else:
-            print ("%40s -- Pulling grading branch..." % team.team_id),
+            print(("%40s -- Pulling grading branch..." % team.team_id), end=' ')
             gradingrepo_pull_grading_branch(ctx.obj['config'], course, team, registration)
-            print "done"
+            print("done")
             
         rubricfile = "%s.rubric.txt" % assignment.assignment_id
         rubricfilepath = "%s/%s" % (repo.repo_path, rubricfile)
@@ -89,17 +90,17 @@ def grader_push_grading(ctx, course, assignment_id, grader, only, skip_rubric_va
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only, only_ready_for_grading=True)
     
     if len(teams_registrations) == 0:
-        print "No teams found"
+        print("No teams found")
         ctx.exit(CHISUBMIT_FAIL)
 
-    for team, registration in teams_registrations.items():
+    for team, registration in list(teams_registrations.items()):
         if not skip_rubric_validation:
             valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
             if not valid:
-                print "Not pushing branch for team %s. Rubric does not validate: %s" % (team.team_id, error_msg)
+                print("Not pushing branch for team %s. Rubric does not validate: %s" % (team.team_id, error_msg))
                 continue
         
-        print "Pushing grading branch for team %s... " % team.team_id
+        print("Pushing grading branch for team %s... " % team.team_id)
         gradingrepo_push_grading_branch(ctx.obj['config'], course, team, registration)
 
     return CHISUBMIT_SUCCESS
@@ -126,13 +127,13 @@ def grader_validate_rubrics(ctx, course, assignment_id, grader, only):
     teams_registrations = get_teams_registrations(course, assignment, grader = grader, only = only)
     
     all_valid = True
-    for team, registration in teams_registrations.items():
+    for team, registration in list(teams_registrations.items()):
         valid, error_msg = validate_repo_rubric(ctx, course, assignment, team, registration)
 
         if valid:
-            print "%s: Rubric OK." % team.team_id
+            print("%s: Rubric OK." % team.team_id)
         else:
-            print "%s: Rubric ERROR: %s" % (team.team_id, error_msg)
+            print("%s: Rubric ERROR: %s" % (team.team_id, error_msg))
             all_valid = False
             
     if not all_valid:

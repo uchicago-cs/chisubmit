@@ -158,7 +158,7 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
                                      name = "Advanced Validation Testing")
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["course_id"])
+        self.assertItemsEqual(list(bre.errors.keys()), ["course_id"])
         self.assertEqual(len(bre.errors["course_id"]), 1)
         
     def test_create_course_multiple_errors(self):
@@ -169,7 +169,7 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
                                      name = None)
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["course_id", "name"])
+        self.assertItemsEqual(list(bre.errors.keys()), ["course_id", "name"])
         self.assertEqual(len(bre.errors["course_id"]), 1)        
         self.assertEqual(len(bre.errors["name"]), 1)        
           
@@ -181,7 +181,7 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
                                      name = "Introduction to Software Testing")
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["course_id"])
+        self.assertItemsEqual(list(bre.errors.keys()), ["course_id"])
         self.assertEqual(len(bre.errors["course_id"]), 1)
         
 class CourseArchivingTests(ChisubmitClientLibsTestCase):

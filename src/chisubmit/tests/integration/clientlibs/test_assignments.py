@@ -68,7 +68,7 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
                                                   max_students = 2)
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["assignment_id"])
+        self.assertItemsEqual(list(bre.errors.keys()), ["assignment_id"])
         self.assertEqual(len(bre.errors["assignment_id"]), 1)
         
     def test_create_assignment_multiple_errors(self):
@@ -83,7 +83,7 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
                                                   max_students = 2)
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["assignment_id", "name"])
+        self.assertItemsEqual(list(bre.errors.keys()), ["assignment_id", "name"])
         self.assertEqual(len(bre.errors["assignment_id"]), 1)        
         self.assertEqual(len(bre.errors["name"]), 1)        
           
@@ -99,7 +99,7 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
                                                   max_students = 2)
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["assignment_id"])
+        self.assertItemsEqual(list(bre.errors.keys()), ["assignment_id"])
         self.assertEqual(len(bre.errors["assignment_id"]), 1)      
         
     def test_create_assignment_unique_within_course(self):

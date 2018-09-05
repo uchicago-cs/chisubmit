@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
@@ -79,9 +81,9 @@ class CLICompleteWorkflowGracePeriods(ChisubmitCLITestCase):
         new_now = get_datetime_now_utc() + timedelta(minutes=11)
         set_testing_now(new_now)
 
-        print
-        print "~~~ Time has moved 'forward' to one minute after the grace period hours ~~~"
-        print
+        print()
+        print("~~~ Time has moved 'forward' to one minute after the grace period hours ~~~")
+        print()
         
         # Team 1 submits and has to use an extensions because the grace period is over
         result = students_team[1][0].run("student assignment submit", 

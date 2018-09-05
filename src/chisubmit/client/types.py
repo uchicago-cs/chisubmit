@@ -1,5 +1,8 @@
+from builtins import str
+from builtins import object
 import datetime
 import pytz
+from six import string_types
 from chisubmit.common.utils import parse_timedelta
 
 class ChisubmitAPIException(Exception):
@@ -73,11 +76,11 @@ class AttributeType(object):
         assert(subtype is None or 
                (attrtype == self.LIST and isinstance(subtype, AttributeType)) or
                (attrtype == self.DICT and isinstance(subtype, AttributeType)) or
-               (attrtype == self.OBJECT and isinstance(subtype, basestring)) or 
+               (attrtype == self.OBJECT and isinstance(subtype, string_types)) or 
                (attrtype == self.OBJECT and issubclass(subtype, ChisubmitAPIObject)))
                
         # Based on http://stackoverflow.com/questions/547829/how-to-dynamically-load-a-python-class
-        if attrtype == self.OBJECT and isinstance(subtype, basestring):
+        if attrtype == self.OBJECT and isinstance(subtype, string_types):
             subtypel = subtype.split(".")
             mod = __import__(".".join(subtypel[:-1]), fromlist=subtypel[-1])
             klass = getattr(mod, subtypel[-1])
@@ -89,11 +92,11 @@ class AttributeType(object):
         
     def to_python(self, value, headers, api_client):
         if self.attrtype == AttributeType.STRING:
-            if not isinstance(value, basestring):
+            if not isinstance(value, string_types):
                 raise AttributeTypeException(value, self)
             return value
         elif self.attrtype == AttributeType.INTEGER:
-            if not isinstance(value, (int, long)):
+            if not isinstance(value, (int, int)):
                 raise AttributeTypeException(value, self)
             return value
         elif self.attrtype == AttributeType.DECIMAL:
@@ -106,7 +109,7 @@ class AttributeType(object):
                 raise AttributeTypeException(value, self)
             return value
         elif self.attrtype == AttributeType.DATETIME:
-            if not isinstance(value, basestring):
+            if not isinstance(value, string_types):
                 raise AttributeTypeException(value, self)
             try:
                 if value[19] == ".":
@@ -114,16 +117,16 @@ class AttributeType(object):
                 else:
                     dt = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
                 dt = pytz.utc.localize(dt)
-            except ValueError, ve:
+            except ValueError as ve:
                 raise AttributeTypeException(value, self)
                 
             return dt        
         elif self.attrtype == AttributeType.TIMEDELTA:
-            if not isinstance(value, basestring):
+            if not isinstance(value, string_types):
                 raise AttributeTypeException(value, self)
             try:
                 return parse_timedelta(value)
-            except ValueError, ve:
+            except ValueError as ve:
                 raise AttributeTypeException(value, self)
                 
             return dt        
@@ -138,7 +141,7 @@ class AttributeType(object):
             if not isinstance(value, dict):
                 raise AttributeTypeException(value, self)
             rvalue = {}
-            for k, item in value.items():
+            for k, item in list(value.items()):
                 rvalue[k] = self.subtype.to_python(item, headers, api_client)
             return rvalue
         elif self.attrtype == AttributeType.OBJECT:
@@ -208,7 +211,7 @@ class ChisubmitAPIObject(object):
         self._updateAttributes(attributes)
 
     def __has_api_attr(self, attrname):
-        return self._api_attributes.has_key(attrname)
+        return attrname in self._api_attributes
 
     def __get_api_attr(self, attrname):
         return self._api_attributes.get(attrname)
@@ -222,11 +225,11 @@ class ChisubmitAPIObject(object):
         return rel_name in self._api_relationships
         
     def _initAttributes(self):
-        for api_attr in self._api_attributes.keys():
+        for api_attr in list(self._api_attributes.keys()):
             object.__setattr__(self, api_attr, None)
 
     def _updateAttributes(self, attributes):
-        for attrname, attrvalue in attributes.items():
+        for attrname, attrvalue in list(attributes.items()):
             if attrname == "url":
                 object.__setattr__(self, attrname, attrvalue)
             elif self.__is_relationship_attr(attrname):
@@ -292,7 +295,7 @@ class ChisubmitAPIObject(object):
     def save(self):
         if self._api_client._deferred_save:
             attrs = {}
-            for attrname, dirty in self.dirty.items():
+            for attrname, dirty in list(self.dirty.items()):
                 if dirty:
                     attrs[attrname] = getattr(self, attrname)
                     self.dirty[attrname] = False
@@ -305,7 +308,7 @@ class ChisubmitAPIObject(object):
     def edit(self, **kwargs):
         patch_data = {}
         
-        for attrname, attrvalue in kwargs.items():
+        for attrname, attrvalue in list(kwargs.items()):
             api_attr = self.__get_api_attr(attrname)
             
             if api_attr is None:

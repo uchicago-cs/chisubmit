@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import zip
+from builtins import object
 import os
 import yaml
 import sys
@@ -60,7 +63,7 @@ def cli_test(func=None, isolated_filesystem = True):
                     func(self, runner, *args, **kwargs)
             else:
                 func(self, runner, *args, **kwargs)
-        except BadRequestException, bre:
+        except BadRequestException as bre:
             bre.print_errors()
             raise
     return new_func
@@ -116,7 +119,7 @@ class ChisubmitCLITestClient(object):
         if self.verbose:
             global cli_verbose
             if cli_verbose:
-                print
+                print()
             l = []
             for ca in cmd_args:
                 if " " in ca:
@@ -129,7 +132,7 @@ class ChisubmitCLITestClient(object):
             s+= colorama.Fore.WHITE
             s+= " chisubmit %s" % " ".join(l)
             s+= colorama.Style.RESET_ALL
-            print s
+            print(s)
         
         result = self.runner.invoke(cmd, chisubmit_args + cmd_args, catch_exceptions=catch_exceptions, input=cmd_input)
         

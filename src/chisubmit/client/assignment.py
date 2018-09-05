@@ -114,7 +114,7 @@ class Assignment(ChisubmitAPIObject):
         :param order: int
         :rtype: :class:`chisubmit.client.assignment.RubricComponent`
         """
-        assert isinstance(description, (str, unicode)), description
+        assert isinstance(description, (str, str)), description
         
         post_data = {"description": description,
                      "points": points}

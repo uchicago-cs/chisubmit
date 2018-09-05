@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
@@ -98,9 +100,9 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         new_now = get_datetime_now_utc() + timedelta(hours=2)
         set_testing_now(new_now)
 
-        print
-        print "~~~ Time has moved 'forward' by two hours ~~~"
-        print
+        print()
+        print("~~~ Time has moved 'forward' by two hours ~~~")
+        print()
         
       
         # Team 1 cancels their submission and submits again. While the deadline
@@ -120,9 +122,9 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         new_now = get_datetime_now_utc() + timedelta(hours=24)
         set_testing_now(new_now)        
         
-        print
-        print "~~~ Time has moved 'forward' by 24 hours ~~~"
-        print           
+        print()
+        print("~~~ Time has moved 'forward' by 24 hours ~~~")
+        print()           
         
         # Instructor creates master grading repos. This flags the repo for Team 1 as sent to the graders. 
         result = instructors[0].run("instructor grading create-grading-repos", ["--master", "pa1"])

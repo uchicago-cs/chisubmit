@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
@@ -60,10 +61,10 @@ def admin_course(ctx):
 def admin_course_add(ctx, course_id, name):
     try:
         course = ctx.obj["client"].get_course(course_id = course_id)
-        print "ERROR: Cannot create course."
-        print "       Course with course_id = %s already exists." % course_id
+        print("ERROR: Cannot create course.")
+        print("       Course with course_id = %s already exists." % course_id)
         ctx.exit(CHISUBMIT_FAIL)
-    except UnknownObjectException, uoe:
+    except UnknownObjectException as uoe:
         course = ctx.obj["client"].create_course(course_id = course_id,
                                                  name = name)
     
@@ -93,34 +94,34 @@ def admin_course_remove(ctx, course_id):
 def admin_course_show(ctx, course_id, include_users, include_assignments):
     course = get_course_or_exit(ctx, course_id) 
     
-    print course.course_id, course.name
+    print(course.course_id, course.name)
 
     if include_users:
-        print
-        print "INSTRUCTORS"
-        print "-----------"
+        print()
+        print("INSTRUCTORS")
+        print("-----------")
         for i in course.get_instructors():
-            print "%s: %s, %s <%s>" % (i.user.username, i.user.last_name, i.user.first_name, i.user.email)
-        print
+            print("%s: %s, %s <%s>" % (i.user.username, i.user.last_name, i.user.first_name, i.user.email))
+        print()
             
-        print "GRADERS"
-        print "-------"
+        print("GRADERS")
+        print("-------")
         for g in course.get_graders():
-            print "%s: %s, %s <%s>" % (g.user.username, g.user.last_name, g.user.first_name, g.user.email)
-        print
+            print("%s: %s, %s <%s>" % (g.user.username, g.user.last_name, g.user.first_name, g.user.email))
+        print()
         
-        print "STUDENTS"
-        print "--------"
+        print("STUDENTS")
+        print("--------")
         for s in course.get_students():
-            print "%s: %s, %s <%s>" % (s.user.username, s.user.last_name, s.user.first_name, s.user.email)
-        print
+            print("%s: %s, %s <%s>" % (s.user.username, s.user.last_name, s.user.first_name, s.user.email))
+        print()
 
     if include_assignments:
-        print "ASSIGNMENTS"
-        print "-----------"
+        print("ASSIGNMENTS")
+        print("-----------")
         for a in course.get_assignments():
-            print "%s: %s (Due: %s)" % (a.assignment_id, a.name, a.deadline)
-        print
+            print("%s: %s (Due: %s)" % (a.assignment_id, a.name, a.deadline))
+        print()
 
     
     return CHISUBMIT_SUCCESS
@@ -183,7 +184,7 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
     course = get_course_or_exit(ctx, course_id)    
                 
     if user_type == "column" and user_type_column is None:
-        print "You must specify a column with --user-type-column when using '--user-type column'"
+        print("You must specify a column with --user-type-column when using '--user-type column'")
         ctx.exit(CHISUBMIT_FAIL)
         
     csvf = csv.DictReader(csv_file)
@@ -194,7 +195,7 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
             
     for col in columns:
         if col not in csvf.fieldnames:
-            print "CSV file %s does not have a '%s' column" % (csv_file, col)
+            print("CSV file %s does not have a '%s' column" % (csv_file, col))
             ctx.exit(CHISUBMIT_FAIL)
         
     student_usernames = set()
@@ -209,12 +210,12 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
         last_name = entry[csv_lname_column]
         email = entry[csv_email_column]
         
-        print "Processing %s (%s, %s)" % (username, last_name, first_name)        
+        print("Processing %s (%s, %s)" % (username, last_name, first_name))        
         
         if user_type == "column":
             cur_user_type = entry[user_type_column]
             if cur_user_type not in VALID_USER_TYPES:
-                print "- User %s has invalid user type '%s'." % (username, cur_user_type)
+                print("- User %s has invalid user type '%s'." % (username, cur_user_type))
                 continue
         else:
             cur_user_type = user_type
@@ -224,9 +225,9 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
 
         try:
             user = ctx.obj["client"].get_user(username = username)
-            print "- User %s already exists." % username
-        except UnknownObjectException, uoe:
-            print "- Creating user %s" % username
+            print("- User %s already exists." % username)
+        except UnknownObjectException as uoe:
+            print("- Creating user %s" % username)
             if not dry_run:
                 user = ctx.obj["client"].create_user(username = username,
                                                      first_name = first_name,
@@ -237,33 +238,33 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
             try:
                 student = course.get_student(username)
                 if not student.dropped:
-                    print "- User %s is already a student in %s" % (username, course_id)
+                    print("- User %s is already a student in %s" % (username, course_id))
                 else:
                     if not dry_run:
                         student.dropped = False
-                    print "- Student had previously been marked as dropped, has been un-dropped"
-            except UnknownObjectException, uoe:
-                print "- Adding student %s to %s" % (username, course_id)
+                    print("- Student had previously been marked as dropped, has been un-dropped")
+            except UnknownObjectException as uoe:
+                print("- Adding student %s to %s" % (username, course_id))
                 if not dry_run:
                     course.add_student(user)
         elif cur_user_type == "instructor":
             try:
                 instructor = course.get_instructor(username)
-                print "- User %s is already an instructor in %s" % (username, course_id)
-            except UnknownObjectException, uoe:
-                print "- Adding instructor %s to %s" % (username, course_id)
+                print("- User %s is already an instructor in %s" % (username, course_id))
+            except UnknownObjectException as uoe:
+                print("- Adding instructor %s to %s" % (username, course_id))
                 if not dry_run:
                     course.add_instructor(user)
         elif cur_user_type == "grader":
             try:
                 grader = course.get_grader(username)
-                print "- User %s is already a grader in %s" % (username, course_id)
-            except UnknownObjectException, uoe:
-                print "- Adding grader %s to %s" % (username, course_id)
+                print("- User %s is already a grader in %s" % (username, course_id))
+            except UnknownObjectException as uoe:
+                print("- Adding grader %s to %s" % (username, course_id))
                 if not dry_run:
                     course.add_grader(user)
             
-        print 
+        print() 
     
     if sync:
         existing_students = course.get_students()
@@ -271,7 +272,7 @@ def admin_course_load_users(ctx, course_id, csv_file, csv_username_column, csv_f
             if existing_student.username not in student_usernames:
                 if not dry_run:
                     existing_student.dropped = True
-                print "Dropped %s" % existing_student.username
+                print("Dropped %s" % existing_student.username)
         
 
 @click.command(name="create-git-users")
@@ -286,11 +287,11 @@ def admin_course_create_git_users(ctx, course_id, staging, dry_run, all_types, o
     course = get_course_or_exit(ctx, course_id)    
                 
     if all_types and only_type is not None:
-        print "You cannot specify both --all-types and --only-type"
+        print("You cannot specify both --all-types and --only-type")
         ctx.exit(CHISUBMIT_FAIL)
         
     if staging and only_type == "student":
-        print "You cannot create student accounts on the staging server."
+        print("You cannot create student accounts on the staging server.")
         ctx.exit(CHISUBMIT_FAIL)
           
     conn = create_connection(course, ctx.obj['config'], staging)          
@@ -308,16 +309,16 @@ def admin_course_create_git_users(ctx, course_id, staging, dry_run, all_types, o
 
     for user in users:
         if conn.exists_user(course, user):
-            print "[SKIP] User '%s' already exists" % user.username
+            print("[SKIP] User '%s' already exists" % user.username)
         else:
             if dry_run:
-                print "[OK] Created user %s" % user.username
+                print("[OK] Created user %s" % user.username)
             else:
                 try:
                     conn.create_user(course, user)
-                    print "[OK] Created user %s" % user.username
-                except ChisubmitException, ce:
-                    print "[ERROR] Couldn't create user '%s': %s" % (user.username, ce.message)
+                    print("[OK] Created user %s" % user.username)
+                except ChisubmitException as ce:
+                    print("[ERROR] Couldn't create user '%s': %s" % (user.username, ce.message))
     
 @click.command(name="create-individual-teams")
 @click.argument('course_id', type=str)
@@ -335,7 +336,7 @@ def admin_course_create_individual_teams(ctx, course_id, dry_run, only):
         
     
     for student in students:
-        print "Processing %s (%s, %s)" % (student.username, student.user.last_name, student.user.first_name)        
+        print("Processing %s (%s, %s)" % (student.username, student.user.last_name, student.user.first_name))        
 
         try:
             team = course.get_team(student.username)
@@ -345,19 +346,19 @@ def admin_course_create_individual_teams(ctx, course_id, dry_run, only):
                 # Incomplete team creation
                 if not dry_run:
                     team.add_team_member(student.username, confirmed = True)
-                print "- Added user %s to team %s." % (student.username, team.team_id)
+                print("- Added user %s to team %s." % (student.username, team.team_id))
             elif len(tms) == 1 and tms[0].username == student.username:
-                print "- User %s already has an individual team." % student.username
+                print("- User %s already has an individual team." % student.username)
             else:
-                print "- ERROR: Team '%s' exists but it has these team members: %s" % (team.team_id, [tm.username for tm in tms])
+                print("- ERROR: Team '%s' exists but it has these team members: %s" % (team.team_id, [tm.username for tm in tms]))
             
-        except UnknownObjectException, uoe:
+        except UnknownObjectException as uoe:
             if not dry_run:
                 team = course.create_team(student.username)
                 team.add_team_member(student.username, confirmed = True)
-            print "- Created individual team for user %s." % student.username
+            print("- Created individual team for user %s." % student.username)
             
-        print
+        print()
         
         
             
@@ -389,7 +390,7 @@ def admin_course_setup_repo(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
 
     conn.init_course(course)
@@ -408,7 +409,7 @@ def admin_course_unsetup_repo(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
 
     conn.deinit_course(course)
@@ -427,7 +428,7 @@ def admin_course_update_repo_access(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
     
     conn.update_instructors(course)
@@ -447,7 +448,7 @@ def admin_course_create_repos(ctx, course_id, staging):
     teams = course.get_teams()
 
     if len(teams) == 0:
-        print "Course %s has no teams. No repositories to create." % course_id
+        print("Course %s has no teams. No repositories to create." % course_id)
         ctx.exit(CHISUBMIT_FAIL)  
 
     max_len = max([len(t.team_id) for t in teams])
@@ -455,7 +456,7 @@ def admin_course_create_repos(ctx, course_id, staging):
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
     
     v = ctx.obj["verbose"]
@@ -465,7 +466,7 @@ def admin_course_create_repos(ctx, course_id, staging):
     for team in sorted(teams, key=operator.attrgetter("team_id")):
         if conn.exists_team_repository(course, team):
             already_has_repository += 1
-            if v: print "%-*s  SKIPPING. Already has a repository." % (max_len, team.team_id)
+            if v: print("%-*s  SKIPPING. Already has a repository." % (max_len, team.team_id))
             continue
 
         team_members = team.get_team_members()
@@ -474,7 +475,7 @@ def admin_course_create_repos(ctx, course_id, staging):
         if len(unconfirmed_students) > 0:
             usernames = [tm.student.username for tm in unconfirmed_students]
             warning += 1
-            print "%-*s  WARNING. Team has unconfirmed students: %s" % (max_len, team.team_id, ",".join(usernames))
+            print("%-*s  WARNING. Team has unconfirmed students: %s" % (max_len, team.team_id, ",".join(usernames)))
             continue
 
 
@@ -487,20 +488,20 @@ def admin_course_create_repos(ctx, course_id, staging):
                     
             if len(missing) > 0:
                 warning += 1
-                print "%-20s WARNING. These students haven't set their git usernames: %s" % (team.id, ",".join(missing))
+                print("%-20s WARNING. These students haven't set their git usernames: %s" % (team.id, ",".join(missing)))
                 continue
         
         try:
             conn.create_team_repository(course, team)
             created += 1
-            print "%-20s CREATED" % team.team_id
-        except Exception, e:
-            print "%-20s Unexpected exception %s: %s" % (team.team_id, e.__class__.__name__, e.message)
+            print("%-20s CREATED" % team.team_id)
+        except Exception as e:
+            print("%-20s Unexpected exception %s: %s" % (team.team_id, e.__class__.__name__, e.message))
 
-    print
-    print "Existing: %i" % already_has_repository
-    print "Created : %i" % created
-    print "Warnings: %i" % warning
+    print()
+    print("Existing: %i" % already_has_repository)
+    print("Created : %i" % created)
+    print("Warnings: %i" % warning)
 
     return CHISUBMIT_SUCCESS
 
@@ -521,11 +522,11 @@ def admin_course_team_repo_create(ctx, course_id, team_id, ignore_existing, publ
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
     
     if conn.exists_team_repository(course, team) and not ignore_existing:
-        print "Team %s already has a repository" % team_id
+        print("Team %s already has a repository" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
     else:
         conn.create_team_repository(course, team, fail_if_exists = not ignore_existing, private = not public)
@@ -550,7 +551,7 @@ def admin_course_team_repo_update(ctx, course_id, team_id):
     conn = create_connection(course, ctx.obj['config'], staging = False)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
 
     conn.update_team_repository(course, team)
@@ -574,11 +575,11 @@ def admin_course_team_repo_remove(ctx, course_id, team_id, ignore_non_existing, 
     conn = create_connection(course, ctx.obj['config'], staging)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
 
     if not conn.exists_team_repository(course, team) and not ignore_non_existing:
-        print "WARNING: Cannot delete repository because it doesn't exist"
+        print("WARNING: Cannot delete repository because it doesn't exist")
         ctx.exit(CHISUBMIT_FAIL)
     else:
         conn.delete_team_repository(course, team, fail_if_not_exists = not ignore_non_existing)
@@ -603,7 +604,7 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
     for field in ("course_id", "course_name", "upstream_repo", "individual_repos",
                   "staging_repos", "git_connstr"):
         if field not in conf:
-            print "ERROR: Configuration file is missing '%s' field" % field
+            print("ERROR: Configuration file is missing '%s' field" % field)
             ctx.exit(CHISUBMIT_FAIL)
     
     staff_file = config_dir + "/" + conf.get("staff_file", "staff.csv")
@@ -615,11 +616,11 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
     # Create the course    
     try:
         course = ctx.obj["client"].get_course(course_id = course_id)
-        print "- Course with course_id = %s already exists." % course_id
-    except UnknownObjectException, uoe:
+        print("- Course with course_id = %s already exists." % course_id)
+    except UnknownObjectException as uoe:
         course = ctx.obj["client"].create_course(course_id = course_id,
                                                  name = course_name)
-        print "- Created new course %s" % course_id
+        print("- Created new course %s" % course_id)
         
     # Set the Git connection string
     api_obj_set_attribute(ctx, course, "git_server_connstr", conf["git_connstr"])
@@ -628,18 +629,18 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
     conn = create_connection(course, ctx.obj['config'], False)
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
 
     rv = conn.init_course(course, fail_if_exists=False)
     if rv:    
-        print "- Git server setup complete"
+        print("- Git server setup complete")
     else:
-        print "- Git server is already setup"
+        print("- Git server is already setup")
     
-    print "- Creating/updating staff users"
-    print "==============================="
-    print
+    print("- Creating/updating staff users")
+    print("===============================")
+    print()
     with open(staff_file, "r") as f:
         ctx.invoke(admin_course_load_users, 
                    course_id = course_id,
@@ -651,30 +652,30 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
                    user_type = "column",
                    user_type_column = "type"
                    )
-    print
-    print "==============================="
-    print "- Staff user creation/update complete."
+    print()
+    print("===============================")
+    print("- Staff user creation/update complete.")
 
-    print "- Creating instructor git users"
-    print "==============================="
-    print
+    print("- Creating instructor git users")
+    print("===============================")
+    print()
     ctx.invoke(admin_course_create_git_users, 
                course_id = course_id,
                only_type = "instructor")
-    print
-    print "==============================="
+    print()
+    print("===============================")
 
-    print "- Creating grader git users"
-    print "==========================="
-    print
+    print("- Creating grader git users")
+    print("===========================")
+    print()
     ctx.invoke(admin_course_create_git_users, 
                course_id = course_id,
                only_type = "grader")
-    print
-    print "==========================="
+    print()
+    print("===========================")
     
     conn.update_instructors(course)
-    print "- Updated instructor access privileges on Git server"
+    print("- Updated instructor access privileges on Git server")
     
     # Setup staging Git server
     if conf["staging_repos"] == True:
@@ -684,25 +685,25 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
         staging_conn = create_connection(course, ctx.obj['config'], True)
     
         if staging_conn is None:
-            print "Could not connect to staging git server."
+            print("Could not connect to staging git server.")
             ctx.exit(CHISUBMIT_FAIL)
 
         rv = staging_conn.init_course(course, fail_if_exists=False)        
         
         if rv:    
-            print "- Staging Git server setup complete"
+            print("- Staging Git server setup complete")
         else:
-            print "- Staging Git server is already setup"
+            print("- Staging Git server is already setup")
         
         staging_conn.update_instructors(course)
         staging_conn.update_graders(course)
-        print "- Updated instructor/grader access privileges on staging Git server"
+        print("- Updated instructor/grader access privileges on staging Git server")
     else:
-        print "- This course does not need staging repos"
+        print("- This course does not need staging repos")
 
-    print "- Creating/updating student users"
-    print "================================="    
-    print
+    print("- Creating/updating student users")
+    print("=================================")    
+    print()
     with open(students_file, "r") as f:
         ctx.invoke(admin_course_load_users, 
                    course_id = course_id,
@@ -714,50 +715,50 @@ def admin_course_setup(ctx, config_file, skip_user_creation, skip_repo_creation)
                    user_type = "student",
                    sync = True
                    )
-    print
-    print "==============================="
-    print "- Student user creation/update complete."
-    print "- Creating student git users"
-    print "==========================="
-    print
+    print()
+    print("===============================")
+    print("- Student user creation/update complete.")
+    print("- Creating student git users")
+    print("===========================")
+    print()
     ctx.invoke(admin_course_create_git_users, 
                course_id = course_id,
                only_type = "student")
-    print
-    print "==========================="
+    print()
+    print("===========================")
 
     if conf["individual_repos"] == True:
-        print "- Creating individual teams"
-        print "==========================="
-        print
+        print("- Creating individual teams")
+        print("===========================")
+        print()
         ctx.invoke(admin_course_create_individual_teams, 
                    course_id = course_id
                    )
-        print
-        print "==========================="
-        print "- Individual team creation complete."
+        print()
+        print("===========================")
+        print("- Individual team creation complete.")
 
-    print "- Creating repos"
-    print "================"
-    print
+    print("- Creating repos")
+    print("================")
+    print()
     ctx.invoke(admin_course_create_repos, 
                course_id = course_id
                )
-    print
-    print "================"
-    print "- Repo creation complete."
+    print()
+    print("================")
+    print("- Repo creation complete.")
 
     if conf["staging_repos"] == True:
-        print "- Creating staging repos"
-        print "========================"
-        print
+        print("- Creating staging repos")
+        print("========================")
+        print()
         ctx.invoke(admin_course_create_repos, 
                    course_id = course_id,
                    staging = True
                    )
-        print
-        print "========================"
-        print "- Repo creation complete."     
+        print()
+        print("========================")
+        print("- Repo creation complete.")     
     
     return CHISUBMIT_SUCCESS
 

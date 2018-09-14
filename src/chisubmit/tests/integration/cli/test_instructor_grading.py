@@ -14,7 +14,7 @@ class CLIInstructorGrades(ChisubmitCLITestCase):
         instructor1 = instructors[0]
         
         result = instructor1.run("instructor grading list-grades --detailed")
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
     @cli_test
     def test_instructor_grading_status(self, runner):
@@ -23,4 +23,4 @@ class CLIInstructorGrades(ChisubmitCLITestCase):
         instructor1 = instructors[0]
         
         result = instructor1.run("instructor grading show-grading-status --use-stored-grades --by-grader", ["pa1"])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)

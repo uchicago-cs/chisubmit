@@ -134,13 +134,15 @@ def catch_chisubmit_exceptions(f):
                 print()
                 cre.print_debug_info()        
         except ConnectionError as ce:
-            if isinstance(ce.message, (SSLError, SSLError_urllib3)):
-                print("ERROR: SSL certificate error when connecting to server")                
-            else:
-                print("ERROR: Could not connect to server")
+            print("ERROR: Could not connect to server")
             print("URL: %s" % ce.request.url)
             if ctx.obj["debug"]:
-                print("Reason:", ce.message)
+                print("Reason:", ce)
+        except (SSLError, SSLError_urllib3) as ssle:
+            print("ERROR: SSL certificate error when connecting to server")
+            print("URL: %s" % ssle.request.url)
+            if ctx.obj["debug"]:
+                print("Reason:", ssle)
         except ChisubmitException as ce:
             print("ERROR: %s" % ce)
             if ctx.obj["debug"]:

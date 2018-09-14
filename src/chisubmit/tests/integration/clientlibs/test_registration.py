@@ -17,11 +17,11 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
 
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.team_id, "student1-student2")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")
+        self.assertEqual(r.new_team, False)
+        self.assertEqual(r.team.team_id, "student1-student2")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
         
     def test_register_new_team_single_student(self):
         c = self.get_api_client("student1token")
@@ -33,11 +33,11 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
 
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, True)          
-        self.assertEquals(r.team.team_id, "student1-student3")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")
+        self.assertEqual(r.new_team, True)
+        self.assertEqual(r.team.team_id, "student1-student3")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
         
     def test_register_new_team(self):
         students = ["student1", "student3"]
@@ -47,23 +47,23 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         assignment = course.get_assignment("pa2")
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, True)          
-        self.assertEquals(r.team.team_id, "student1-student3")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")          
+        self.assertEqual(r.new_team, True)
+        self.assertEqual(r.team.team_id, "student1-student3")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
 
         c = self.get_api_client("student3token")
         course = c.get_course("cmsc40100")
         assignment = course.get_assignment("pa2")
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.team_id, "student1-student3")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertItemsEqual([tm.confirmed for tm in r.team_members], [True, True])
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")
+        self.assertEqual(r.new_team, False)
+        self.assertEqual(r.team.team_id, "student1-student3")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertCountEqual([tm.confirmed for tm in r.team_members], [True, True])
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
         
     def test_register_new_team_redundant(self):
         students = ["student1", "student3"]
@@ -73,35 +73,35 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
         assignment = course.get_assignment("pa2")
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, True)          
-        self.assertEquals(r.team.team_id, "student1-student3")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")          
+        self.assertEqual(r.new_team, True)
+        self.assertEqual(r.team.team_id, "student1-student3")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
 
         c = self.get_api_client("student3token")
         course = c.get_course("cmsc40100")
         assignment = course.get_assignment("pa2")
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.team_id, "student1-student3")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertItemsEqual([tm.confirmed for tm in r.team_members], [True, True])
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")         
+        self.assertEqual(r.new_team, False)
+        self.assertEqual(r.team.team_id, "student1-student3")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertCountEqual([tm.confirmed for tm in r.team_members], [True, True])
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
         
         c = self.get_api_client("student1token")
         course = c.get_course("cmsc40100")
         assignment = course.get_assignment("pa2")
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.team_id, "student1-student3")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertItemsEqual([tm.confirmed for tm in r.team_members], [True, True])
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2")                
+        self.assertEqual(r.new_team, False)
+        self.assertEqual(r.team.team_id, "student1-student3")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertCountEqual([tm.confirmed for tm in r.team_members], [True, True])
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
         
     def test_register_non_student(self):
         c = self.get_api_client("instructor1token")
@@ -113,11 +113,11 @@ class RegistrationTests(ChisubmitClientLibsTestCase):
 
         r = assignment.register(students = students)
                                 
-        self.assertEquals(r.new_team, False)          
-        self.assertEquals(r.team.team_id, "student1-student2")
-        self.assertItemsEqual([tm.username for tm in r.team_members], students)
-        self.assertEquals(r.registration.assignment_id, "pa2")
-        self.assertEquals(r.registration.assignment.assignment_id, "pa2") 
+        self.assertEqual(r.new_team, False)
+        self.assertEqual(r.team.team_id, "student1-student2")
+        self.assertCountEqual([tm.username for tm in r.team_members], students)
+        self.assertEqual(r.registration.assignment_id, "pa2")
+        self.assertEqual(r.registration.assignment.assignment_id, "pa2")
         
         
 class RegistrationErrorTests(ChisubmitClientLibsTestCase):

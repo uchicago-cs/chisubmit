@@ -13,8 +13,8 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
         course = c.get_course("cmsc40100")
         assignments = course.get_assignments()
         
-        self.assertEquals(len(assignments), len(COURSE1_ASSIGNMENTS))
-        self.assertItemsEqual([a.assignment_id for a in assignments], COURSE1_ASSIGNMENTS)
+        self.assertEqual(len(assignments), len(COURSE1_ASSIGNMENTS))
+        self.assertCountEqual([a.assignment_id for a in assignments], COURSE1_ASSIGNMENTS)
         
     def test_get_assignment(self):
         c = self.get_api_client("admintoken")
@@ -24,7 +24,7 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
         for assignment_id in COURSE1_ASSIGNMENTS:
             assignment = course.get_assignment(assignment_id)
             
-            self.assertEquals(assignment.assignment_id, assignment_id)
+            self.assertEqual(assignment.assignment_id, assignment_id)
             
     def test_create_assignment(self):
         c = self.get_api_client("admintoken")
@@ -35,8 +35,8 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
                                               deadline = "2042-02-04 20:00:00+00:00",
                                               min_students = 2,
                                               max_students = 2)
-        self.assertEquals(assignment.assignment_id, "pa3")
-        self.assertEquals(assignment.name, "Programming Assignment 3")
+        self.assertEqual(assignment.assignment_id, "pa3")
+        self.assertEqual(assignment.name, "Programming Assignment 3")
         
         course_obj = Course.get_by_course_id("cmsc40100")
         self.assertIsNotNone(course_obj)
@@ -44,10 +44,10 @@ class AssignmentTests(ChisubmitClientLibsTestCase):
         assignment_obj = course_obj.get_assignment("pa3")
         self.assertIsNotNone(assignment_obj, "Assignment was not added to database")
             
-        self.assertEquals(assignment_obj.assignment_id, "pa3")                  
-        self.assertEquals(assignment_obj.name, "Programming Assignment 3")                  
-        self.assertEquals(assignment_obj.min_students, 2)                  
-        self.assertEquals(assignment_obj.max_students, 2)                  
+        self.assertEqual(assignment_obj.assignment_id, "pa3")
+        self.assertEqual(assignment_obj.name, "Programming Assignment 3")
+        self.assertEqual(assignment_obj.min_students, 2)
+        self.assertEqual(assignment_obj.max_students, 2)
                     
             
             
@@ -68,7 +68,7 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
                                                   max_students = 2)
         
         bre = cm.exception
-        self.assertItemsEqual(list(bre.errors.keys()), ["assignment_id"])
+        self.assertCountEqual(list(bre.errors.keys()), ["assignment_id"])
         self.assertEqual(len(bre.errors["assignment_id"]), 1)
         
     def test_create_assignment_multiple_errors(self):
@@ -83,7 +83,7 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
                                                   max_students = 2)
         
         bre = cm.exception
-        self.assertItemsEqual(list(bre.errors.keys()), ["assignment_id", "name"])
+        self.assertCountEqual(list(bre.errors.keys()), ["assignment_id", "name"])
         self.assertEqual(len(bre.errors["assignment_id"]), 1)        
         self.assertEqual(len(bre.errors["name"]), 1)        
           
@@ -99,7 +99,7 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
                                                   max_students = 2)
         
         bre = cm.exception
-        self.assertItemsEqual(list(bre.errors.keys()), ["assignment_id"])
+        self.assertCountEqual(list(bre.errors.keys()), ["assignment_id"])
         self.assertEqual(len(bre.errors["assignment_id"]), 1)      
         
     def test_create_assignment_unique_within_course(self):
@@ -138,11 +138,11 @@ class AssignmentValidationTests(ChisubmitClientLibsTestCase):
         
         assignments1 = course1.get_assignments()
         
-        self.assertEquals(len(assignments1), len(COURSE1_ASSIGNMENTS) + 1)
-        self.assertItemsEqual([a.assignment_id for a in assignments1], COURSE1_ASSIGNMENTS + ["hw1"])        
+        self.assertEqual(len(assignments1), len(COURSE1_ASSIGNMENTS) + 1)
+        self.assertCountEqual([a.assignment_id for a in assignments1], COURSE1_ASSIGNMENTS + ["hw1"])
         
         assignments2 = course2.get_assignments()        
         
-        self.assertEquals(len(assignments2), len(COURSE2_ASSIGNMENTS) + 1)
-        self.assertItemsEqual([a.assignment_id for a in assignments2], COURSE2_ASSIGNMENTS + ["pa1"])        
+        self.assertEqual(len(assignments2), len(COURSE2_ASSIGNMENTS) + 1)
+        self.assertCountEqual([a.assignment_id for a in assignments2], COURSE2_ASSIGNMENTS + ["pa1"])
                   

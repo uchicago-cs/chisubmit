@@ -16,15 +16,15 @@ class CLIAdminCourse(ChisubmitCLITestCase):
         course_name = u"Foobarmentals of Foobar"
         
         result = admin.run("admin course add", [course_id, course_name])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         try:
             course_obj = Course.objects.get(course_id=course_id)
         except Course.DoesNotExist:
             self.fail("Course was not added to database")  
             
-        self.assertEquals(course_obj.course_id, course_id)                  
-        self.assertEquals(course_obj.name, course_name) 
+        self.assertEqual(course_obj.course_id, course_id)
+        self.assertEqual(course_obj.name, course_name)
            
         
 class CLIAdminCourseExisting(ChisubmitCLITestCase):
@@ -37,7 +37,7 @@ class CLIAdminCourseExisting(ChisubmitCLITestCase):
         
         result = admin.run("admin course list")
 
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         for val in [COURSE1_ID, COURSE1_NAME, COURSE2_ID, COURSE2_NAME]:            
             self.assertIn(val, result.output)
@@ -69,13 +69,13 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students) + 1)
-        self.assertEquals(len(student_objs), len(students))
+        self.assertEqual(len(user_objs), len(students) + 1)
+        self.assertEqual(len(student_objs), len(students))
 
         
     @cli_test
@@ -88,23 +88,23 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students) + 1)
-        self.assertEquals(len(student_objs), len(students))
+        self.assertEqual(len(user_objs), len(students) + 1)
+        self.assertEqual(len(student_objs), len(students))
 
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students) + 1)
-        self.assertEquals(len(student_objs), len(students))
+        self.assertEqual(len(user_objs), len(students) + 1)
+        self.assertEqual(len(student_objs), len(students))
                 
     @cli_test
     def test_admin_course_load_students_and_add(self, runner):
@@ -116,26 +116,26 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students) + 1)
-        self.assertEquals(len(student_objs), len(students))
+        self.assertEqual(len(user_objs), len(students) + 1)
+        self.assertEqual(len(student_objs), len(students))
 
         students.update(self.gen_students(["student5"]))
         self.gen_csv(students, csv_file)
 
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students) + 1)
-        self.assertEquals(len(student_objs), len(students))
+        self.assertEqual(len(user_objs), len(students) + 1)
+        self.assertEqual(len(student_objs), len(students))
         
     @cli_test
     def test_admin_course_load_students_and_drop(self, runner):
@@ -147,26 +147,26 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students) + 1)
-        self.assertEquals(len(student_objs), len(students))
+        self.assertEqual(len(user_objs), len(students) + 1)
+        self.assertEqual(len(student_objs), len(students))
 
         del students["student3"]
         self.gen_csv(students, csv_file)
 
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file, "username", "first", "last", "email", "--user-type", "student", "--sync"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID, dropped = False)
 
-        self.assertEquals(len(user_objs), len(students) + 2)
-        self.assertEquals(len(student_objs), len(students))        
+        self.assertEqual(len(user_objs), len(students) + 2)
+        self.assertEqual(len(student_objs), len(students))
         
         
     @cli_test
@@ -179,13 +179,13 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-users",
                            [COURSE1_ID, csv_file1, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE1_ID)
 
-        self.assertEquals(len(user_objs), len(students1) + 1)
-        self.assertEquals(len(student_objs), len(students1))
+        self.assertEqual(len(user_objs), len(students1) + 1)
+        self.assertEqual(len(student_objs), len(students1))
 
         students2 = self.gen_students(["student3", "student4", "student5", "student6"])
         csv_file2 = "course2.csv"
@@ -193,13 +193,13 @@ class CLIAdminCourseLoadUsers(ChisubmitCLITestCase):
         
         result = admin.run("admin course load-users",
                            [COURSE2_ID, csv_file2, "username", "first", "last", "email", "--user-type", "student"])        
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         user_objs = User.objects.all()
         student_objs = Student.objects.filter(course__course_id = COURSE2_ID)
 
-        self.assertEquals(len(user_objs), 6 + 1)
-        self.assertEquals(len(student_objs), len(students2))
+        self.assertEqual(len(user_objs), 6 + 1)
+        self.assertEqual(len(student_objs), len(students2))
              
           
 class CLIAdminCourseCreateRepos(ChisubmitCLITestCase):
@@ -223,7 +223,7 @@ class CLIAdminCourseCreateRepos(ChisubmitCLITestCase):
         self.setup_git_testing(COURSE1_ID)
         
         result = admin.run("admin course create-repos", [COURSE1_ID])          
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
     @cli_test
     def test_admin_course_create_repos_twice(self, runner):
@@ -232,10 +232,10 @@ class CLIAdminCourseCreateRepos(ChisubmitCLITestCase):
         self.setup_git_testing(COURSE1_ID)
         
         result = admin.run("admin course create-repos", [COURSE1_ID])          
-        self.assertEquals(result.exit_code, 0)        
+        self.assertEqual(result.exit_code, 0)
 
         result = admin.run("admin course create-repos", [COURSE1_ID])          
-        self.assertEquals(result.exit_code, 0)        
+        self.assertEqual(result.exit_code, 0)
 
     @cli_test
     def test_admin_course_create_repos_incomplete_registration(self, runner):
@@ -248,11 +248,11 @@ class CLIAdminCourseCreateRepos(ChisubmitCLITestCase):
         tm.save()
         
         result = admin.run("admin course create-repos", [COURSE1_ID])          
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         tm.confirmed = True
         tm.save()
 
         result = admin.run("admin course create-repos", [COURSE1_ID])          
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
     

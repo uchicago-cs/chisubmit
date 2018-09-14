@@ -17,8 +17,8 @@ class RubricComponentTests(ChisubmitClientLibsTestCase):
             assignment = course.get_assignment(assignment_id)
             rcs = assignment.get_rubric_components()
             
-            self.assertEquals(len(rcs), len(COURSE1_RUBRICS[assignment_id]))
-            self.assertItemsEqual([rc.description for rc in rcs], COURSE1_RUBRICS[assignment_id])
+            self.assertEqual(len(rcs), len(COURSE1_RUBRICS[assignment_id]))
+            self.assertCountEqual([rc.description for rc in rcs], COURSE1_RUBRICS[assignment_id])
             
     def test_create_rubric_component(self):
         c = self.get_api_client("admintoken")
@@ -38,7 +38,7 @@ class RubricComponentTests(ChisubmitClientLibsTestCase):
         rc_obj = assignment_obj.get_rubric_component_by_description("Third Task")
         self.assertIsNotNone(rc_obj, "Rubric Component was not added to database")
             
-        self.assertEquals(rc_obj.description, "Third Task")                  
-        self.assertEquals(rc_obj.points, 50)                  
-        self.assertEquals(rc_obj.order, 3)                  
+        self.assertEqual(rc_obj.description, "Third Task")
+        self.assertEqual(rc_obj.points, 50)
+        self.assertEqual(rc_obj.order, 3)
         

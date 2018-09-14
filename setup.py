@@ -64,6 +64,7 @@ setup(name='chisubmit',
                            "pyyaml >= 3.12",
                            "requests >= 2.18.4",
                            "tzlocal >= 1.5.1",
+                           "future >= 0.16"
                          ],
       extras_require = {
                          "server" : ["django-auth-ldap >= 1.7.0",

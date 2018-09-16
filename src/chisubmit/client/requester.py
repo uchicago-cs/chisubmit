@@ -28,6 +28,8 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 
 from future import standard_library
+from requests.adapters import HTTPAdapter
+
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
@@ -67,6 +69,7 @@ class Requester(object):
         
         self.__ssl_verify = ssl_verify
         self.__session = requests.Session()
+        self.__session.mount(base_url, HTTPAdapter(max_retries=5))
 
     def request(self, method, resource, data=None, headers=None, params=None):
         if resource.startswith("/"):
@@ -88,7 +91,7 @@ class Requester(object):
         #  - https://github.com/requests/requests/issues/4784
         #  - https://github.com/requests/requests/issues/4664
 
-        retry = 3
+        retry = 20
         while retry >= 0:
             try:
                 response = self.__session.request(url = url,

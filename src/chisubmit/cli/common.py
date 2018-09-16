@@ -13,7 +13,6 @@ from chisubmit.client.exceptions import UnknownObjectException,\
     UnauthorizedException, BadRequestException, ChisubmitRequestException
 from chisubmit.client.types import AttributeType
 from requests.exceptions import ConnectionError, SSLError
-from requests.packages.urllib3.exceptions import SSLError as SSLError_urllib3
 from click.globals import get_current_context
 from chisubmit.config import Config, ConfigDirectoryNotFoundException
 from chisubmit.client import Chisubmit
@@ -132,17 +131,17 @@ def catch_chisubmit_exceptions(f):
             print("Message: %s" % cre.reason)
             if ctx.obj["debug"]:
                 print()
-                cre.print_debug_info()        
+                cre.print_debug_info()
+        except SSLError as ssle:
+            print("ERROR: SSL certificate error when connecting to server")
+            print("URL: %s" % ssle.request.url)
+            if ctx.obj["debug"]:
+                print("Reason:", ssle)
         except ConnectionError as ce:
             print("ERROR: Could not connect to server")
             print("URL: %s" % ce.request.url)
             if ctx.obj["debug"]:
                 print("Reason:", ce)
-        except (SSLError, SSLError_urllib3) as ssle:
-            print("ERROR: SSL certificate error when connecting to server")
-            print("URL: %s" % ssle.request.url)
-            if ctx.obj["debug"]:
-                print("Reason:", ssle)
         except ChisubmitException as ce:
             print("ERROR: %s" % ce)
             if ctx.obj["debug"]:
@@ -410,7 +409,7 @@ def validate_repo_rubric(ctx, course, assignment, team, registration):
         RubricFile.from_file(open(rubricfile), assignment)
         return (True, None)
     except ChisubmitRubricException as cre:
-        return (False, cre.message)
+        return (False, str(cre))
 
 def ask_yesno(prompt="Are you sure you want to continue? (y/n): ", yes=False):
         print(prompt, end=' ') 

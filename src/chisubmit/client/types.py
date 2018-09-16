@@ -275,7 +275,7 @@ class ChisubmitAPIObject(object):
         rel = self._api_relationships.get(name, None)
 
         if rel is None:
-            raise
+            raise NoSuchAttributeException(name, None)
         
         if not force_request and params is None:
             if hasattr(self, "_rel_" + name):

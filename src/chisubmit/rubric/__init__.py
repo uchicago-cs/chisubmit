@@ -124,7 +124,7 @@ class RubricFile(object):
             f.write(self.to_yaml(include_blank_comments))
             f.close()
         except IOError as ioe:
-            raise ChisubmitRubricException("Error when saving rubric to file %s: %s" % (rubric_file, ioe.message), ioe)
+            raise ChisubmitRubricException("Error when saving rubric to file %s: %s" % (rubric_file, ioe))
         
     def validate(self, assignment):
         rubric_components = assignment.get_rubric_components()

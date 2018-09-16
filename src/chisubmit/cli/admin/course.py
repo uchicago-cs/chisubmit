@@ -318,7 +318,7 @@ def admin_course_create_git_users(ctx, course_id, staging, dry_run, all_types, o
                     conn.create_user(course, user)
                     print("[OK] Created user %s" % user.username)
                 except ChisubmitException as ce:
-                    print("[ERROR] Couldn't create user '%s': %s" % (user.username, ce.message))
+                    print("[ERROR] Couldn't create user '%s': %s" % (user.username, ce))
     
 @click.command(name="create-individual-teams")
 @click.argument('course_id', type=str)
@@ -496,7 +496,7 @@ def admin_course_create_repos(ctx, course_id, staging):
             created += 1
             print("%-20s CREATED" % team.team_id)
         except Exception as e:
-            print("%-20s Unexpected exception %s: %s" % (team.team_id, e.__class__.__name__, e.message))
+            print("%-20s Unexpected exception %s: %s" % (team.team_id, e.__class__.__name__, e))
 
     print()
     print("Existing: %i" % already_has_repository)

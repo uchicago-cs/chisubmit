@@ -88,7 +88,7 @@ class Requester(object):
         #  - https://github.com/requests/requests/issues/4784
         #  - https://github.com/requests/requests/issues/4664
 
-        retry = 2
+        retry = 3
         while retry >= 0:
             try:
                 response = self.__session.request(url = url,

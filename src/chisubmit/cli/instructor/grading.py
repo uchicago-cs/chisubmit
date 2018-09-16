@@ -64,7 +64,7 @@ def instructor_grading_set_grade(ctx, course, team_id, assignment_id, rubric_com
             registration.set_grade(rc, points)
             ctx.exit(CHISUBMIT_SUCCESS)
         except ValueError as ve:
-            print(ve.message)
+            print(ve)
             ctx.exit(CHISUBMIT_FAIL)
             
 
@@ -559,7 +559,7 @@ def instructor_grading_show_grading_status(ctx, course, assignment_id, by_grader
                 
                         total_grade = rubric.get_total_points_obtained()
                     except ChisubmitRubricException as cre:
-                        grading_status = "ERROR: Rubric does not validate (%s)" % (cre.message)
+                        grading_status = "ERROR: Rubric does not validate (%s)" % (cre)
                         
         if grading_status is None:
             has_some = False
@@ -892,7 +892,7 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, only
         try:
             rubric = RubricFile.from_file(open(rubricfile), assignment)
         except ChisubmitRubricException as cre:
-            print("ERROR: Rubric for %s does not validate (%s)" % (team.team_id, cre.message))
+            print("ERROR: Rubric for %s does not validate (%s)" % (team.team_id, cre))
             continue
 
         points = []

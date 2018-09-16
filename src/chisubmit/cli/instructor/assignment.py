@@ -53,7 +53,7 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
     try:
         rubric = RubricFile.from_file(rubric_file) 
     except ChisubmitRubricException as cre:
-        print("ERROR: Rubric does not validate (%s)" % (cre.message))
+        print("ERROR: Rubric does not validate (%s)" % (cre))
         ctx.exit(CHISUBMIT_FAIL)
     
     rubric_components = assignment.get_rubric_components()

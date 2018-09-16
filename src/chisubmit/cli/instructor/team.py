@@ -84,7 +84,7 @@ def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_fo
                 msg += " and checked out commit %s" % (registration.final_submission.commit_sha)               
             print("%-*s  %s" % (max_len, team.team_id, msg))
         except ChisubmitException as ce:
-            print("%-*s  ERROR: Could not checkout or pull master branch (%s)" % (max_len, team.team_id, ce.message))
+            print("%-*s  ERROR: Could not checkout or pull master branch (%s)" % (max_len, team.team_id, ce))
         except GitCommandError as gce:
             print("%-*s  ERROR: Could not checkout or pull master branch" % (max_len, team.team_id))
             print(gce)

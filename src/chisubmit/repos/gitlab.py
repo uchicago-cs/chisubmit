@@ -48,10 +48,10 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             else:
                 return g.headers["PRIVATE-TOKEN"], True
         except gitlab.exceptions.HttpError as he:
-            if he.message == "401 Unauthorized":
+            if str(he) == "401 Unauthorized":
                 return None, False
             else:
-                raise ChisubmitException("Unexpected error getting authorization token (Reason: %s)" % (he.message), he)
+                raise ChisubmitException("Unexpected error getting authorization token (Reason: %s)" % (he), he)
     
     def connect(self, credentials):
         # Credentials are a GitLab private token
@@ -68,7 +68,7 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                             
         except Exception as e:
             raise
-            raise ChisubmitException("Unexpected error connecting to GitLab server '%s': %s" % (self.gitlab_hostname, e.message))       
+            raise ChisubmitException("Unexpected error connecting to GitLab server '%s': %s" % (self.gitlab_hostname, e))
 
     def disconnect(self, credentials):
         pass

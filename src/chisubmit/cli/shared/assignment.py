@@ -1,3 +1,4 @@
+from __future__ import print_function
 import click
 from chisubmit.cli.common import pass_course, api_obj_set_attribute,\
     get_assignment_or_exit, catch_chisubmit_exceptions, require_local_config
@@ -18,7 +19,7 @@ def shared_assignment_list(ctx, course, ids, utc):
 
     for assignment in assignments:
         if ids:
-            print assignment.assignment_id
+            print(assignment.assignment_id)
         else:
             if utc:
                 deadline = assignment.deadline.isoformat(" ")
@@ -27,7 +28,7 @@ def shared_assignment_list(ctx, course, ids, utc):
 
             fields = [assignment.assignment_id, deadline, assignment.name]
 
-            print "\t".join(fields)
+            print("\t".join(fields))
 
     return CHISUBMIT_SUCCESS
 

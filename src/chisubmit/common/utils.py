@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import division
 
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
@@ -28,6 +30,7 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+from past.utils import old_div
 import datetime
 import pytz
 from tzlocal import get_localzone
@@ -80,7 +83,7 @@ def parse_timedelta(s):
 def compute_extensions_needed(submission_time, deadline):
     delta = (submission_time - deadline).total_seconds()
 
-    extensions_needed = math.ceil(delta / (3600.0 * 24))
+    extensions_needed = math.ceil(old_div(delta, (3600.0 * 24)))
 
     if extensions_needed <= 0:
         return 0
@@ -103,8 +106,8 @@ def create_connection(course, config, staging = False):
         connstr = course.git_staging_connstr
 
     if connstr is None:
-        print "The course's git server has not been configured."
-        print "Please contact the course instructor or the chisubmit administrator."
+        print("The course's git server has not been configured.")
+        print("Please contact the course instructor or the chisubmit administrator.")
         return None        
 
     ssl_verify = config.get_ssl_verify()
@@ -115,7 +118,7 @@ def create_connection(course, config, staging = False):
     git_credentials = config.get_git_credentials(server_type)
 
     if git_credentials is None:
-        print "You do not have %s credentials." % server_type
+        print("You do not have %s credentials." % server_type)
         return None
     else:
         conn.connect(git_credentials)

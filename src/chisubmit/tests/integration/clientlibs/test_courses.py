@@ -12,13 +12,13 @@ class CourseTests(ChisubmitClientLibsTestCase):
         c = self.get_api_client("admintoken")
         
         courses = c.get_courses()
-        self.assertEquals(len(courses), 1)
+        self.assertEqual(len(courses), 1)
     
     def test_get_course(self):
         c = self.get_api_client("admintoken")
         
         course = c.get_course("cmsc40100")
-        self.assertEquals(course.name, "Introduction to Software Testing")
+        self.assertEqual(course.name, "Introduction to Software Testing")
         
 
     def test_create_course(self):
@@ -26,15 +26,15 @@ class CourseTests(ChisubmitClientLibsTestCase):
         
         course = c.create_course(course_id = "cmsc40110",
                                  name = "Advanced Software Testing")
-        self.assertEquals(course.name, "Advanced Software Testing")        
+        self.assertEqual(course.name, "Advanced Software Testing")
         
         try:
             course_obj = Course.objects.get(course_id="cmsc40110")
         except Course.DoesNotExist:
             self.fail("Course was not added to database")  
             
-        self.assertEquals(course_obj.course_id, "cmsc40110")                  
-        self.assertEquals(course_obj.name, "Advanced Software Testing")                  
+        self.assertEqual(course_obj.course_id, "cmsc40110")
+        self.assertEqual(course_obj.name, "Advanced Software Testing")
         
         
     def test_edit_course_1(self):
@@ -45,16 +45,16 @@ class CourseTests(ChisubmitClientLibsTestCase):
         course.edit(name="Intro to Software Testing",
                     default_extensions = 10)
 
-        self.assertEquals(course.name, "Intro to Software Testing")                    
-        self.assertEquals(course.default_extensions, 10)
+        self.assertEqual(course.name, "Intro to Software Testing")
+        self.assertEqual(course.default_extensions, 10)
                  
         try:
             course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
-        self.assertEquals(course_obj.name, "Intro to Software Testing")                    
-        self.assertEquals(course_obj.default_extensions, 10)
+        self.assertEqual(course_obj.name, "Intro to Software Testing")
+        self.assertEqual(course_obj.default_extensions, 10)
         
     def test_edit_course_2(self):
         c = self.get_api_client("admintoken")
@@ -64,16 +64,16 @@ class CourseTests(ChisubmitClientLibsTestCase):
         course.name = "Intro to Software Testing"
         course.default_extensions = 10
 
-        self.assertEquals(course.name, "Intro to Software Testing")                    
-        self.assertEquals(course.default_extensions, 10)
+        self.assertEqual(course.name, "Intro to Software Testing")
+        self.assertEqual(course.default_extensions, 10)
                  
         try:
             course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
-        self.assertEquals(course_obj.name, "Intro to Software Testing")                    
-        self.assertEquals(course_obj.default_extensions, 10)            
+        self.assertEqual(course_obj.name, "Intro to Software Testing")
+        self.assertEqual(course_obj.default_extensions, 10)
         
     def test_edit_course_3(self):
         c = self.get_api_client("admintoken", deferred_save = True)
@@ -83,16 +83,16 @@ class CourseTests(ChisubmitClientLibsTestCase):
         course.name = "Intro to Software Testing"
         course.default_extensions = 10
 
-        self.assertEquals(course.name, "Intro to Software Testing")                    
-        self.assertEquals(course.default_extensions, 10)
+        self.assertEqual(course.name, "Intro to Software Testing")
+        self.assertEqual(course.default_extensions, 10)
                  
         try:
             course_obj = Course.objects.get(course_id="cmsc40100")
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
-        self.assertEquals(course_obj.name, "Introduction to Software Testing")                    
-        self.assertEquals(course_obj.default_extensions, 0)
+        self.assertEqual(course_obj.name, "Introduction to Software Testing")
+        self.assertEqual(course_obj.default_extensions, 0)
         
         course.save()                   
         
@@ -101,8 +101,8 @@ class CourseTests(ChisubmitClientLibsTestCase):
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
-        self.assertEquals(course.name, "Intro to Software Testing")                    
-        self.assertEquals(course.default_extensions, 10)
+        self.assertEqual(course.name, "Intro to Software Testing")
+        self.assertEqual(course.default_extensions, 10)
         
                  
 class CoursePermissionsTests(ChisubmitClientLibsTestCase):
@@ -113,23 +113,23 @@ class CoursePermissionsTests(ChisubmitClientLibsTestCase):
         c = self.get_api_client("admintoken")
         
         courses = c.get_courses()
-        self.assertEquals(len(courses), 2)
+        self.assertEqual(len(courses), 2)
         
     def test_get_courses_course1(self):
         for user in COURSE1_USERS:
             c = self.get_api_client(user + "token")
             
             courses = c.get_courses()
-            self.assertEquals(len(courses), 1)
-            self.assertEquals(courses[0].name, "Introduction to Software Testing")
+            self.assertEqual(len(courses), 1)
+            self.assertEqual(courses[0].name, "Introduction to Software Testing")
         
     def test_get_courses_course2(self):
         for user in COURSE2_USERS:
             c = self.get_api_client(user + "token")
             
             courses = c.get_courses()
-            self.assertEquals(len(courses), 1)
-            self.assertEquals(courses[0].name, "Advanced Software Testing")
+            self.assertEqual(len(courses), 1)
+            self.assertEqual(courses[0].name, "Advanced Software Testing")
         
     def test_get_course_course1(self):
         for user in COURSE1_USERS:
@@ -158,7 +158,7 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
                                      name = "Advanced Validation Testing")
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["course_id"])
+        self.assertCountEqual(list(bre.errors.keys()), ["course_id"])
         self.assertEqual(len(bre.errors["course_id"]), 1)
         
     def test_create_course_multiple_errors(self):
@@ -169,7 +169,7 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
                                      name = None)
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["course_id", "name"])
+        self.assertCountEqual(list(bre.errors.keys()), ["course_id", "name"])
         self.assertEqual(len(bre.errors["course_id"]), 1)        
         self.assertEqual(len(bre.errors["name"]), 1)        
           
@@ -181,7 +181,7 @@ class CourseValidationTests(ChisubmitClientLibsTestCase):
                                      name = "Introduction to Software Testing")
         
         bre = cm.exception
-        self.assertItemsEqual(bre.errors.keys(), ["course_id"])
+        self.assertCountEqual(list(bre.errors.keys()), ["course_id"])
         self.assertEqual(len(bre.errors["course_id"]), 1)
         
 class CourseArchivingTests(ChisubmitClientLibsTestCase):
@@ -192,7 +192,7 @@ class CourseArchivingTests(ChisubmitClientLibsTestCase):
         c = self.get_api_client("admintoken")
         
         courses = c.get_courses()
-        self.assertEquals(len(courses), 2)
+        self.assertEqual(len(courses), 2)
         
         for c in courses:
             self.assertFalse(c.archived)
@@ -208,11 +208,11 @@ class CourseArchivingTests(ChisubmitClientLibsTestCase):
         except Course.DoesNotExist:
             self.fail("Course not found in database")  
             
-        self.assertEquals(course_obj.archived, True)
+        self.assertEqual(course_obj.archived, True)
         
         # Check that get_courses only returns the non-archived course
         courses = c.get_courses()
-        self.assertEquals(len(courses), 1)
+        self.assertEqual(len(courses), 1)
         
         course = courses[0]
         self.assertEqual(course.course_id, "cmsc40100")
@@ -226,18 +226,18 @@ class CourseArchivingTests(ChisubmitClientLibsTestCase):
         c = self.get_api_client("admintoken")
         
         courses = c.get_courses()   
-        self.assertEquals(len(courses), 2)
+        self.assertEqual(len(courses), 2)
         
         courses = c.get_courses(include_archived=True)   
-        self.assertEquals(len(courses), 2)
+        self.assertEqual(len(courses), 2)
 
         course = c.get_course("cmsc40110")
         course.archived = True
         
         courses = c.get_courses()   
-        self.assertEquals(len(courses), 1)
+        self.assertEqual(len(courses), 1)
         self.assertEqual(courses[0].course_id, "cmsc40100")
         
         courses = c.get_courses(include_archived=True)   
-        self.assertEquals(len(courses), 2)
+        self.assertEqual(len(courses), 2)
         

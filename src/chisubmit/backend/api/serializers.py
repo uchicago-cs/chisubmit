@@ -30,7 +30,7 @@ class ChisubmitSerializer(serializers.Serializer):
             
             if hasattr(self, "hidden_fields"):
                 roles = self.context.get("roles", set())
-                fields = data.keys()
+                fields = list(data.keys())
                 for f in fields:
                     if f in self.hidden_fields:
                         if not (is_owner and OwnerPermissions.READ in owner_override.get(f, [])):
@@ -52,7 +52,7 @@ class ChisubmitSerializer(serializers.Serializer):
         
         if course is not None and user is not None:
             roles = self.context.get("roles", set())
-            fields = internal_value.keys()
+            fields = list(internal_value.keys())
             owner_override = getattr(self, "owner_override", {})
 
             for f in fields:
@@ -237,7 +237,7 @@ class StudentSerializer(ChisubmitSerializer):
         return reverse('student-detail', args=[self.context["course"].course_id, obj.user.username], request=self.context["request"])
     
     def create(self, validated_data):
-        if not validated_data.has_key("extensions") and self.context["course"].extension_policy == "per-student":
+        if "extensions" not in validated_data and self.context["course"].extension_policy == "per-student":
             validated_data["extensions"] = self.context["course"].default_extensions
       
         return Student.objects.create(**validated_data)

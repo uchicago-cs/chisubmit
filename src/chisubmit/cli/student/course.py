@@ -1,3 +1,4 @@
+from __future__ import print_function
 import click
 from chisubmit.cli.common import pass_course, get_student_or_exit,\
     api_obj_set_attribute, catch_chisubmit_exceptions, require_local_config
@@ -24,7 +25,7 @@ def student_course_show_extensions(ctx, course, username):
         try:
             course.get_instructor(user.username)
         except UnknownObjectException:
-            print "Only instructors can use the --username option"
+            print("Only instructors can use the --username option")
             ctx.exit(CHISUBMIT_FAIL)
     else:
         username = user.username
@@ -32,13 +33,13 @@ def student_course_show_extensions(ctx, course, username):
     student = get_student_or_exit(ctx, course, username)
     
     if course.extension_policy == "per-team":
-        print "This course uses per-team extensions."
-        print "Please use 'chisubmit student team show' to see the number of extensions"
-        print "available for the teams you are in."
+        print("This course uses per-team extensions.")
+        print("Please use 'chisubmit student team show' to see the number of extensions")
+        print("available for the teams you are in.")
         ctx.exit(CHISUBMIT_SUCCESS)
         
-    print "%s, %s" % (student.user.last_name, student.user.first_name) 
-    print
+    print("%s, %s" % (student.user.last_name, student.user.first_name)) 
+    print()
     teams = course.get_teams()
     
     extensions = student.extensions
@@ -57,11 +58,11 @@ def student_course_show_extensions(ctx, course, username):
                     
     n_extensions_used = sum([x[2] for x in extensions_used])
                     
-    print "You started with %i extensions and you have %i extensions left." % (extensions, extensions - n_extensions_used)
+    print("You started with %i extensions and you have %i extensions left." % (extensions, extensions - n_extensions_used))
     
     if len(extensions_used) > 0:
         for aid, tid, ex in extensions_used:
-            print "- You used %i extension(s) on %s (as '%s')" % (ex, aid, tid)
+            print("- You used %i extension(s) on %s (as '%s')" % (ex, aid, tid))
                 
     
         

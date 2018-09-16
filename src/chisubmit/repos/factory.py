@@ -1,3 +1,4 @@
+from builtins import object
 from chisubmit.repos import ConnectionString
 from chisubmit.common import ChisubmitException
 from chisubmit.repos.github import GitHubConnection
@@ -17,9 +18,9 @@ class RemoteRepositoryConnectionFactory(object):
     def create_connection(connection_string, staging, ssl_verify=True):
         cs = ConnectionString(connection_string)
 
-        if not RemoteRepositoryConnectionFactory.server_types.has_key(cs.server_type):
+        if cs.server_type not in RemoteRepositoryConnectionFactory.server_types:
             raise ChisubmitException("Unsupported server type in connection string: %s (expected one of: %s)" %
-                                     (cs.server_type, ", ".join(RemoteRepositoryConnectionFactory.server_types.keys())))
+                                     (cs.server_type, ", ".join(list(RemoteRepositoryConnectionFactory.server_types.keys()))))
 
         conn_cls = RemoteRepositoryConnectionFactory.server_types[cs.server_type]
 

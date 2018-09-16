@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pprint import pprint
 
 class ChisubmitRequestException(Exception):
@@ -54,47 +55,47 @@ class ChisubmitRequestException(Exception):
         return "HTTP %i %s (%s %s)" % (self.status, self.reason, self.method, self.url)
     
     def print_debug_info(self):
-        print "HTTP REQUEST"
-        print "============"
-        print "%s %s" % (self.method, self.url)
-        print
-        print "Headers"
-        print "-------"
-        for hname, hvalue in self.headers.items():
-            print "%s: %s" % (hname, hvalue) 
-        print
-        print "Query string (GET parameters)"
-        print "-----------------------------"
+        print("HTTP REQUEST")
+        print("============")
+        print("%s %s" % (self.method, self.url))
+        print()
+        print("Headers")
+        print("-------")
+        for hname, hvalue in list(self.headers.items()):
+            print("%s: %s" % (hname, hvalue)) 
+        print()
+        print("Query string (GET parameters)")
+        print("-----------------------------")
         if self.params is None:
-            print "No querystring parameters"
+            print("No querystring parameters")
         else:
-            for pname, pvalue in self.params.items():
-                print "%s: %s" % (pname, pvalue) 
-        print
-        print "Request data"
-        print "------------"
+            for pname, pvalue in list(self.params.items()):
+                print("%s: %s" % (pname, pvalue)) 
+        print()
+        print("Request data")
+        print("------------")
         if self.request_data is None:
-            print "No data included in request"
+            print("No data included in request")
         else:
             pprint(self.request_data)
-        print        
-        print "HTTP RESPONSE"
-        print "============="
-        print "%s %s" % (self.status, self.reason)
-        print
-        print "Headers"
-        print "-------"
-        for hname, hvalue in self.__response.headers.items():
-            print "%s: %s" % (hname, hvalue) 
-        print
-        print "Response body"
-        print "-------------"        
+        print()        
+        print("HTTP RESPONSE")
+        print("=============")
+        print("%s %s" % (self.status, self.reason))
+        print()
+        print("Headers")
+        print("-------")
+        for hname, hvalue in list(self.__response.headers.items()):
+            print("%s: %s" % (hname, hvalue)) 
+        print()
+        print("Response body")
+        print("-------------")        
         try:
             response_data = self.__response.json()
             pprint(response_data)
         except ValueError:
             response_data = self.__response.text
-            print response_data
+            print(response_data)
     
     
 class UnauthorizedException(ChisubmitRequestException):
@@ -114,9 +115,9 @@ class BadRequestException(ChisubmitRequestException):
         
         try:
             self.errors = self.json
-            if any([not isinstance(k, (str, unicode)) for k in self.errors.keys()]):
+            if any([not isinstance(k, (str, str)) for k in list(self.errors.keys())]):
                 raise ValueError
-            if any([not isinstance(v, (list, tuple)) for v in self.errors.values()]):
+            if any([not isinstance(v, (list, tuple)) for v in list(self.errors.values())]):
                 raise ValueError
             self.valid_errors = True        
         except ValueError:
@@ -125,12 +126,12 @@ class BadRequestException(ChisubmitRequestException):
               
     def print_errors(self):
         if self.valid_errors:
-            for origin, reasons in self.errors.items():
-                print origin
+            for origin, reasons in list(self.errors.items()):
+                print(origin)
                 for r in reasons:
-                    print " - %s" % r
-                print
+                    print(" - %s" % r)
+                print()
         else:
-            print "HTTP 400 response included incorrectly formatted error data:"
-            print self.response_data
+            print("HTTP 400 response included incorrectly formatted error data:")
+            print(self.response_data)
             

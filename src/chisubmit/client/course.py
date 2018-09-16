@@ -124,9 +124,9 @@ class Course(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.users.Instructor`
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) 
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -151,9 +151,9 @@ class Course(ChisubmitAPIObject):
         :rtype: None
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Instructor)
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Instructor)
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -194,9 +194,9 @@ class Course(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.users.Grader`
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) 
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -221,9 +221,9 @@ class Course(ChisubmitAPIObject):
         :rtype: None
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Grader)
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Grader)
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -265,9 +265,9 @@ class Course(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.users.Student`
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) 
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) 
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -294,9 +294,9 @@ class Course(ChisubmitAPIObject):
         :rtype: None
         """
         
-        assert isinstance(user_or_username, (str, unicode)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Student)
+        assert isinstance(user_or_username, (str, str)) or isinstance(user_or_username, User) or isinstance(user_or_username, chisubmit.client.users.Student)
         
-        if isinstance(user_or_username, (str, unicode)):
+        if isinstance(user_or_username, (str, str)):
             username = user_or_username
         elif isinstance(user_or_username, User):
             username = user_or_username.username
@@ -362,11 +362,11 @@ class Course(ChisubmitAPIObject):
         :param max_students: int
         :rtype: :class:`chisubmit.client.assignment.Assignment`
         """
-        assert isinstance(assignment_id, (str, unicode)), assignment_id
-        assert isinstance(deadline, (str, unicode)) or isinstance(deadline, datetime.datetime), deadline
+        assert isinstance(assignment_id, (str, str)), assignment_id
+        assert isinstance(deadline, (str, str)) or isinstance(deadline, datetime.datetime), deadline
         
         # TODO: Convert/validate date
-        if isinstance(deadline, (str, unicode)):
+        if isinstance(deadline, (str, str)):
             # TODO: validate date
             deadline_str = deadline
         elif isinstance(deadline, datetime.datetime):
@@ -421,7 +421,7 @@ class Course(ChisubmitAPIObject):
         :rtype: :class:`chisubmit.client.team.Team`
         """
         
-        assert isinstance(team_id, (str, unicode)), team_id
+        assert isinstance(team_id, (str, str)), team_id
         
         include = []
         
@@ -454,7 +454,7 @@ class Course(ChisubmitAPIObject):
         :param active: bool
         :rtype: :class:`chisubmit.client.team.Team`
         """
-        assert isinstance(team_id, (str, unicode)), team_id
+        assert isinstance(team_id, (str, str)), team_id
 
         post_data = { "team_id": team_id }
         

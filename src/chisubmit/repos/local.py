@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import object
 import git
 from git.exc import GitCommandError
 from chisubmit.common import ChisubmitException
@@ -45,8 +47,8 @@ class LocalGitRepo(object):
         if self.repo.head.is_detached or self.repo.head.ref != branch_head:
             try:
                 branch_head.checkout()
-            except GitCommandError, gce:
-                print gce
+            except GitCommandError as gce:
+                print(gce)
                 raise ChisubmitException("Error checking out")
 
         self.repo.head.reset(remote_branch.commit, index=True, working_tree=True)
@@ -86,7 +88,7 @@ class LocalGitRepo(object):
             commit = self.repo.commit(commit_sha)
             commit_obj = self.__create_commit_object(commit)
             return commit_obj
-        except BadObject, bo:
+        except BadObject as bo:
             return None
               
 

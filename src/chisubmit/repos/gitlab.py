@@ -1,6 +1,8 @@
 # Needed so we can import from the global "gitlab" package
 from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
 from gitlab import Gitlab
 import gitlab.exceptions
 
@@ -45,11 +47,11 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
                 return None, False
             else:
                 return g.headers["PRIVATE-TOKEN"], True
-        except gitlab.exceptions.HttpError, he:
-            if he.message == "401 Unauthorized":
+        except gitlab.exceptions.HttpError as he:
+            if str(he) == "401 Unauthorized":
                 return None, False
             else:
-                raise ChisubmitException("Unexpected error getting authorization token (Reason: %s)" % (he.message), he)
+                raise ChisubmitException("Unexpected error getting authorization token (Reason: %s)" % (he), he)
     
     def connect(self, credentials):
         # Credentials are a GitLab private token
@@ -58,15 +60,15 @@ class GitLabConnection(RemoteRepositoryConnectionBase):
             # Test connection by grabbing current user
             user = self.gitlab.currentuser()
             
-            if user.has_key("message") and user["message"] == "401 Unauthorized":
+            if "message" in user and user["message"] == "401 Unauthorized":
                 raise ChisubmitException("Invalid GitLab credentials for server '%s'" % (self.gitlab_hostname))
             
-            if not user.has_key("username"):
+            if "username" not in user:
                 raise ChisubmitException("Unexpected error connecting to GitLab server '%s'" % (self.gitlab_hostname))
                             
         except Exception as e:
             raise
-            raise ChisubmitException("Unexpected error connecting to GitLab server '%s': %s" % (self.gitlab_hostname, e.message))       
+            raise ChisubmitException("Unexpected error connecting to GitLab server '%s': %s" % (self.gitlab_hostname, e))
 
     def disconnect(self, credentials):
         pass

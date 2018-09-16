@@ -1,3 +1,4 @@
+from builtins import object
 import os.path
 
 from chisubmit.common import ChisubmitException

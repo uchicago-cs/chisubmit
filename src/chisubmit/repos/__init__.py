@@ -1,3 +1,4 @@
+from builtins import object
 import abc
 from chisubmit.common import ChisubmitException
 
@@ -9,10 +10,10 @@ class ConnectionString(object):
 
         try:
             params = dict([(k.strip(), v.strip()) for k,v in params])
-        except ValueError, ve:
+        except ValueError as ve:
             raise ChisubmitException("Improperly formatted connection string: %s" % s, original_exception = ve)
 
-        if not params.has_key("server_type"):
+        if "server_type" not in params:
             raise ChisubmitException("Connection string does not have 'server_type' parameter: %s" % s)
 
         self.server_type = params.pop("server_type")
@@ -30,7 +31,7 @@ class RemoteRepositoryConnectionBase(object):
             raise ChisubmitException("Expected server_type in connection string to be '%s', got '%s'" %
                                      (self.get_server_type_name(), connection_string.server_type))
 
-        param_names = connection_string.params.keys()
+        param_names = list(connection_string.params.keys())
 
         for p in self.get_connstr_mandatory_params():
             if p not in param_names:

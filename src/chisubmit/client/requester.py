@@ -27,8 +27,12 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
-from requests import exceptions, Session
-from urlparse import urlparse
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
+import requests
+from urllib.parse import urlparse
 from pprint import pprint
 import json
 import sys
@@ -55,12 +59,14 @@ class Requester(object):
         self.__headers = {}
         self.__headers['content-type'] = 'application/json'
         if login_or_token is not None and password is not None:
-            self.__headers["Authorization"] = "Basic " + base64.b64encode('%s:%s' % (login_or_token, password))
+            basic_str = '{}:{}'.format(login_or_token, password)
+            basic_str = bytes(basic_str, encoding="utf8")
+            self.__headers["Authorization"] = b"Basic " + base64.b64encode(basic_str)
         elif login_or_token is not None:
             self.__headers["Authorization"] = "Token %s" % login_or_token
         
         self.__ssl_verify = ssl_verify
-        self.__session = Session()
+        self.__session = requests.Session()
 
     def request(self, method, resource, data=None, headers=None, params=None):
         if resource.startswith("/"):
@@ -76,30 +82,41 @@ class Requester(object):
 
         if data is not None:
             data = json.dumps(data, default=json_serial)
-            
+
         # TODO: try..except
-        response = self.__session.request(url = url,
-                                  method = method,
-                                  params = params,
-                                  data = data,
-                                  headers = all_headers,
-                                  verify = self.__ssl_verify)
-        
-        if response.status_code == 400:
-            raise BadRequestException(method, url, params, data, all_headers, response)        
-        elif 400 < response.status_code < 500:
-            if response.status_code == 401:
-                raise UnauthorizedException(method, url, params, data, all_headers, response)
-            if response.status_code == 404:
-                raise UnknownObjectException(method, url, params, data, all_headers, response)
-            else:
-                raise ChisubmitRequestException(method, url, params, data, all_headers, response)
-        elif 500 <= response.status_code < 600:
-            raise ChisubmitRequestException(method, url, params, data, all_headers, response)
+        # TODO: remove this jeinky workaround once these are resolved:
+        #  - https://github.com/requests/requests/issues/4784
+        #  - https://github.com/requests/requests/issues/4664
 
-        try:
-            response_data = response.json()
-        except ValueError:
-            response_data = {"data": response.text}
+        retry = 3
+        while retry >= 0:
+            try:
+                response = self.__session.request(url = url,
+                                            method = method,
+                                            params = params,
+                                            data = data,
+                                            headers = all_headers,
+                                            verify = self.__ssl_verify)
 
-        return response.headers, response_data
+                if response.status_code == 400:
+                    raise BadRequestException(method, url, params, data, all_headers, response)
+                elif 400 < response.status_code < 500:
+                    if response.status_code == 401:
+                        raise UnauthorizedException(method, url, params, data, all_headers, response)
+                    if response.status_code == 404:
+                        raise UnknownObjectException(method, url, params, data, all_headers, response)
+                    else:
+                        raise ChisubmitRequestException(method, url, params, data, all_headers, response)
+                elif 500 <= response.status_code < 600:
+                    raise ChisubmitRequestException(method, url, params, data, all_headers, response)
+
+                try:
+                    response_data = response.json()
+                except ValueError:
+                    response_data = {"data": response.text}
+
+                return response.headers, response_data
+            except requests.exceptions.ConnectionError:
+                retry -= 1
+                if retry < 0:
+                    raise

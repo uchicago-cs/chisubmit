@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
@@ -28,13 +30,13 @@ class CLICompleteWorkflowGracePeriods(ChisubmitCLITestCase):
         
         course = Course.get_by_course_id(course_id)
         self.assertIsNotNone(course)
-        self.assertEquals(course.name, course_name)        
+        self.assertEqual(course.name, course_name)
 
         result = admin.run("admin course set-attribute %s default_extensions 2" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         result = admin.run("admin course set-attribute %s extension_policy per-student" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)
         
@@ -43,15 +45,15 @@ class CLICompleteWorkflowGracePeriods(ChisubmitCLITestCase):
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa1", "Programming Assignment 1", deadline])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         result = instructors[0].run("instructor assignment set-attribute", 
                                     ["pa1", "max_students", "2"])
-        self.assertEquals(result.exit_code, 0)        
+        self.assertEqual(result.exit_code, 0)
         
         result = instructors[0].run("instructor assignment set-attribute", 
                                     ["pa1", "grace_period", "00:15"])
-        self.assertEquals(result.exit_code, 0)           
+        self.assertEqual(result.exit_code, 0)
             
         teams = [u"student1-student2", 
                  u"student3-student4"]        
@@ -68,7 +70,7 @@ class CLICompleteWorkflowGracePeriods(ChisubmitCLITestCase):
         # Team 0 submits during the grace period, and doesn't have to use an extension. 
         result = students_team[0][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
         
         t = course.get_team(teams[0])
         
@@ -79,14 +81,14 @@ class CLICompleteWorkflowGracePeriods(ChisubmitCLITestCase):
         new_now = get_datetime_now_utc() + timedelta(minutes=11)
         set_testing_now(new_now)
 
-        print
-        print "~~~ Time has moved 'forward' to one minute after the grace period hours ~~~"
-        print
+        print()
+        print("~~~ Time has moved 'forward' to one minute after the grace period hours ~~~")
+        print()
         
         # Team 1 submits and has to use an extensions because the grace period is over
         result = students_team[1][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
         t = course.get_team(teams[1])
         
@@ -94,7 +96,7 @@ class CLICompleteWorkflowGracePeriods(ChisubmitCLITestCase):
 
         for team, student_team in zip(teams, students_team):
             result = student_team[0].run("student team show", [team])
-            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+            self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
         
         

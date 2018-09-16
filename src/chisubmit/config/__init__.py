@@ -27,6 +27,7 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+from builtins import object
 import os.path
 import shutil
 import yaml
@@ -76,8 +77,8 @@ class Config(object):
             f = open(config_file, 'w')
             yaml.safe_dump(config_values, f, default_flow_style=False)
             f.close()
-        except IOError, ioe:
-            raise ChisubmitException("Error when saving configuration to file %s: %s" % (config_file, ioe.meesage), ioe)
+        except IOError as ioe:
+            raise ChisubmitException("Error when saving configuration to file %s: %s" % (config_file, ioe), ioe)
 
     @staticmethod
     def set_config_value_in_file(config_file, option, value):

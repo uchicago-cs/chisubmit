@@ -27,6 +27,7 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
 
+from builtins import object
 import chisubmit.client.course
 from chisubmit.client.requester import Requester
 
@@ -62,7 +63,7 @@ class Chisubmit(object):
         :param course_id: string
         :rtype: :class:`chisubmit.client.course.Course`
         """
-        assert isinstance(course_id, (str, unicode)), course_id
+        assert isinstance(course_id, (str, str)), course_id
         
         include = []
         
@@ -102,7 +103,7 @@ class Chisubmit(object):
         :param default_extensions: int
         :rtype: :class:`chisubmit.client.course.Course`
         """
-        assert isinstance(course_id, (str, unicode)), course_id
+        assert isinstance(course_id, (str, str)), course_id
         
         post_data = {"course_id": course_id,
                      "name": name}
@@ -141,7 +142,7 @@ class Chisubmit(object):
         :param username: string
         :rtype: :class:`chisubmit.client.users.User`
         """
-        assert isinstance(username, (str, unicode)) or username is None, username
+        assert isinstance(username, (str, str)) or username is None, username
         
         if username is None:
             headers, data = self._requester.request(
@@ -161,7 +162,7 @@ class Chisubmit(object):
         :param username: string
         :rtype: token: string, created: bool
         """
-        assert isinstance(username, (str, unicode)) or username is None, username
+        assert isinstance(username, (str, str)) or username is None, username
         
         if reset:
             params = {"reset":"true"}
@@ -192,7 +193,7 @@ class Chisubmit(object):
         :param email: string
         :rtype: :class:`chisubmit.client.users.User`
         """
-        assert isinstance(username, (str, unicode)), username
+        assert isinstance(username, (str, str)), username
         
         post_data = {"username": username,
                      "first_name": first_name,

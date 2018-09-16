@@ -116,12 +116,12 @@ class UserTokenTests(APITestCase):
     def test_get_token_basic_auth_ok(self):
         url = reverse('auth-user-token')
         
-        response = self.client.get(url, HTTP_AUTHORIZATION = 'Basic ' + base64.b64encode('instructor1:instructor1'))
+        response = self.client.get(url, HTTP_AUTHORIZATION = b'Basic ' + base64.b64encode(b'instructor1:instructor1'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)                
     
     def test_get_token_basic_auth_denied(self):
         url = reverse('auth-user-token')
         
-        response = self.client.get(url, HTTP_AUTHORIZATION = 'Basic ' + base64.b64encode('instructor1:foobar'))
+        response = self.client.get(url, HTTP_AUTHORIZATION = b'Basic ' + base64.b64encode(b'instructor1:foobar'))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)                
         

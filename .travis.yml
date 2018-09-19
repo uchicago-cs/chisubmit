@@ -2,16 +2,12 @@ branches:
   only:
     - master
     - dev
-sudo: false
-dist: xenial
-language: python
-python:
-  - "3.5"
-  - "3.6"
-install: 
-  - pip install pip --upgrade
-  - pip install .
-  - pip install .[server]
+
+sudo: required
+
+before_install:
+  - docker build -t chisubmit .
+
 script:
-  - python runtests.py all
-  - python runtests.py complete
+  - docker run chisubmit-app python runtests.py all
+  - docker run chisubmit-app python runtests.py complete

@@ -5,6 +5,9 @@ branches:
 
 sudo: required
 
+services:
+  - docker
+
 install:
   - docker build -t chisubmit .
 

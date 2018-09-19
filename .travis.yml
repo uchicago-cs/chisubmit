@@ -5,9 +5,9 @@ branches:
 
 sudo: required
 
-before_install:
+install:
   - docker build -t chisubmit .
 
 script:
-  - docker run chisubmit-app python runtests.py all
-  - docker run chisubmit-app python runtests.py complete
+  - docker run chisubmit python runtests.py all
+  - docker run chisubmit python runtests.py complete

@@ -49,7 +49,7 @@ setup(name='chisubmit',
       package_dir = {'': 'src'},
       package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
-
+      python_requires='>=3.5',
       install_requires = [ "GitPython >= 2.1.11",
                            "PyGithub >= 1.40",
                            "click >= 6.6",
@@ -83,15 +83,14 @@ setup(name='chisubmit',
 
       license="Apache Software License",
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Environment :: Console',
           'Intended Audience :: Developers',
           'Intended Audience :: System Administrators',
           'Intended Audience :: Education',
           'License :: OSI Approved :: BSD License',
           'Operating System :: POSIX',
-          'Programming Language :: Python :: 2.7',
-          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3 :: Only',
           'Topic :: Education'
           ]
      )

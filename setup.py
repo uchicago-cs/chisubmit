@@ -31,8 +31,6 @@
 #
 # -------------------------------------------------------------------------- #
 
-from ez_setup import use_setuptools
-use_setuptools(version="3.1")
 from setuptools import setup, find_packages
 import sys
 
@@ -51,26 +49,27 @@ setup(name='chisubmit',
       package_dir = {'': 'src'},
       package_data = {'': ['src/config/*.conf']},
       packages=find_packages("src"),
-
-      install_requires = [ "GitPython >= 2.0.5",
-                           "PyGithub >= 1.26.0",
+      python_requires='>=3.5',
+      install_requires = [ "GitPython >= 2.1.11",
+                           "PyGithub >= 1.40",
                            "click >= 6.6",
-                           "colorama >= 0.3.7",
-                           "docutils >= 0.12",
-                           "enum34 >= 1.0.4",
-                           "pyapi-gitlab >= 7.8.4",
-                           "python-dateutil >= 2.5.3",
-                           "pytz >= 2016.4",
-                           "pyyaml >= 3.11",
-                           "requests >= 2.10.0",
-                           "tzlocal >= 1.2",
+                           "colorama >= 0.3.9",
+                           "docutils >= 0.14",
+                           "enum34 >= 1.1.6",
+                           "pyapi-gitlab >= 7.8.5",
+                           "python-dateutil >= 2.7.3",
+                           "pytz >= 2018.4",
+                           "pyyaml >= 3.12",
+                           "requests >= 2.18.4",
+                           "tzlocal >= 1.5.1",
+                           "future >= 0.16"
                          ],
       extras_require = {
-                         "server" : ["django-auth-ldap >= 1.2.8",
-                                     "djangorestframework >= 3.7.0", 
-                                     "Django >= 1.11.6",
+                         "server" : ["django-auth-ldap >= 1.7.0",
+                                     "djangorestframework >= 3.8.2", 
+                                     "Django >= 2.1.1",
                                      "jsonfield >= 2.0.2",
-                                     "python-ldap >= 2.4.25" 
+                                     "python-ldap >= 3.1.0" 
                                      ] 
                         },
       setup_requires = [ "setuptools_git >= 1.0" ],
@@ -84,15 +83,14 @@ setup(name='chisubmit',
 
       license="Apache Software License",
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Environment :: Console',
           'Intended Audience :: Developers',
           'Intended Audience :: System Administrators',
           'Intended Audience :: Education',
           'License :: OSI Approved :: BSD License',
           'Operating System :: POSIX',
-          'Programming Language :: Python :: 2',
-          'Programming Language :: Python :: 2 :: Only',
+          'Programming Language :: Python :: 3 :: Only',
           'Topic :: Education'
           ]
      )

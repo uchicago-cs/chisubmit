@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 from chisubmit.tests.common import cli_test, ChisubmitCLITestCase
 from chisubmit.common.utils import get_datetime_now_utc, set_testing_now
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
@@ -27,10 +29,10 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         self.create_course(admin, course_id, course_name)
 
         result = admin.run("admin course set-attribute %s default_extensions 3" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         result = admin.run("admin course set-attribute %s extension_policy per-student" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         self.add_users_to_course(admin, course_id, instructors, graders, students)
         
@@ -39,11 +41,11 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
 
         result = instructors[0].run("instructor assignment add", 
                                     ["pa1", "Programming Assignment 1", deadline])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         result = instructors[0].run("instructor assignment set-attribute", 
                                     ["pa1", "max_students", "2"])
-        self.assertEquals(result.exit_code, 0)        
+        self.assertEqual(result.exit_code, 0)
         
         teams = [u"student1-student2", 
                  u"student3-student4"]        
@@ -62,45 +64,45 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         # Fails because there is nothing to cancel
         result = students_team[0][0].run("student assignment cancel-submit", 
                                          ["pa1", "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)           
+        self.assertEqual(result.exit_code, CHISUBMIT_FAIL)
 
         
         # Team 0 and 1 submit with one extension to pa1
         result = students_team[0][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
         
         result = students_team[1][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
 
         # Team 0 cancels their submission
         result = students_team[0][0].run("student assignment cancel-submit", 
                                          ["pa1", "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
         
         # Team 0 cancels their submission (again)
         # Fails because there is nothing to cancel
         result = students_team[0][0].run("student assignment cancel-submit", 
                                          ["pa1", "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
+        self.assertEqual(result.exit_code, CHISUBMIT_FAIL)
 
 
         # Team 1 resubmits and is successful because the deadline hasn't passed yet
         result = students_team[1][0].run("student assignment submit", 
                                          ["pa1", "--yes", "--commit-sha", team_commits[1][0].hexsha])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
         
         # Let the deadline "pass"
         new_now = get_datetime_now_utc() + timedelta(hours=2)
         set_testing_now(new_now)
 
-        print
-        print "~~~ Time has moved 'forward' by two hours ~~~"
-        print
+        print()
+        print("~~~ Time has moved 'forward' by two hours ~~~")
+        print()
         
       
         # Team 1 cancels their submission and submits again. While the deadline
@@ -108,11 +110,11 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         # so the students can still cancel their submission.
         result = students_team[1][0].run("student assignment cancel-submit", 
                                          ["pa1", "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)           
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
         result = students_team[1][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
         
         
         # The instructor waits 24 hours to create the grading repos
@@ -120,35 +122,35 @@ class CLICompleteWorkflowCancelSubmission(ChisubmitCLITestCase):
         new_now = get_datetime_now_utc() + timedelta(hours=24)
         set_testing_now(new_now)        
         
-        print
-        print "~~~ Time has moved 'forward' by 24 hours ~~~"
-        print           
+        print()
+        print("~~~ Time has moved 'forward' by 24 hours ~~~")
+        print()           
         
         # Instructor creates master grading repos. This flags the repo for Team 1 as sent to the graders. 
         result = instructors[0].run("instructor grading create-grading-repos", ["--master", "pa1"])
-        self.assertEquals(result.exit_code, 0)                
+        self.assertEqual(result.exit_code, 0)
         
         # Team 0 submits and is successful because they cancelled their previous submission
         result = students_team[0][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+        self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
 
         # Team 1 submits and fails because their previous submission is final
         result = students_team[1][0].run("student assignment submit", 
                                          ["pa1", "--yes"])        
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)
+        self.assertEqual(result.exit_code, CHISUBMIT_FAIL)
         
         # Team 1 cancels their submission
         # Fails because the previous submission is final
         result = students_team[1][0].run("student assignment cancel-submit", 
                                          ["pa1", "--yes"])
-        self.assertEquals(result.exit_code, CHISUBMIT_FAIL)        
+        self.assertEqual(result.exit_code, CHISUBMIT_FAIL)
  
 
         for team, student_team in zip(teams, students_team):
             result = student_team[0].run("student team show", [team])
-            self.assertEquals(result.exit_code, CHISUBMIT_SUCCESS)
+            self.assertEqual(result.exit_code, CHISUBMIT_SUCCESS)
 
         
         

@@ -1,3 +1,4 @@
+from builtins import str
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -49,7 +50,7 @@ class CourseList(APIView):
                 return Response({"course_id": [msg]}, status=status.HTTP_400_BAD_REQUEST)
             try:
                 serializer.save()
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
@@ -75,7 +76,7 @@ class CourseDetail(APIView):
         if serializer.is_valid():
             try:
                 serializer.save()
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         
@@ -119,7 +120,7 @@ class PersonList(APIView):
 
             try:
                 serializer.save(course=course_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -151,7 +152,7 @@ class PersonDetail(APIView):
         if serializer.is_valid():
             try:
                 serializer.save()
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -241,7 +242,7 @@ class AssignmentList(APIView):
                 return Response({"assignment_id": [msg]}, status=status.HTTP_400_BAD_REQUEST)   
             try:
                 serializer.save(course=course_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
@@ -276,7 +277,7 @@ class AssignmentDetail(APIView):
         if serializer.is_valid():
             try:
                 serializer.save()
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -318,7 +319,7 @@ class RubricList(APIView):
                 return Response({"description": [msg]}, status=status.HTTP_400_BAD_REQUEST)   
             try:
                 serializer.save(assignment = assignment_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
@@ -344,7 +345,7 @@ class RubricDetail(APIView):
         if serializer.is_valid():
             try:
                 serializer.save()
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -413,7 +414,7 @@ class Register(APIView):
         if len(students_errors) > 0:
             return Response({"students": students_errors}, status=status.HTTP_400_BAD_REQUEST)
                     
-        if is_student and len(students_usernames) < assignment_obj.min_students or len(students_usernames) > assignment_obj.max_students:
+        if is_student and (len(students_usernames) < assignment_obj.min_students or len(students_usernames) > assignment_obj.max_students):
             if assignment_obj.min_students == assignment_obj.max_students:
                 if assignment_obj.min_students == 1:
                     msg = "You specified %i students, but this assignment only accepts individual registrations." % (len(students_usernames))                                    
@@ -591,7 +592,7 @@ class TeamList(APIView):
         if serializer.is_valid():
             try:
                 serializer.save(course=course_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)        
@@ -659,7 +660,7 @@ class TeamMemberList(APIView):
             
             try:
                 serializer.save(team = team_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)       
@@ -722,7 +723,7 @@ class RegistrationList(APIView):
         if serializer.is_valid():
             try:
                 serializer.save(team = team_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)       
@@ -807,7 +808,7 @@ class Submit(APIView):
                                                        submitted_at = now,
                                                        submitted_by = request.user,
                                                        extensions_override = extensions_override)
-        except SubmissionValidationException, sve:
+        except SubmissionValidationException as sve:
             return sve.error_response
         
         if not dry_run:
@@ -856,7 +857,7 @@ class SubmissionList(APIView):
         if serializer.is_valid():
             try:
                 serializer.save(submitted_by = request.user, registration = registration_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)       
@@ -917,7 +918,7 @@ class GradeList(APIView):
         if serializer.is_valid():
             try:
                 serializer.save(registration = registration_obj)
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)       
@@ -976,7 +977,7 @@ class UserList(APIView):
             except User.DoesNotExist:
                 try:
                     serializer.save()
-                except Error, e:
+                except Error as e:
                     return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
@@ -1009,7 +1010,7 @@ class BaseUserDetail(APIView):
         if serializer.is_valid():
             try:
                 serializer.save()
-            except Error, e:
+            except Error as e:
                 return Response({"database": [str(e)]}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

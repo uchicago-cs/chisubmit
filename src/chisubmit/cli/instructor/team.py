@@ -1,3 +1,4 @@
+from __future__ import print_function
 import click
 from chisubmit.cli.common import pass_course, catch_chisubmit_exceptions,\
     get_assignment_or_exit, get_teams_registrations, require_local_config
@@ -29,7 +30,7 @@ def instructor_team(ctx):
 @click.pass_context
 def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_for_grading, reset, only):
     if only_ready_for_grading and assignment is None:
-        print "--only-ready-for-grading can only be used with --assignment option"
+        print("--only-ready-for-grading can only be used with --assignment option")
         ctx.exit(CHISUBMIT_FAIL)
     
     if assignment is not None:
@@ -45,7 +46,7 @@ def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_fo
         teams = sorted(course.get_teams(), key = operator.attrgetter("team_id"))
     else:
         teams_registrations = get_teams_registrations(course, assignment, only = only)
-        teams = sorted([t for t in teams_registrations.keys() if t.active], key = operator.attrgetter("team_id"))
+        teams = sorted([t for t in list(teams_registrations.keys()) if t.active], key = operator.attrgetter("team_id"))
 
     max_len = max([len(t.team_id) for t in teams])
 
@@ -57,7 +58,7 @@ def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_fo
             registration = teams_registrations[team]
     
             if not registration.is_ready_for_grading() and only_ready_for_grading:
-                print "%-*s  SKIPPING (not ready for grading)" % (max_len, team.team_id)
+                print("%-*s  SKIPPING (not ready for grading)" % (max_len, team.team_id))
                 continue
         
         try:
@@ -73,7 +74,7 @@ def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_fo
                     msg = "Reset to match origin/master" 
                 else:
                     if r.repo.is_dirty():
-                        print "%-*s  ERROR: Cannot pull. Local repository has unstaged changes." % (max_len, team.team_id)
+                        print("%-*s  ERROR: Cannot pull. Local repository has unstaged changes." % (max_len, team.team_id))
                         continue
                     r.checkout_branch("master")
                     r.pull("origin", "master")
@@ -81,16 +82,16 @@ def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_fo
             if only_ready_for_grading:
                 r.checkout_commit(registration.final_submission.commit_sha)
                 msg += " and checked out commit %s" % (registration.final_submission.commit_sha)               
-            print "%-*s  %s" % (max_len, team.team_id, msg)
-        except ChisubmitException, ce:
-            print "%-*s  ERROR: Could not checkout or pull master branch (%s)" % (max_len, team.team_id, ce.message)
-        except GitCommandError, gce:
-            print "%-*s  ERROR: Could not checkout or pull master branch" % (max_len, team.team_id)
-            print gce
-        except InvalidGitRepositoryError, igre:
-            print "%-*s  ERROR: Directory %s exists but does not contain a valid git repository"  % (max_len, team.team_id, team_dir)
-        except Exception, e:
-            print "%-*s  ERROR: Unexpected exception when trying to checkout/pull" % (max_len, team.team_id)
+            print("%-*s  %s" % (max_len, team.team_id, msg))
+        except ChisubmitException as ce:
+            print("%-*s  ERROR: Could not checkout or pull master branch (%s)" % (max_len, team.team_id, ce))
+        except GitCommandError as gce:
+            print("%-*s  ERROR: Could not checkout or pull master branch" % (max_len, team.team_id))
+            print(gce)
+        except InvalidGitRepositoryError as igre:
+            print("%-*s  ERROR: Directory %s exists but does not contain a valid git repository"  % (max_len, team.team_id, team_dir))
+        except Exception as e:
+            print("%-*s  ERROR: Unexpected exception when trying to checkout/pull" % (max_len, team.team_id))
             raise
     
     return CHISUBMIT_SUCCESS
@@ -106,12 +107,12 @@ def instructor_team_pull_repos(ctx, course, directory, assignment, only_ready_fo
 def instructor_team_student_add(ctx, course, team_id, student_id):
     student = course.get_student(student_id)
     if student is None:
-        print "Student %s does not exist" % student_id
+        print("Student %s does not exist" % student_id)
         ctx.exit(CHISUBMIT_FAIL)
 
     team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % team_id
+        print("Team %s does not exist" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
 
     team.add_student(student)
@@ -129,16 +130,16 @@ def instructor_team_student_add(ctx, course, team_id, student_id):
 def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
     assignment = course.get_assignment(assignment_id)
     if assignment is None:
-        print "Assignment %s does not exist" % assignment_id
+        print("Assignment %s does not exist" % assignment_id)
         ctx.exit(CHISUBMIT_FAIL)
 
     team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % team_id
+        print("Team %s does not exist" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
 
-    if team.assignments.has_key(assignment.id):
-        print "Team %s has already been assigned assignment %s"  % (team.id, assignment.id)
+    if assignment.id in team.assignments:
+        print("Team %s has already been assigned assignment %s"  % (team.id, assignment.id))
         ctx.exit(CHISUBMIT_FAIL)
 
     team.add_assignment(assignment)
@@ -154,7 +155,7 @@ def instructor_team_assignment_add(ctx, course, team_id, assignment_id):
 def instructor_team_set_active(ctx, course, team_id):
     team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % team_id
+        print("Team %s does not exist" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
 
     team.active = True
@@ -170,7 +171,7 @@ def instructor_team_set_active(ctx, course, team_id):
 def instructor_team_set_inactive(ctx, course, team_id):
     team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % team_id
+        print("Team %s does not exist" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
 
     team.active = False
@@ -188,7 +189,7 @@ def instructor_team_set_inactive(ctx, course, team_id):
 def instructor_team_set_attribute(ctx, course, team_id, name, value):
     team = course.get_team(team_id)
     if team is None:
-        print "Team %s does not exist" % team_id
+        print("Team %s does not exist" % team_id)
         ctx.exit(CHISUBMIT_FAIL)
 
     team.set_extra(name, value)

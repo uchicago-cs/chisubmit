@@ -1,3 +1,4 @@
+from builtins import object
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
@@ -139,8 +140,8 @@ class Course(models.Model):
     default_extensions = models.IntegerField(default=0, validators = [MinValueValidator(0)])    
     
 class Instructor(models.Model):
-    user = models.ForeignKey(User)
-    course = models.ForeignKey(Course)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     
     git_username = models.CharField(max_length=64, null=True)
     git_staging_username = models.CharField(max_length=64, null=True)
@@ -148,12 +149,12 @@ class Instructor(models.Model):
     def __unicode__(self):
         return u"Instructor %s of %s" % (self.user.username, self.course.course_id) 
 
-    class Meta:
+    class Meta(object):
         unique_together = ("user", "course")
 
 class Grader(models.Model):
-    user = models.ForeignKey(User)
-    course = models.ForeignKey(Course)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     
     git_username = models.CharField(max_length=64)
     git_staging_username = models.CharField(max_length=64)
@@ -163,12 +164,12 @@ class Grader(models.Model):
     def __unicode__(self):
         return u"Grader %s of %s" % (self.user.username, self.course.course_id)     
     
-    class Meta:
+    class Meta(object):
         unique_together = ("user", "course")    
     
 class Student(models.Model):
-    user = models.ForeignKey(User)
-    course = models.ForeignKey(Course)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     
     git_username = models.CharField(max_length=64)
     
@@ -190,11 +191,11 @@ class Student(models.Model):
 
         return self.extensions - extensions_used    
     
-    class Meta:
+    class Meta(object):
         unique_together = ("user", "course")    
 
 class Assignment(models.Model):
-    course = models.ForeignKey(Course)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     assignment_id = models.SlugField()
     name = models.CharField(max_length=64)
     deadline = models.DateTimeField()
@@ -222,22 +223,22 @@ class Assignment(models.Model):
         except RubricComponent.DoesNotExist:
             return None
 
-    class Meta:
+    class Meta(object):
         unique_together = ("assignment_id", "course")    
 
 class RubricComponent(models.Model):    
-    assignment = models.ForeignKey(Assignment)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     order = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     description = models.CharField(max_length=64)
     points = models.DecimalField(max_digits=5, decimal_places=2)
     
-    class Meta:
+    class Meta(object):
         unique_together = ("assignment", "description")
         ordering = ("assignment", "order")
         
         
 class Team(models.Model):
-    course = models.ForeignKey(Course)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     team_id = models.SlugField(max_length=128)
     extensions = models.IntegerField(default=0, validators = [MinValueValidator(0)])
     active = models.BooleanField(default = True)
@@ -289,25 +290,25 @@ class Team(models.Model):
         else:
             raise IntegrityError("course.extension_policy has invalid value: %s" % (self.course.extension_policy))          
     
-    class Meta:
+    class Meta(object):
         unique_together = ("course", "team_id")
         
 class TeamMember(models.Model):
-    student = models.ForeignKey(Student)
-    team = models.ForeignKey(Team)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
     
     confirmed = models.BooleanField(default = False)
     
-    class Meta:
+    class Meta(object):
         unique_together = ("student", "team")        
         
 class Registration(models.Model):
-    team = models.ForeignKey(Team)
-    assignment = models.ForeignKey(Assignment)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
 
-    grader = models.ForeignKey(Grader, null=True)
+    grader = models.ForeignKey(Grader, null=True, on_delete=models.SET_NULL)
     grade_adjustments = jsonfield.JSONField(blank=True, null=True)
-    final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True)
+    final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True, on_delete=models.SET_NULL)
     grading_started = models.BooleanField(default=False)
 
     def is_ready_for_grading(self):
@@ -319,7 +320,7 @@ class Registration(models.Model):
                                                    extensions_used=self.final_submission.extensions_used,
                                                    assignment_grace_period=self.assignment.grace_period)
 
-    class Meta:
+    class Meta(object):
         unique_together = ("team", "assignment")
 
 
@@ -329,11 +330,11 @@ class SubmissionValidationException(Exception):
         self.error_response = error_response
 
 class Submission(models.Model):
-    registration = models.ForeignKey(Registration) 
+    registration = models.ForeignKey(Registration, on_delete=models.CASCADE) 
     extensions_used = models.IntegerField(validators = [MinValueValidator(0)])
     commit_sha = models.CharField(max_length=40)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    submitted_by = models.ForeignKey(User, null=True)
+    submitted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     in_grace_period = models.BooleanField(default=False)
     
     @classmethod
@@ -411,11 +412,11 @@ class Submission(models.Model):
             return submission, extensions                    
         
 class Grade(models.Model):
-    registration = models.ForeignKey(Registration)
-    rubric_component = models.ForeignKey(RubricComponent)
+    registration = models.ForeignKey(Registration, on_delete=models.CASCADE)
+    rubric_component = models.ForeignKey(RubricComponent, on_delete=models.CASCADE)
     
     points = models.DecimalField(max_digits=5, decimal_places=2)
     
-    class Meta:
+    class Meta(object):
         unique_together = ("registration", "rubric_component")    
     

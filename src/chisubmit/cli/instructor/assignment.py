@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import input
 import click
 from chisubmit.cli.common import pass_course, DATETIME, get_assignment_or_exit,\
     catch_chisubmit_exceptions, require_local_config, get_team_or_exit,\
@@ -50,21 +52,21 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
 
     try:
         rubric = RubricFile.from_file(rubric_file) 
-    except ChisubmitRubricException, cre:
-        print "ERROR: Rubric does not validate (%s)" % (cre.message)
+    except ChisubmitRubricException as cre:
+        print("ERROR: Rubric does not validate (%s)" % (cre))
         ctx.exit(CHISUBMIT_FAIL)
     
     rubric_components = assignment.get_rubric_components()
 
     if len(rubric_components) > 0:
-        print "This assignment already has a rubric. If you load this"
-        print "new rubric, the old one will be REMOVED. If grading of"
-        print "this assignment has already begun, doing this may break"
-        print "existing rubric files completed by the graders."
-        print
+        print("This assignment already has a rubric. If you load this")
+        print("new rubric, the old one will be REMOVED. If grading of")
+        print("this assignment has already begun, doing this may break")
+        print("existing rubric files completed by the graders.")
+        print()
         if not ask_yesno(yes=yes):
             ctx.exit(CHISUBMIT_FAIL)
-        print
+        print()
         for rc in rubric_components:
             rc.delete()
     
@@ -94,22 +96,22 @@ def instructor_assignment_add_rubric(ctx, course, assignment_id, rubric_file, ye
 def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_component, description, points, add, edit, remove, up, down, yes):
     num_cmds = len([x for x in [add,edit,remove,up,down] if x is True])
     if num_cmds > 1:
-        print "You can only specify one of the following: --add / --edit / --remove / --up / --down"
+        print("You can only specify one of the following: --add / --edit / --remove / --up / --down")
         ctx.exit(CHISUBMIT_FAIL)
     if num_cmds == 0:
-        print "You must specify one of the following: --add / --edit / --remove / --up / --down"
+        print("You must specify one of the following: --add / --edit / --remove / --up / --down")
         ctx.exit(CHISUBMIT_FAIL)
     if add and points is None:
-        print "The --add option requires the --points option"
+        print("The --add option requires the --points option")
         ctx.exit(CHISUBMIT_FAIL)
     if edit and not (description or points):
-        print "The --edit option requires the --description option or the --points option (or both)"
+        print("The --edit option requires the --description option or the --points option (or both)")
         ctx.exit(CHISUBMIT_FAIL)
     if (remove or up or down) and points is not None:
-        print "The --points option cannot be used with --remove/--up/--down"        
+        print("The --points option cannot be used with --remove/--up/--down")        
         ctx.exit(CHISUBMIT_FAIL)
     if (remove or up or down) and points is not None:
-        print "The --points option cannot be used with --remove/--up/--down"        
+        print("The --points option cannot be used with --remove/--up/--down")        
         ctx.exit(CHISUBMIT_FAIL)
     
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
@@ -119,20 +121,20 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
     rcs = [(i, rc) for i, rc in enumerate(rubric_components) if rc.description == rubric_component]
     if len(rcs) == 0:
         if not add:
-            print "No such rubric component: %s" % rubric_component
+            print("No such rubric component: %s" % rubric_component)
             ctx.exit(CHISUBMIT_FAIL)
         else:
             i, rc = None, None
     elif len(rcs) > 1:
-        print "Multiple rubric components with this name: %s" % rubric_component
-        print "(this should not happen)"
+        print("Multiple rubric components with this name: %s" % rubric_component)
+        print("(this should not happen)")
         ctx.exit(CHISUBMIT_FAIL)
     else:
         i, rc = rcs[0]
     
     if add:
         if rc is not None:
-            print "There is already a rubric component with this name: %s" % rubric_component
+            print("There is already a rubric component with this name: %s" % rubric_component)
             ctx.exit(CHISUBMIT_FAIL)
         
         if len(rubric_components) == 0:
@@ -143,24 +145,24 @@ def instructor_assignment_update_rubric(ctx, course, assignment_id, rubric_compo
         assignment.create_rubric_component(rubric_component, points, last_order + 10)
     elif edit:
         if description is not None:
-            print "If grading of this assignment has begun, changing the"
-            print "description of a rubric component may break existing"
-            print "rubric files completed by the graders."
-            print
+            print("If grading of this assignment has begun, changing the")
+            print("description of a rubric component may break existing")
+            print("rubric files completed by the graders.")
+            print()
             if not ask_yesno(yes=yes):
                 ctx.exit(CHISUBMIT_FAIL)
-            print            
+            print()            
             rc.description = description
         if points is not None:
             rc.points = points
     elif remove:
-        print "If grading of this assignment has begun, removing"
-        print "a rubric component may break existing rubric files"
-        print "completed by the graders."
-        print
+        print("If grading of this assignment has begun, removing")
+        print("a rubric component may break existing rubric files")
+        print("completed by the graders.")
+        print()
         if not ask_yesno(yes=yes):
             ctx.exit(CHISUBMIT_FAIL)
-        print            
+        print()            
         rc.delete()   
     elif up:
         if i-1 >= 0:
@@ -203,22 +205,22 @@ def instructor_assignment_register(ctx, course, assignment_id, student, yes):
     assignment = get_assignment_or_exit(ctx, course, assignment_id)
     
     if len(student) < assignment.min_students or len(student) > assignment.max_students:
-        print "You specified %i students, but this assignment requires teams with at least %i students and at most %i students" % (len(student), assignment.min_students, assignment.max_students)
-        print
-        print "Are you sure you want to proceed? (y/n): ", 
+        print("You specified %i students, but this assignment requires teams with at least %i students and at most %i students" % (len(student), assignment.min_students, assignment.max_students))
+        print()
+        print("Are you sure you want to proceed? (y/n): ", end=' ') 
         
         if not yes:
-            yesno = raw_input()
+            yesno = input()
         else:
             yesno = 'y'
-            print 'y'
+            print('y')
     
         if yesno not in ('y', 'Y', 'yes', 'Yes', 'YES'):
             ctx.exit(CHISUBMIT_FAIL)
 
     assignment.register(students = student)
     
-    print "Registration successful."
+    print("Registration successful.")
     
     return CHISUBMIT_SUCCESS
 
@@ -239,13 +241,13 @@ def instructor_assignment_submit(ctx, course, team_id, assignment_id, commit_sha
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
     
     commit = conn.get_commit(course, team, commit_sha)
     
     if commit is None:
-        print "Commit %s does not exist in repository" % commit_sha
+        print("Commit %s does not exist in repository" % commit_sha)
         ctx.exit(CHISUBMIT_FAIL)
     
     if registration.final_submission is not None:
@@ -256,58 +258,58 @@ def instructor_assignment_submit(ctx, course, team_id, assignment_id, commit_sha
         submission_commit = conn.get_commit(course, team, prior_commit_sha)            
         
         if prior_commit_sha == commit_sha:
-            print "The team has already submitted assignment %s" % registration.assignment.assignment_id
-            print "They submitted the following commit on %s:" % prior_submitted_at_local
-            print
+            print("The team has already submitted assignment %s" % registration.assignment.assignment_id)
+            print("They submitted the following commit on %s:" % prior_submitted_at_local)
+            print()
             if submission_commit is None:
-                print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+                print("WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha)
             else:
                 print_commit(submission_commit)
-            print
-            print "You are trying to submit the same commit again (%s)" % prior_commit_sha
-            print "If you want to re-submit, please specify a different commit"
+            print()
+            print("You are trying to submit the same commit again (%s)" % prior_commit_sha)
+            print("If you want to re-submit, please specify a different commit")
             ctx.exit(CHISUBMIT_FAIL)
             
-        print
-        print "WARNING: This team has already submitted assignment %s and you" % registration.assignment.assignment_id 
-        print "are about to overwrite the previous submission of the following commit:"
-        print
+        print()
+        print("WARNING: This team has already submitted assignment %s and you" % registration.assignment.assignment_id) 
+        print("are about to overwrite the previous submission of the following commit:")
+        print()
         if submission_commit is None:
-            print "WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha
+            print("WARNING: Previously submitted commit '%s' is not in the repository!" % prior_commit_sha)
         else:
             print_commit(submission_commit)
-        print
+        print()
 
     if registration.final_submission is not None:
         msg = "THE ABOVE SUBMISSION FOR %s (%s) WILL BE CANCELLED." % (registration.assignment.assignment_id, registration.assignment.name)
         
-        print "!"*len(msg)
-        print msg
-        print "!"*len(msg)
-        print
-        print "If you continue, their submission for %s (%s)" % (registration.assignment.assignment_id, registration.assignment.name)
-        print "will now point to the following commit:"                
+        print("!"*len(msg))
+        print(msg)
+        print("!"*len(msg))
+        print()
+        print("If you continue, their submission for %s (%s)" % (registration.assignment.assignment_id, registration.assignment.name))
+        print("will now point to the following commit:")                
     else:
-        print "You are going to make a submission for %s (%s)." % (registration.assignment.assignment_id, registration.assignment.name)
-        print "The commit you are submitting is the following:"
-    print
+        print("You are going to make a submission for %s (%s)." % (registration.assignment.assignment_id, registration.assignment.name))
+        print("The commit you are submitting is the following:")
+    print()
     print_commit(commit)
-    print
-    print "PLEASE VERIFY THIS IS THE EXACT COMMIT YOU WANT TO SUBMIT"
-    print
-    print "Are you sure you want to continue? (y/n): ", 
+    print()
+    print("PLEASE VERIFY THIS IS THE EXACT COMMIT YOU WANT TO SUBMIT")
+    print()
+    print("Are you sure you want to continue? (y/n): ", end=' ') 
     
-    yesno = raw_input()
+    yesno = input()
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
         try:
             submit_response = registration.submit(commit_sha, extensions_override = extensions, dry_run=False)
                         
-            print "The submission has been completed."
+            print("The submission has been completed.")
             return CHISUBMIT_SUCCESS
 
-        except BadRequestException, bre:        
-            print "ERROR: The submission was not completed. The server reported the following errors:"
+        except BadRequestException as bre:        
+            print("ERROR: The submission was not completed. The server reported the following errors:")
             bre.print_errors()
             ctx.exit(CHISUBMIT_FAIL)
 
@@ -326,64 +328,65 @@ def instructor_assignment_cancel_submit(ctx, course, team_id, assignment_id, yes
     registration = get_assignment_registration_or_exit(ctx, team, assignment.assignment_id)
         
     if registration.final_submission is None:
-        print "Team %s has not made a submission for assignment %s," % (team.team_id, assignment_id)
-        print "so there is nothing to cancel."
+        print("Team %s has not made a submission for assignment %s," % (team.team_id, assignment_id))
+        print("so there is nothing to cancel.")
         ctx.exit(CHISUBMIT_FAIL)
         
     if registration.grader_username is not None:
-        print "This submission has already been assigned a grader (%s)" % registration.grader_username
-        print "Make sure the grader has been notified to discard this submission."
-        print "You must also remove the existing grading branch from the staging server."
+        print("This submission has already been assigned a grader (%s)" % registration.grader_username)
+        print("Make sure the grader has been notified to discard this submission.")
+        print("You must also remove the existing grading branch from the staging server.")
         
-        print "Are you sure you want to proceed? (y/n): ", 
+        print("Are you sure you want to proceed? (y/n): ", end=' ') 
         
         if not yes:
-            yesno = raw_input()
+            yesno = input()
         else:
             yesno = 'y'
-            print 'y'
+            print('y')
         
         if yesno not in ('y', 'Y', 'yes', 'Yes', 'YES'):
             ctx.exit(CHISUBMIT_FAIL)
         else:
-            print
+            print()
         
     if is_submission_ready_for_grading(assignment_deadline=registration.assignment.deadline, 
                                        submission_date=registration.final_submission.submitted_at,
                                        extensions_used=registration.final_submission.extensions_used):
-        print "WARNING: You are canceling a submission that is ready for grading!"
+        print("WARNING: You are canceling a submission that is ready for grading!")
             
     conn = create_connection(course, ctx.obj['config'])
     
     if conn is None:
-        print "Could not connect to git server."
+        print("Could not connect to git server.")
         ctx.exit(CHISUBMIT_FAIL)
         
     submission_commit = conn.get_commit(course, team, registration.final_submission.commit_sha)
         
-    print
-    print "This is the existing submission for assignment %s:" % assignment_id
-    print
+    print()
+    print("This is the existing submission for assignment %s:" % assignment_id)
+    print()
     if submission_commit is None:
-        print "WARNING: Previously submitted commit '%s' is not in the repository!" % registration.final_submission.commit_sha
+        print("WARNING: Previously submitted commit '%s' is not in the repository!" % registration.final_submission.commit_sha)
     else:
         print_commit(submission_commit)
-    print    
+    print()    
 
-    print "Are you sure you want to cancel this submission? (y/n): ", 
+    print("Are you sure you want to cancel this submission? (y/n): ", end=' ') 
     
     if not yes:
-        yesno = raw_input()
+        yesno = input()
     else:
         yesno = 'y'
-        print 'y'
+        print('y')
     
     if yesno in ('y', 'Y', 'yes', 'Yes', 'YES'):
         registration.final_submission_id = None
         registration.grader_username = None
+        registration.grading_started = False
         
-        print
-        print "The submission has been cancelled."
+        print()
+        print("The submission has been cancelled.")
 
 
 @click.command(name="stats")
@@ -432,8 +435,8 @@ def instructor_assignment_stats(ctx, course, assignment_id):
                     nstudents_assignment += 1
                     if not tm.confirmed:
                         unconfirmed = True
-                except KeyError, ke:
-                    print "WARNING: Student %s seems to be in more than one team (offending team: %s)" % (tm.username, team.team_id)
+                except KeyError as ke:
+                    print("WARNING: Student %s seems to be in more than one team (offending team: %s)" % (tm.username, team.team_id))
             else:
                 includes_dropped = True
 
@@ -452,30 +455,30 @@ def instructor_assignment_stats(ctx, course, assignment_id):
     assert(nstudents == len(students) + nstudents_assignment)                
             
     title = "Assignment '%s'" % (assignment.name)
-    print title
-    print "=" * len(title)
+    print(title)
+    print("=" * len(title))
                
-    print 
-    print "%i / %i students in %i teams have signed up for assignment %s" % (nstudents_assignment, nstudents, nteams, assignment.assignment_id)
-    print
-    print "%i / %i teams have submitted the assignment (%i students)" % (nsubmissions, nteams, nstudents_submitted)
+    print() 
+    print("%i / %i students in %i teams have signed up for assignment %s" % (nstudents_assignment, nstudents, nteams, assignment.assignment_id))
+    print()
+    print("%i / %i teams have submitted the assignment (%i students)" % (nsubmissions, nteams, nstudents_submitted))
     
     if ctx.obj["verbose"]:
         if len(students) > 0:
-            print
-            print "Students who have not yet signed up"
-            print "-----------------------------------"
+            print()
+            print("Students who have not yet signed up")
+            print("-----------------------------------")
             not_signed_up = [student_dict[sid] for sid in students]
             not_signed_up.sort(key=operator.attrgetter("last_name"))
             for s in not_signed_up:
-                print "%s, %s <%s>" % (s.last_name, s.first_name, s.email)
+                print("%s, %s <%s>" % (s.last_name, s.first_name, s.email))
                 
         if len(unsubmitted) > 0:
-            print
-            print "Teams that have not submitted"
-            print "-----------------------------"
+            print()
+            print("Teams that have not submitted")
+            print("-----------------------------")
             for t in unsubmitted:
-                print t.team_id
+                print(t.team_id)
                 
     return CHISUBMIT_SUCCESS
 

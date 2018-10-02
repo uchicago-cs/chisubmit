@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 #  Copyright (c) 2013-2014, The University of Chicago
 #  All rights reserved.
@@ -43,10 +44,10 @@ class ChisubmitException(Exception):
             self.traceback = None
 
     def print_exception(self):
-        print self.traceback
+        print(self.traceback)
         
 def handle_unexpected_exception():
-    print "ERROR: Unexpected exception"
-    print traceback.format_exc()
+    print("ERROR: Unexpected exception")
+    print(traceback.format_exc())
     exit(CHISUBMIT_FAIL)
         

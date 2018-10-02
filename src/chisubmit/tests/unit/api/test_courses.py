@@ -57,7 +57,7 @@ class CourseTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)           
 
         instructor_obj = Instructor.objects.get(course__course_id = 'cmsc40100', user__username = "instructor1")
-        self.assertEquals(instructor_obj.git_username, "git-instructor1")
+        self.assertEqual(instructor_obj.git_username, "git-instructor1")
         
         
     

@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import zip
+from builtins import object
 import os
 import yaml
 import sys
@@ -60,7 +63,7 @@ def cli_test(func=None, isolated_filesystem = True):
                     func(self, runner, *args, **kwargs)
             else:
                 func(self, runner, *args, **kwargs)
-        except BadRequestException, bre:
+        except BadRequestException as bre:
             bre.print_errors()
             raise
     return new_func
@@ -116,7 +119,7 @@ class ChisubmitCLITestClient(object):
         if self.verbose:
             global cli_verbose
             if cli_verbose:
-                print
+                print()
             l = []
             for ca in cmd_args:
                 if " " in ca:
@@ -129,7 +132,7 @@ class ChisubmitCLITestClient(object):
             s+= colorama.Fore.WHITE
             s+= " chisubmit %s" % " ".join(l)
             s+= colorama.Style.RESET_ALL
-            print s
+            print(s)
         
         result = self.runner.invoke(cmd, chisubmit_args + cmd_args, catch_exceptions=catch_exceptions, input=cmd_input)
         
@@ -184,24 +187,24 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         self.git_api_keys[git_type] = apikey
     
     def assert_http_code(self, response, expected):
-        self.assertEquals(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))                
+        self.assertEqual(response.status_code, expected, "Expected HTTP response code %i, got %i" % (expected, response.status_code))
         
     def create_user(self, admin_runner, username):
         fname = "f_" + username
         lname = "l_" + username
         email = username + "@example.org"
         result = admin_runner.run("admin user add", [username, fname, lname, email])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
             
         try:
             user_obj = User.objects.get(username=username)
         except User.DoesNotExist:
             self.fail("User was not added to database")              
 
-        self.assertEquals(user_obj.username, username)            
-        self.assertEquals(user_obj.first_name, fname)            
-        self.assertEquals(user_obj.last_name, lname)            
-        self.assertEquals(user_obj.email, email)      
+        self.assertEqual(user_obj.username, username)
+        self.assertEqual(user_obj.first_name, fname)
+        self.assertEqual(user_obj.last_name, lname)
+        self.assertEqual(user_obj.email, email)
         
         # Creating a custom token cannot be done throught the API or CLI, so
         # we create a Token object directly.
@@ -232,58 +235,58 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
 
     def create_course(self, admin, course_id, course_name):
         result = admin.run("admin course add", [course_id, course_name])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         course = Course.get_by_course_id(course_id)
         self.assertIsNotNone(course)
-        self.assertEquals(course.name, course_name)
+        self.assertEqual(course.name, course_name)
         
         result = admin.run("admin course list")
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         self.assertIn(course_id, result.output)
         self.assertIn(course_name, result.output)
 
         result = admin.run("admin course set-attribute %s git_usernames custom" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         git_server_connstr = self.git_server_connstr
         git_staging_connstr = self.git_staging_connstr
 
         result = admin.run("admin course set-attribute %s git_server_connstr %s" % (course_id, git_server_connstr))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         result = admin.run("admin course set-attribute %s git_staging_connstr %s" % (course_id, git_staging_connstr))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         course = Course.get_by_course_id(course_id)
-        self.assertEquals(course.git_server_connstr, git_server_connstr)
-        self.assertEquals(course.git_staging_connstr, git_staging_connstr)
+        self.assertEqual(course.git_server_connstr, git_server_connstr)
+        self.assertEqual(course.git_staging_connstr, git_staging_connstr)
         
         result = admin.run("admin course unsetup-repo %s" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         result = admin.run("admin course setup-repo %s" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         result = admin.run("admin course unsetup-repo %s --staging" % (course_id))
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
         result = admin.run("admin course setup-repo %s --staging" % (course_id))
-        self.assertEquals(result.exit_code, 0)        
+        self.assertEqual(result.exit_code, 0)
         
         
     def add_users_to_course(self, admin, course_id, instructors, graders, students):  
         for instructor in instructors:
             result = admin.run("admin course add-instructor %s %s" % (course_id, instructor.user_id))
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
         
         for grader in graders:
             result = admin.run("admin course add-grader %s %s" % (course_id, grader.user_id))
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
         
         for student in students:
             result = admin.run("admin course add-student %s %s" % (course_id, student.user_id))
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
                 
         for instructor in instructors:
             if self.git_server_user is None:
@@ -293,7 +296,7 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
     
             result = instructors[0].run("instructor course set-user-attribute", 
                                     ["instructor", instructors[0].user_id, "git_username", git_username])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
             if self.git_staging_user is None:
                 git_staging_username = "git-" + instructors[0].user_id
@@ -302,7 +305,7 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
     
             result = instructors[0].run("instructor course set-user-attribute", 
                                     ["instructor", instructors[0].user_id, "git_staging_username", git_staging_username])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
 
         for grader in graders:
@@ -313,7 +316,7 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
     
             result = instructors[0].run("instructor course set-user-attribute", 
                                         ["grader", graders[0].user_id, "git_username", git_username])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
             if self.git_staging_user is None:
                 git_staging_username = "git-" + graders[0].user_id
@@ -322,14 +325,14 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
     
             result = instructors[0].run("instructor course set-user-attribute", 
                                     ["grader", graders[0].user_id, "git_staging_username", git_staging_username])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
                 
         result = admin.run("admin course update-repo-access", [course_id])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
                 
         result = admin.run("admin course update-repo-access", [course_id, "--staging"])
-        self.assertEquals(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         
         for student in students:
             if self.git_server_user is None:
@@ -338,11 +341,11 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
                 git_username = self.git_server_user
                 
             result = student.run("student course set-git-username", [git_username])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
             
             student_obj = Student.objects.get(course__course_id = course_id, user__username = student.user_id)
                 
-            self.assertEquals(student_obj.git_username, git_username)
+            self.assertEqual(student_obj.git_username, git_username)
 
 
     def create_team_repos(self, admin, course_id, teams, students_team):
@@ -353,21 +356,21 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         
         for team, students in zip(teams, students_team):
             result = admin.run("admin course team-repo-remove", [course_id, team, "--ignore-non-existing"])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
             result = admin.run("admin course team-repo-remove", ["--staging", course_id, team, "--ignore-non-existing"])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
             result = admin.run("admin course team-repo-create", [course_id, team, "--public"])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
             result = admin.run("admin course team-repo-create", ["--staging", course_id, team, "--public"])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
         
             result = students[0].run("student team repo-check", [team])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
             
             r = re.findall(r"^Repository URL: (.*)$", result.output, flags=re.MULTILINE)
-            self.assertEquals(len(r), 1, "student team repo-check didn't produce the expected output")
+            self.assertEqual(len(r), 1, "student team repo-check didn't produce the expected output")
             repo_url = r[0]
 
             team_git_repo, team_git_path = students[0].create_local_git_repository(team)
@@ -407,9 +410,9 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
             for team2, students2 in zip(teams, students_team):
                 if team1 != team2:
                     result = students1[0].run("student team repo-check", [team2])
-                    self.assertNotEquals(result.exit_code, 0)
+                    self.assertNotEqual(result.exit_code, 0)
                     result = students2[0].run("student team repo-check", [team1])
-                    self.assertNotEquals(result.exit_code, 0)
+                    self.assertNotEqual(result.exit_code, 0)
             
         return team_git_paths, team_git_repos, team_commits
 
@@ -437,9 +440,9 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         team = [t for t in ts if t.id == team_name]
         self.assertEqual(len(team), 1)
         t = team[0]
-        self.assertEquals(t.id, team_name)
+        self.assertEqual(t.id, team_name)
         self.assertListEqual(sorted([s.id for s in students_in_team]), 
                              sorted([s.id for s in t.students]))
         for st in t.students_teams:
-            self.assertEquals(st.status, StudentsTeams.STATUS_CONFIRMED)      
+            self.assertEqual(st.status, StudentsTeams.STATUS_CONFIRMED)
     

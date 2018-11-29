@@ -175,6 +175,8 @@ def instructor_grading_list_grades(ctx, course, detailed):
     for team in teams:
         registrations = team.get_assignment_registrations()
         for registration in registrations:
+            if registration.final_submission is None:
+                continue
             assignment_id = registration.assignment.assignment_id
             for student in team.get_team_members():
                 student_id = student.username

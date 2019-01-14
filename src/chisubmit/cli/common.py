@@ -148,6 +148,8 @@ def catch_chisubmit_exceptions(f):
                 ce.print_exception()
         except click.UsageError:
             raise
+        except click.core.Exit:
+            raise
         except Exception as e:
             handle_unexpected_exception()
             

@@ -233,18 +233,30 @@ def instructor_grading_list_grades(ctx, course, detailed):
 @click.command(name="assign-grader")
 @click.argument('assignment_id', type=str)
 @click.argument('team_id', type=str)
-@click.argument('grader_id', type=str)
+@click.argument('grader_id', type=str, required=False)
+@click.option('--none', is_flag=True)
 @catch_chisubmit_exceptions
 @require_local_config
 @pass_course
 @click.pass_context
-def instructor_grading_assign_grader(ctx, course, assignment_id, team_id, grader_id):
-    team = get_team_or_exit(ctx, course, team_id)
-    grader = get_grader_or_exit(ctx, course, grader_id)
+def instructor_grading_assign_grader(ctx, course, assignment_id, team_id, grader_id, none):
+    
+    if none and grader_id is not None:
+        print("Cannot specify a grader and also --none")
+        ctx.exit(CHISUBMIT_FAIL)
 
+    if not none and grader_id is None:
+        print("You must specify a grader or use --none")
+        ctx.exit(CHISUBMIT_FAIL)
+
+    team = get_team_or_exit(ctx, course, team_id)
     registration = get_assignment_registration_or_exit(ctx, team, assignment_id)
 
-    registration.grader_username = grader.username
+    if none:
+        registration.grader_username = None
+    else:
+        grader = get_grader_or_exit(ctx, course, grader_id)
+        registration.grader_username = grader.username
 
 @click.command(name="assign-graders")
 @click.argument('assignment_id', type=str)

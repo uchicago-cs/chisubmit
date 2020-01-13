@@ -150,8 +150,13 @@ class Registration(ChisubmitAPIObject):
 
                        "grading_started": Attribute(name="grading_started", 
                                                     attrtype=APIBooleanType, 
-                                                    editable=True),                                                                
-                      }
+                                                    editable=True),
+
+                       "gradescope_uploaded": Attribute(name="gradescope_uploaded",
+                                                        attrtype=APIBooleanType,
+                                                        editable=True),
+
+                       }
     
     _api_relationships = {
 

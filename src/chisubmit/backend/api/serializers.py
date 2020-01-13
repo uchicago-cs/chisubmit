@@ -97,8 +97,8 @@ class CourseSerializer(ChisubmitSerializer):
     students_url = serializers.SerializerMethodField()
     assignments_url = serializers.SerializerMethodField()
     teams_url = serializers.SerializerMethodField()
-    
-    
+
+    gradescope_id = serializers.IntegerField(required=False)
     git_server_connstr = serializers.CharField(max_length=256, required=False)
     git_staging_connstr = serializers.CharField(max_length=256, required=False)
     git_usernames = serializers.ChoiceField(choices=Course.GIT_USERNAME_CHOICES, default=Course.GIT_USERNAME_USER)
@@ -106,7 +106,8 @@ class CourseSerializer(ChisubmitSerializer):
     extension_policy = serializers.ChoiceField(choices=Course.EXT_CHOICES, default=Course.EXT_PER_STUDENT)
     default_extensions = serializers.IntegerField(default=0, min_value=0)    
     
-    hidden_fields = { "git_staging_connstr": Students,    
+    hidden_fields = { "git_staging_connstr": Students,
+                      "gradescope_id": Students,
                       "git_usernames": GradersAndStudents,
                       "git_staging_usernames": GradersAndStudents,
                       "extension_policy": GradersAndStudents,
@@ -116,6 +117,7 @@ class CourseSerializer(ChisubmitSerializer):
     readonly_fields = { "course_id": AllExceptAdmin,
                         "name": AllExceptAdmin,
                         "archived": AllExceptAdmin,
+                        "gradescope_id": GradersAndStudents,
                         "git_server_connstr": AllExceptAdmin,
                         "git_staging_connstr": AllExceptAdmin,                        
                         "git_usernames": AllExceptAdmin,
@@ -149,6 +151,7 @@ class CourseSerializer(ChisubmitSerializer):
         instance.course_id = validated_data.get('course_id', instance.course_id)
         instance.name = validated_data.get('name', instance.name)
         instance.archived = validated_data.get('archived', instance.archived)
+        instance.gradescope_id = validated_data.get('gradescope_id', instance.gradescope_id)
         instance.git_server_connstr = validated_data.get('git_server_connstr', instance.git_server_connstr)
         instance.git_staging_connstr = validated_data.get('git_staging_connstr', instance.git_staging_connstr)
         instance.git_usernames = validated_data.get('git_usernames', instance.git_usernames)
@@ -300,18 +303,23 @@ class AssignmentSerializer(ChisubmitSerializer):
     name = serializers.CharField(max_length=64)
     deadline = serializers.DateTimeField()
     grace_period = serializers.DurationField(required=False)
-    
+    gradescope_id = serializers.IntegerField(required=False)
+    expected_files = serializers.CharField(required=False)
+
     url = serializers.SerializerMethodField()
     rubric_url = serializers.SerializerMethodField()
     
     min_students = serializers.IntegerField(default=1, min_value=1)
     max_students = serializers.IntegerField(default=1, min_value=1)
     
-    hidden_fields = { "grace_period": GradersAndStudents }    
+    hidden_fields = { "grace_period": GradersAndStudents,
+                      "gradescope_id": Students }
     
     readonly_fields = { "assignment_id": GradersAndStudents,
                         "name": GradersAndStudents,
                         "deadline": GradersAndStudents,
+                        "gradescope_id": GradersAndStudents,
+                        "expected_files": GradersAndStudents,
                         "min_students": GradersAndStudents,
                         "max_students": GradersAndStudents
                       }       
@@ -330,10 +338,12 @@ class AssignmentSerializer(ChisubmitSerializer):
         instance.name = validated_data.get('name', instance.name)
         instance.deadline = validated_data.get('deadline', instance.deadline)
         instance.grace_period = validated_data.get('grace_period', instance.grace_period)
+        instance.gradescope_id = validated_data.get('gradescope_id', instance.gradescope_id)
+        instance.expected_files = validated_data.get('expected_files', instance.expected_files)
         instance.min_students = validated_data.get('min_students', instance.min_students)
         instance.max_students = validated_data.get('max_students', instance.max_students)
         instance.save()
-        return instance    
+        return instance
   
 
 class RubricComponentSerializer(ChisubmitSerializer):
@@ -489,17 +499,20 @@ class RegistrationSerializer(ChisubmitSerializer):
         )
     final_submission = SubmissionSerializer(read_only=True, required=False) 
     grading_started = serializers.BooleanField(required=False)
+    gradescope_uploaded = serializers.BooleanField(required=False)
 
     grades_url = serializers.SerializerMethodField()
     grade_adjustments = serializers.DictField(required=False,
                                               child=serializers.DecimalField(max_digits=5, decimal_places=2))
 
     readonly_fields = { "grade_adjustments": GradersAndStudents,
-                        "grading_started": GradersAndStudents }
+                        "grading_started": GradersAndStudents,
+                        "gradescope_uploaded": GradersAndStudents}
 
     hidden_fields = { 
                       "grader_username": Students,
-                      "grader": Students                      
+                      "grader": Students,
+                      "gradescope_uploaded": Students
                     }   
 
 
@@ -531,6 +544,7 @@ class RegistrationSerializer(ChisubmitSerializer):
         instance.grade_adjustments = validated_data.get('grade_adjustments', instance.grade_adjustments)
         instance.final_submission = validated_data.get('final_submission', instance.final_submission)
         instance.grading_started = validated_data.get('grading_started', instance.grading_started)
+        instance.gradescope_uploaded = validated_data.get('gradescope_uploaded', instance.gradescope_uploaded)
         instance.save()
         return instance            
     

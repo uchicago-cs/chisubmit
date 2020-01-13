@@ -72,7 +72,8 @@ def cli_test(func=None, isolated_filesystem = True):
 class ChisubmitCLITestClient(object):
     
     def __init__(self, api_url, user_id, api_key, runner, 
-                       course = None, git_credentials = {}, verbose = False):
+                 course = None, git_credentials = {}, gradescope_api_key = None,
+                 verbose = False):
         global cli_verbose
         
         self.user_id = user_id
@@ -99,6 +100,8 @@ class ChisubmitCLITestClient(object):
                     "git-credentials":
                         git_credentials
                     }
+            if gradescope_api_key is not None:
+                conf["gradescope-api-key"] = gradescope_api_key
             yaml.safe_dump(conf, f, default_flow_style=False)   
             
     def run(self, subcommands, params = [], course = None, cmd=chisubmit_cmd, catch_exceptions=False, cmd_input = None):
@@ -210,14 +213,14 @@ class ChisubmitCLITestCase(APILiveServerTestCase):
         # we create a Token object directly.
         Token.objects.create(key=username+"token", user=user_obj)
 
-    def create_clients(self, runner, admin_id, instructor_ids = [], grader_ids = [], student_ids = [], course_id=None, verbose=False):
+    def create_clients(self, runner, admin_id, instructor_ids = [], grader_ids = [], student_ids = [], course_id=None, gradescope_api_key=None, verbose=False):
         base_url = self.live_server_url + "/api/v1"
         
-        admin = ChisubmitCLITestClient(base_url, admin_id, admin_id+"token", runner, git_credentials=self.git_api_keys, verbose = verbose)
+        admin = ChisubmitCLITestClient(base_url, admin_id, admin_id+"token", runner, git_credentials=self.git_api_keys, gradescope_api_key=gradescope_api_key, verbose = verbose)
         
         instructors = []
         for instructor_id in instructor_ids:
-            instructors.append(ChisubmitCLITestClient(base_url, instructor_id, instructor_id+"token", runner, git_credentials=self.git_api_keys,  verbose = verbose, course = course_id))
+            instructors.append(ChisubmitCLITestClient(base_url, instructor_id, instructor_id+"token", runner, git_credentials=self.git_api_keys,  gradescope_api_key=gradescope_api_key, verbose = verbose, course = course_id))
 
         graders = []
         for grader_id in grader_ids:

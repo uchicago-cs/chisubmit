@@ -1,9 +1,13 @@
 from __future__ import print_function
 from __future__ import division
+
+import glob
 from builtins import input
 from builtins import str
 from past.utils import old_div
 import click
+import requests
+import json
 
 from chisubmit.common import CHISUBMIT_SUCCESS, CHISUBMIT_FAIL
 from chisubmit.repos.grading import GradingGitRepo
@@ -951,7 +955,143 @@ def instructor_grading_collect_rubrics(ctx, course, assignment_id, dry_run, only
             print()
         else:
             print("%-40s %.2f" % (team.team_id, total_grade))
-            
+
+
+class GradescopeException(Exception):
+    pass
+
+def gradescope_upload_submission(access_token, course_id, assignment_id, owner_emails, filenames):
+    """
+    Uploads a submission to Gradescope
+
+    :param access_token: Gradescope API token
+    :param course_id: Gradescope course identifier
+    :param assignment_id: Gradescope assignment identifier
+    :param owner_email: The e-mail address of the student for whom this submission is being uploaded
+    :param filenames: List of tuples, specifying the files to submit.
+        Each tuple contains the name of the file (as it will appear on Gradescope) and
+        the path to the file (which will be read and submitted)
+
+    :return: Gradescope submission identifier
+    """
+    url = "https://www.gradescope.com/api/v1/courses/{0}/assignments/{1}/submissions".format(course_id, assignment_id)
+    s = requests.Session()
+
+    data = {'owner_emails[]': owner_emails}
+
+    for _, filepath in filenames:
+        if not os.path.exists(filepath):
+            raise GradescopeException("No such file: {}".format(filepath))
+
+    files = [('files[]', (filename, open(filepath, 'rb'))) for filename, filepath in filenames]
+
+    headers = {'access-token': access_token}
+
+    r = s.post(url, data = data, headers = headers, files = files)
+
+    headers = r.headers
+    if headers["Status"] != "200 OK":
+        # TODO: Move this information into GradescopeException
+        from pprint import pprint
+        pprint(headers)
+        pprint(r.text)
+        raise GradescopeException("Request denied")
+
+    response = json.loads(r.text)
+
+    submission_id = response["id"]
+
+    return submission_id
+
+
+@click.command(name="gradescope-upload")
+@click.argument('assignment_id', type=str)
+@click.option('--dry-run', is_flag=True)
+@click.option('--only', type=str)
+@click.option('--limit', type=int)
+@catch_chisubmit_exceptions
+@require_local_config
+@pass_course
+@click.pass_context
+def instructor_gradescope_upload(ctx, course, assignment_id, dry_run, only, limit):
+    config = ctx.obj['config']
+    gradescope_api_key = config.get_gradescope_api_key()
+    if gradescope_api_key is None:
+        print("No API key found for Gradescope")
+        ctx.exit(CHISUBMIT_FAIL)
+
+    if course.gradescope_id is None:
+        print("{} does not have its 'gradescope_id' attribute set".format(course.course_id))
+        ctx.exit(CHISUBMIT_FAIL)
+
+    assignment = get_assignment_or_exit(ctx, course, assignment_id)
+
+    if assignment.gradescope_id is None:
+        print("Assignment {} does not have its 'gradescope_id' attribute set".format(assignment_id))
+        ctx.exit(CHISUBMIT_FAIL)
+
+    if assignment.expected_files is None:
+        print("Assignment {} does not have a list of expected files".format(assignment_id))
+        ctx.exit(CHISUBMIT_FAIL)
+
+    teams_registrations = get_teams_registrations(course, assignment, only = only)
+    teams = sorted(list(teams_registrations.keys()), key=operator.attrgetter("team_id"))
+
+    n_submissions = 0
+    for team_obj in teams:
+        registration_obj = teams_registrations[team_obj]
+
+        if registration_obj.gradescope_uploaded:
+            print("[SKIPPED] {} has already been uploaded".format(team_obj.team_id))
+            continue
+
+        repo = GradingGitRepo.get_grading_repo(config, course, team_obj, registration_obj)
+        if repo is None:
+            print("[SKIPPED] {} does not have a grading repo".format(team_obj.team_id))
+            continue
+
+        files = []
+        missing_files = []
+
+        for pattern in assignment.expected_files.split(","):
+            abs_pattern = "{}/{}".format(repo.repo_path, pattern)
+            matching_files = glob.glob(abs_pattern)
+            if len(matching_files) == 0:
+                missing_files.append(pattern)
+                continue
+            for f in matching_files:
+                files.append((os.path.basename(f), f))
+
+        if len(missing_files) > 0:
+            print("[WARNING] {} does not have required file(s): {}".format(team_obj.team_id, " ".join(missing_files)))
+            continue
+
+        team_members = team_obj.get_team_members()
+
+        if all(tm.student.dropped for tm in team_members):
+            print("[SKIPPED] All students in {} have dropped the class".format(team_obj.team_id))
+            continue
+
+        emails = ["{}@uchicago.edu".format(tm.student.username) for tm in team_members]
+
+        if dry_run:
+            print("[DRY RUN] upload_submission(..., {}, {}, '{}', {}".format(course.gradescope_id, assignment.gradescope_id, emails, files))
+            n_submissions += 1
+        else:
+            try:
+                submission_id =  gradescope_upload_submission(gradescope_api_key, course.gradescope_id, assignment.gradescope_id, emails, files)
+                print("[DONE]: Upload for {} (submission id: {})".format(team_obj.team_id, submission_id))
+
+                registration_obj.gradescope_uploaded = True
+                n_submissions += 1
+            except GradescopeException:
+                print("[ERROR] Could not upload submission for {}".format(team_obj.team_id))
+
+        if limit is not None and n_submissions >= limit:
+            print("Reached submission limit ({})".format(limit))
+            break
+
+
 
 instructor_grading.add_command(instructor_grading_set_grade)
 instructor_grading.add_command(instructor_grading_load_grades)
@@ -968,3 +1108,4 @@ instructor_grading.add_command(instructor_grading_pull_grading)
 instructor_grading.add_command(instructor_grading_add_rubrics)
 instructor_grading.add_command(instructor_validate_rubrics)
 instructor_grading.add_command(instructor_grading_collect_rubrics)
+instructor_grading.add_command(instructor_gradescope_upload)

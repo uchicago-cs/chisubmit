@@ -52,11 +52,12 @@ class Config(object):
     
     OPTION_API_URL = "api-url"
     OPTION_API_KEY = "api-key"
+    OPTION_GRADESCOPE_API_KEY = "gradescope-api-key"
     OPTION_COURSE = "course"
     OPTION_GIT_CREDENTIALS = "git-credentials"
     OPTION_SSL_VERIFY = "ssl-verify"
     
-    VALID_OPTIONS = [OPTION_API_URL, OPTION_API_KEY, OPTION_COURSE, OPTION_GIT_CREDENTIALS, OPTION_SSL_VERIFY]
+    VALID_OPTIONS = [OPTION_API_URL, OPTION_API_KEY, OPTION_GRADESCOPE_API_KEY, OPTION_COURSE, OPTION_GIT_CREDENTIALS, OPTION_SSL_VERIFY]
 
     @staticmethod
     def get_config_file_values(config_file):
@@ -196,7 +197,11 @@ class Config(object):
         config_file = self.__get_config_file(where)
         Config.set_config_value_in_file(config_file, Config.OPTION_API_KEY, api_key)
         
-        
+
+    def get_gradescope_api_key(self):
+        return self.config_values[Config.OPTION_GRADESCOPE_API_KEY]
+
+
     def get_course(self):
         return self.config_values[Config.OPTION_COURSE]
     

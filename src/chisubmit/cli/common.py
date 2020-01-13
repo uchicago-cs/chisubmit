@@ -263,7 +263,7 @@ def api_obj_set_attribute(ctx, api_obj, attr_name, attr_value):
         ctx.exit(CHISUBMIT_FAIL)
         
     attr = api_obj._api_attributes[attr_name]
-    
+
     if attr.type.attrtype == AttributeType.STRING:
         v = attr_value
     elif attr.type.attrtype == AttributeType.INTEGER:
@@ -422,4 +422,6 @@ def ask_yesno(prompt="Are you sure you want to continue? (y/n): ", yes=False):
             yesno = 'y'
             print('y')
             
-        return yesno in ('y', 'Y', 'yes', 'Yes', 'YES')    
+        return yesno in ('y', 'Y', 'yes', 'Yes', 'YES')
+
+

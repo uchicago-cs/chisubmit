@@ -73,6 +73,10 @@ class Course(ChisubmitAPIObject):
                        "default_extensions": Attribute(name="default_extensions", 
                                                        attrtype=APIIntegerType, 
                                                        editable=True),
+
+                       "gradescope_id": Attribute(name="gradescope_id",
+                                                       attrtype=APIIntegerType,
+                                                       editable=True),
                       }
     
     _api_relationships = {

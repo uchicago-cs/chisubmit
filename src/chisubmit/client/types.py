@@ -307,7 +307,7 @@ class ChisubmitAPIObject(object):
 
     def edit(self, **kwargs):
         patch_data = {}
-        
+
         for attrname, attrvalue in list(kwargs.items()):
             api_attr = self.__get_api_attr(attrname)
             

@@ -84,7 +84,16 @@ class Assignment(ChisubmitAPIObject):
                        "max_students": Attribute(name="max_students", 
                                                attrtype=APIIntegerType, 
                                                editable=True),
-                      }
+
+                       "gradescope_id": Attribute(name="gradescope_id",
+                                                  attrtype=APIIntegerType,
+                                                  editable=True),
+
+                       "expected_files": Attribute(name="expected_files",
+                                                   attrtype=APIStringType,
+                                                   editable=True),
+
+                       }
     
     _api_relationships = {
 

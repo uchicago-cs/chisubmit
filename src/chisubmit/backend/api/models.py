@@ -43,6 +43,8 @@ class Course(models.Model):
     instructors = models.ManyToManyField(User, through='Instructor', related_name="instructor_in")
     graders = models.ManyToManyField(User, through='Grader', related_name="grader_in")
     students = models.ManyToManyField(User, through='Student', related_name="student_in")
+
+    gradescope_id = models.IntegerField(null=True, blank=True)
     
     def __unicode__(self):
         return u"%s: %s" % (self.course_id, self.name)
@@ -200,6 +202,9 @@ class Assignment(models.Model):
     name = models.CharField(max_length=64)
     deadline = models.DateTimeField()
     grace_period = models.DurationField(default=timedelta(seconds=0))
+    expected_files = models.TextField(null=True, blank=True)
+
+    gradescope_id = models.IntegerField(null=True, blank=True)
 
     # Options
     min_students = models.IntegerField(default=1, validators = [MinValueValidator(1)])
@@ -310,6 +315,7 @@ class Registration(models.Model):
     grade_adjustments = jsonfield.JSONField(blank=True, null=True)
     final_submission = models.ForeignKey("Submission", related_name="final_submission_of", null=True, on_delete=models.SET_NULL)
     grading_started = models.BooleanField(default=False)
+    gradescope_uploaded = models.BooleanField(default=False)
 
     def is_ready_for_grading(self):
         if self.final_submission is None:
